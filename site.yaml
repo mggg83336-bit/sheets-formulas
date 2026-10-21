@@ -1,0 +1,43 @@
+# ============ 全站唯一配置文件 ============
+# 选定方向后，只需要改这个文件 + niches/<方向>/ 目录。
+site:
+  title: "示例站点 Example Hub"
+  description: "自动更新的示例内容站"
+  language: "zh-CN"
+  # 部署后的正式地址（GitHub Pages: https://<用户名>.github.io/<仓库名>）
+  base_url: "https://example.github.io/autosite"
+  author: "Autosite"
+
+# 当前启用的方向（对应 niches/ 下的目录名）
+niche: "example"
+
+# 每次定时任务最多新生成几篇（控制节奏，避免一次灌太多）
+generate_per_run: 3
+
+# 内容生成器：template（默认，免费，基于模板+结构化数据）或 llm（见 scripts/providers/llm.py）
+provider: "template"
+
+# 广告位：把广告平台给的代码原样粘到这里（留空则不显示）
+ads:
+  head: ""            # 例如 Google AdSense 的 <script ...> 放这里
+  in_article: ""      # 文章中间的广告块 HTML
+  sidebar: ""         # 侧栏/页脚广告块 HTML
+
+# 联盟链接 / 商品购买按钮（Gumroad、Lemon Squeezy 等）
+products:
+  - name: "示例模板包"
+    description: "一次购买，自动发货的数字产品示例"
+    url: "https://example.gumroad.com/l/demo"
+    button_text: "立即购买"
+    price: "$9"
+affiliate_links:
+  - name: "示例联盟链接"
+    url: "https://example.com/?ref=autosite"
+
+analytics:
+  head: ""            # 统计代码（如 Cloudflare Web Analytics），留空则不加载
+
+health:
+  check_external_links: false   # true 时也检查站外链接（较慢）
+  live_url_retries: 3
+  build_retries: 2

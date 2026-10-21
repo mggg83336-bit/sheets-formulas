@@ -1,0 +1,42 @@
+# 示例方向：效率工具评测（仅用于演示，换方向时复制此目录改内容）
+name: "效率工具"
+category_slug: "tools"
+
+# 关键词/主题列表：每条生成一篇页面。data 字段会传给模板。
+topics:
+  - keyword: "番茄钟"
+    data: {use_case: "专注工作", tip: "每 25 分钟休息 5 分钟"}
+  - keyword: "笔记软件"
+    data: {use_case: "知识管理", tip: "用标签而不是层层文件夹"}
+  - keyword: "密码管理器"
+    data: {use_case: "账号安全", tip: "主密码要长且只用一次"}
+  - keyword: "待办清单"
+    data: {use_case: "任务规划", tip: "每天只定 3 件最重要的事"}
+
+# 结构化数据（可选）：CSV 每一行生成一篇（程序化 SEO）。列名可在模板中引用。
+data_file: "items.csv"
+
+# 页面模板（Jinja2 语法，输出 Markdown）。可用变量：keyword, data, niche, today
+title_template: "{{ keyword }}怎么选？{{ today.year }} 年实用指南"
+summary_template: "关于{{ keyword }}的选择要点与使用建议，适合{{ data.use_case }}场景。"
+tags_template: ["{{ niche.name }}", "{{ keyword }}"]
+body_template: |
+  ## 为什么需要{{ keyword }}
+
+  如果你关注**{{ data.use_case }}**，{{ keyword }}能帮你省下大量时间。
+
+  ## 选择要点
+
+  1. 是否跨平台同步
+  2. 免费版功能是否够用
+  3. 数据能否导出
+
+  {{ ad_in_article }}
+
+  ## 实用技巧
+
+  > {{ data.tip }}
+
+  ## 推荐资源
+
+  {{ product_box }}

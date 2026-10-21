@@ -1,0 +1,111 @@
+name: build-deploy-heal
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 1 * * *"   # 每天 UTC 01:17（北京时间 09:17）自动更新
+  workflow_dispatch:
+    inputs:
+      redeploy:
+        description: "自愈触发的重新部署（不再生成新内容）"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write   # 提交新内容 / 回滚提交 / 移动 last-good 标签
+  pages: write
+  id-token: write
+  actions: write    # 线上检查失败时重新触发一次部署
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      base_url: ${{ steps.pages.outputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Generate new content (daily cron / manual only)
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.redeploy != 'true')
+        env:
+          # 接入大模型时在仓库 Settings -> Secrets 配置，不配置则使用免费模板生成器
+          LLM_API_URL: ${{ secrets.LLM_API_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+        run: python scripts/generate.py
+
+      - name: Commit generated content
+        run: |
+          git config user.name "autosite-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content
+          git diff --cached --quiet || git commit -m "auto: content $(date -u +%F)"
+
+      - name: Build + link check + self-heal (rollback on failure)
+        env:
+          SITE_BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: python scripts/healthcheck.py --rollback --commit --mark-good
+
+      - name: Push content / rollback commit / last-good tag
+        if: always()
+        run: |
+          git push origin HEAD:${GITHUB_REF_NAME} || true
+          git push -f origin last-good || true
+
+      - name: Upload status log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-${{ github.run_id }}
+          path: state/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  live-check:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Wait for CDN
+        run: sleep 30
+      - name: Live URL returns 200
+        env:
+          LIVE_URL: ${{ needs.build.outputs.base_url }}
+        run: python scripts/healthcheck.py --live-only
+      - name: Self-heal - redeploy once
+        if: failure() && inputs.redeploy != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml -f redeploy=true --ref ${GITHUB_REF_NAME}

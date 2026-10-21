@@ -1,0 +1,5 @@
+{% if products %}<div class="products">{% for p in products %}
+  <div class="product"><strong>{{ p.name }}</strong> <span class="price">{{ p.price }}</span>
+  <p>{{ p.description }}</p>
+  <a class="buy" href="{{ p.url }}" rel="sponsored noopener" target="_blank">{{ p.button_text | default('购买') }}</a></div>{% endfor %}
+</div>{% endif %}

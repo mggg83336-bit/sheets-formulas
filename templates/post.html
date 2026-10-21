@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block og_type %}article{% endblock %}
+{% block jsonld %}<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"Article","headline":post.title,"datePublished":post.date,"description":post.summary,"mainEntityOfPage":post.abs_url} | tojson }}</script>{% endblock %}
+{% block main %}
+<article>
+  <h1>{{ post.title }}</h1>
+  <p class="meta"><time datetime="{{ post.date }}">{{ post.date }}</time>
+  {% for t, u in post.tag_links %}<a class="tag" href="{{ u }}">#{{ t }}</a>{% endfor %}</p>
+  {{ body | safe }}
+</article>
+{% endblock %}

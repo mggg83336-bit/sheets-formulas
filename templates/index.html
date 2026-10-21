@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>{{ page_title }}</h1>
+<p class="desc">{{ description }}</p>
+{% for p in posts %}
+<article class="card">
+  <h2><a href="{{ p.url }}">{{ p.title }}</a></h2>
+  <time datetime="{{ p.date }}">{{ p.date }}</time>
+  <p>{{ p.summary }}</p>
+</article>
+{% else %}<p>暂无文章。</p>{% endfor %}
+{% endblock %}
