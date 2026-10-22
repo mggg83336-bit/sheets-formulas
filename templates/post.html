@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block og_type %}article{% endblock %}
-{% block jsonld %}<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"Article","headline":post.title,"datePublished":post.date,"description":post.summary,"mainEntityOfPage":post.abs_url} | tojson }}</script>{% endblock %}
+{% block jsonld %}{% set crumbs = [{"@type":"ListItem","position":1,"name":site.title,"item":base_url ~ "/"}] %}{% if post.category_label %}{% set crumbs = crumbs + [{"@type":"ListItem","position":2,"name":post.category_label,"item":post.category_abs_url}] %}{% endif %}
+<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"TechArticle","headline":post.title,"datePublished":post.date,"dateModified":post.date,"description":post.summary,"mainEntityOfPage":post.abs_url,"author":{"@type":"Organization","name":site.author},"proficiencyLevel":"Beginner"} | tojson }}</script>
+<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":crumbs + [{"@type":"ListItem","position":crumbs|length + 1,"name":post.title}]} | tojson }}</script>
+{% if post.faq %}<script type="application/ld+json">{{ {"@context":"https://schema.org","@type":"FAQPage","mainEntity":post.faq | map("faq_entity") | list} | tojson }}</script>{% endif %}
+{% endblock %}
 {% block main %}
+<nav class="crumbs"><a href="{{ base_path }}/">{{ ui.home }}</a>{% if post.category_label %} › <a href="{{ post.category_url }}">{{ post.category_label }}</a>{% endif %}</nav>
 <article>
   <h1>{{ post.title }}</h1>
-  <p class="meta"><time datetime="{{ post.date }}">{{ post.date }}</time>
-  {% for t, u in post.tag_links %}<a class="tag" href="{{ u }}">#{{ t }}</a>{% endfor %}</p>
+  <p class="meta">{% if post.platform %}<span class="badge">{{ post.platform }}</span>{% endif %}<time datetime="{{ post.date }}">Updated {{ post.date }}</time></p>
   {{ body | safe }}
 </article>
 {% endblock %}

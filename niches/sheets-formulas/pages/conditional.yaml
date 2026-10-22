@@ -1,0 +1,712 @@
+# Conditional sums & counts
+- id: sumif
+  category: conditional
+  launch: true
+  slugs: {excel: sumif-excel, sheets: sumif-google-sheets}
+  title: How to Use SUMIF
+  summary: >-
+    SUMIF adds the numbers that meet one condition: all expenses in a category, all amounts over
+    a threshold, or all items whose name starts with certain letters. Below are the syntax, three
+    worked examples, and the mistakes that make SUMIF return 0.
+  problem: >-
+    You keep an expense list with a category for every line and want a total per category
+    without filtering or adding cells by hand.
+  excel:
+    formula: '=SUMIF(A2:A7, E2, C2:C7)'
+    explain: >-
+      Syntax: `SUMIF(range, criteria, [sum_range])`. Check A2:A7 against the value in E2 and add
+      the matching amounts from C2:C7.
+    notes: >-
+      Criteria with an operator are written as text: `">40"`, `"<>Travel"`. To compare with a
+      cell, join the operator and the cell: `">"&G1`. SUMIF is not case-sensitive and accepts
+      wildcards: `*` for any number of characters and `?` for exactly one; put a tilde in front
+      to search for a literal asterisk (`"~*"`). If you need two or more conditions, use SUMIFS,
+      whose argument order is different (the sum range comes first).
+    diff: >-
+      Excel uses the identical syntax and wildcards.
+  sheets:
+    formula: '=SUMIF(A2:A7, E2, C2:C7)'
+    explain: >-
+      Same syntax in Google Sheets: `SUMIF(range, criterion, [sum_range])`.
+    notes: >-
+      SUMIF behaves the same in Google Sheets, including wildcards. A Sheets-specific option is to
+      build a full summary table with one formula: `=QUERY(A2:C7, "select A, sum(C) group by A
+      label sum(C) 'Total'", 0)` returns each category with its total and updates when new
+      categories appear, which is handy when you do not know the categories in advance.
+    alternatives:
+      - label: Totals for every category at once
+        formula: '=QUERY(A2:C7, "select A, sum(C) group by A label sum(C) ''Total''", 0)'
+    diff: >-
+      Google Sheets uses the same syntax. QUERY can also build a total for every category in one
+      formula.
+  example:
+    intro: An expense list with three totals.
+    grid:
+      - [Category, Item, Amount, null, Criteria, Total]
+      - [Office, Paper, 45, null, Office]
+      - [Travel, Taxi, 32.5, null, '>40']
+      - [Office, Toner, 89, null, 'T*']
+      - [Meals, Lunch, 18.75]
+      - [Travel, Train, 64]
+      - [Office, Pens, 12]
+    checks:
+      - cell: F2
+        label: total for the category in E2
+        excel: '=SUMIF(A2:A7, E2, C2:C7)'
+        result: 146
+      - cell: F3
+        label: amounts greater than 40 (no sum_range needed)
+        excel: '=SUMIF(C2:C7, ">40")'
+        result: 198
+      - cell: F4
+        label: items starting with T
+        excel: '=SUMIF(B2:B7, "T*", C2:C7)'
+        result: 185.5
+  steps:
+    - 'The first argument is the range to test (Category).'
+    - 'The second is the condition: a value, a cell, or text such as ">40" or "T*".'
+    - 'The third is the range to add. It must line up row by row with the test range.'
+    - 'If the test range and the numbers are the same column, leave the third argument out, as in `=SUMIF(C2:C7, ">40")`.'
+  errors:
+    - error: Returns 0
+      cause: The amounts are stored as text (often after an import), or the criterion has an extra space.
+      fix: Convert the column to numbers (Data > Text to Columns > Finish in Excel, Format > Number in Sheets) and check the criterion with LEN.
+    - error: Wrong total
+      cause: The sum range has a different size or starts on a different row than the test range.
+      fix: Make both ranges the same size, e.g. A2:A7 and C2:C7.
+    - error: Operator criterion ignored
+      cause: The operator was not quoted, e.g. =SUMIF(C2:C7, >40).
+      fix: Put operators in quotes and join cell references with &, e.g. ">"&G1.
+  faq:
+    - q: What is the difference between SUMIF and SUMIFS?
+      a: SUMIF supports one condition; SUMIFS supports one or more. SUMIFS puts the sum range first, SUMIF puts it last.
+    - q: Can SUMIF use a date as the criteria?
+      a: Yes, e.g. =SUMIF(A2:A100, ">="&DATE(2026,1,1), B2:B100). For a date range use SUMIFS with two conditions.
+    - q: How do I sum cells that are not equal to something?
+      a: Use "<>" in front of the value, e.g. =SUMIF(A2:A7, "<>Travel", C2:C7).
+  related: [sumifs, countif, sumifs-between-dates, sum-by-month, maxifs-minifs]
+
+- id: sumifs
+  category: conditional
+  launch: true
+  slugs: {excel: sumifs-excel, sheets: sumifs-google-sheets}
+  title: SUMIFS with Multiple Criteria
+  summary: >-
+    SUMIFS adds numbers that meet several conditions at the same time, for example sales for one
+    region AND one product. This page covers AND logic, number thresholds, and the trick for OR
+    logic across several values.
+  problem: >-
+    Your sales log has Region, Rep, Product and Sales columns. You need totals such as "East
+    region laptops" or "Monitors sold in East or West" for a report.
+  excel:
+    formula: '=SUMIFS(D2:D8, A2:A8, F2, C2:C8, G2)'
+    explain: >-
+      Syntax: `SUMIFS(sum_range, criteria_range1, criteria1, [criteria_range2, criteria2], ...)`.
+      Add D2:D8 where A2:A8 equals F2 AND C2:C8 equals G2.
+    notes: >-
+      All conditions in SUMIFS are combined with AND. For OR logic on one column, pass an array
+      constant and wrap the result in SUM: `=SUM(SUMIFS(D2:D8, A2:A8, {"East","West"}, C2:C8,
+      "Monitor"))`; Excel evaluates it once per value and adds the results. You can use up to
+      127 range/criteria pairs, and every criteria range must be the same size as the sum range,
+      otherwise Excel returns #VALUE!.
+    diff: >-
+      Excel uses the same syntax, and SUM(SUMIFS(..., {"East","West"}, ...)) works without
+      ARRAYFORMULA.
+  sheets:
+    formula: '=SUMIFS(D2:D8, A2:A8, F2, C2:C8, G2)'
+    explain: >-
+      Same syntax in Google Sheets: `SUMIFS(sum_range, criteria_range1, criterion1, ...)`.
+    notes: >-
+      In Google Sheets the OR trick with an array constant needs ARRAYFORMULA, otherwise SUMIFS
+      only uses the first value in the braces and the total is too low:
+      `=ARRAYFORMULA(SUM(SUMIFS(D2:D8, A2:A8, {"East","West"}, C2:C8, "Monitor")))`. As an
+      alternative you can add up a FILTER result with a regular expression on the region:
+      `=SUM(FILTER(D2:D8, REGEXMATCH(A2:A8, "^(East|West)$"), C2:C8="Monitor"))`.
+    alternatives:
+      - label: OR logic in Google Sheets
+        formula: '=ARRAYFORMULA(SUM(SUMIFS(D2:D8, A2:A8, {"East","West"}, C2:C8, "Monitor")))'
+      - label: Same result with FILTER and REGEXMATCH
+        formula: '=SUM(FILTER(D2:D8, REGEXMATCH(A2:A8, "^(East|West)$"), C2:C8="Monitor"))'
+    diff: >-
+      Google Sheets uses the same syntax, but OR logic with an array constant must be wrapped in
+      ARRAYFORMULA.
+  example:
+    intro: Three totals from the same sales log.
+    grid:
+      - [Region, Rep, Product, Sales, null, Region, Product, Total]
+      - [East, Kim, Laptop, 1200, null, East, Laptop]
+      - [West, Ruiz, Laptop, 950]
+      - [East, Patel, Monitor, 300]
+      - [East, Kim, Monitor, 280]
+      - [West, Ruiz, Monitor, 410]
+      - [East, Patel, Laptop, 1100]
+      - [North, Lee, Laptop, 870]
+    checks:
+      - cell: H2
+        label: East AND Laptop
+        excel: '=SUMIFS(D2:D8, A2:A8, F2, C2:C8, G2)'
+        result: 2300
+      - cell: H3
+        label: East AND sales of at least 300
+        excel: '=SUMIFS(D2:D8, A2:A8, "East", D2:D8, ">=300")'
+        result: 2600
+      - cell: H4
+        label: Monitors in East OR West
+        excel: '=SUM(SUMIFS(D2:D8, A2:A8, {"East","West"}, C2:C8, "Monitor"))'
+        sheets: '=ARRAYFORMULA(SUM(SUMIFS(D2:D8, A2:A8, {"East","West"}, C2:C8, "Monitor")))'
+        result: 990
+  steps:
+    - '`D2:D8` is the column to add. In SUMIFS it always comes first.'
+    - 'Then come pairs: a range to test and the condition for it. `A2:A8, F2` keeps rows where Region is East.'
+    - '`C2:C8, G2` additionally keeps rows where Product is Laptop. Only rows meeting every pair are added: 1200 + 1100 = 2300.'
+    - 'The sum range can also be a criteria range, as in `D2:D8, ">=300"`.'
+    - 'For OR, the array constant makes SUMIFS return one total per region, {580, 410} (East monitors and West monitors), and SUM adds them: 990.'
+  errors:
+    - error: '#VALUE!'
+      cause: A criteria range is a different size than the sum range (e.g. A2:A8 vs D2:D9).
+      fix: Make every range cover the same rows.
+    - error: Returns 0
+      cause: Numbers stored as text, a trailing space in a criterion, or the arguments are in SUMIF order (sum range last).
+      fix: Put the sum range first and clean the data.
+    - error: OR total is too low in Google Sheets
+      cause: The {"East","West"} array was used without ARRAYFORMULA, so only East was counted.
+      fix: Wrap the formula in ARRAYFORMULA.
+  faq:
+    - q: Can SUMIFS use OR logic?
+      a: Not directly; all conditions are AND. Use SUM(SUMIFS(...)) with an array constant, or add two SUMIFS together.
+    - q: How do I sum between two dates with SUMIFS?
+      a: Use the date column twice, e.g. =SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2).
+    - q: Is SUMIFS case-sensitive?
+      a: No. Use SUMPRODUCT with EXACT if you need a case-sensitive sum.
+  related: [sumif, sumifs-between-dates, countifs, sum-by-month, vlookup-multiple-criteria]
+
+- id: sumifs-between-dates
+  category: conditional
+  launch: true
+  slugs: {excel: sumifs-between-dates-excel, sheets: sumifs-between-dates-google-sheets}
+  title: SUMIFS Between Two Dates
+  summary: >-
+    To add values that fall within a date range, use SUMIFS with the date column twice: once
+    with ">=" the start date and once with "<=" the end date. This page shows the cell-based
+    version, the hard-coded version and how to avoid losing rows that contain a time.
+  problem: >-
+    You have dated transactions and need the total for February, or for any start and end date
+    typed into two input cells.
+  excel:
+    formula: '=SUMIFS(B2:B7, A2:A7, ">="&D2, A2:A7, "<="&E2)'
+    explain: >-
+      The date column A2:A7 is tested twice: on or after the start date in D2 and on or before
+      the end date in E2. Only rows meeting both are added.
+    notes: >-
+      Write fixed dates with the DATE function (`">="&DATE(2026,2,1)`) rather than as text such
+      as ">=2/1/2026", because text dates are interpreted using the computer's regional settings
+      and can silently flip day and month. If the dates include a time (exports from forms or
+      systems often do), use `"<"&E2+1` as the upper bound so the whole end day is included.
+    alternatives:
+      - label: Fixed dates without input cells
+        formula: '=SUMIFS(B2:B7, A2:A7, ">="&DATE(2026,2,1), A2:A7, "<"&DATE(2026,3,1))'
+      - label: Dates that include times
+        formula: '=SUMIFS(B2:B7, A2:A7, ">="&D2, A2:A7, "<"&E2+1)'
+    diff: >-
+      Excel uses the identical SUMIFS formula; write fixed dates with DATE() to avoid regional
+      format problems.
+  sheets:
+    formula: '=SUMIFS(B2:B7, A2:A7, ">="&D2, A2:A7, "<="&E2)'
+    explain: >-
+      Identical in Google Sheets. The comparison works on the underlying date serial numbers.
+    notes: >-
+      Google Sheets also lets you do this with QUERY, which uses ISO date literals and is not
+      affected by the spreadsheet's locale: `=QUERY(A2:B7, "select sum(B) where A >= date
+      '2026-02-01' and A <= date '2026-02-28' label sum(B) ''", 0)`. Check File > Settings >
+      Locale if typed dates are interpreted with day and month swapped; the formula is right,
+      but the dates in the cells may not be real dates.
+    alternatives:
+      - label: QUERY with ISO date literals
+        formula: '=QUERY(A2:B7, "select sum(B) where A >= date ''2026-02-01'' and A <= date ''2026-02-28'' label sum(B) ''''", 0)'
+    diff: >-
+      The same formula works in Google Sheets; QUERY with ISO date literals is an alternative there.
+  example:
+    intro: Total of transactions between the start date in D2 and the end date in E2.
+    grid:
+      - [Date, Amount, null, Start, End, Total]
+      - [2026-01-28, 400, null, 2026-02-01, 2026-02-28]
+      - [2026-02-03, 250]
+      - [2026-02-14, 600]
+      - [2026-02-28, 150]
+      - [2026-03-01, 300]
+      - [2026-03-15, 200]
+    checks:
+      - cell: F2
+        label: from input cells
+        excel: '=SUMIFS(B2:B7, A2:A7, ">="&D2, A2:A7, "<="&E2)'
+        result: 1000
+      - cell: F3
+        label: fixed dates for February
+        excel: '=SUMIFS(B2:B7, A2:A7, ">="&DATE(2026,2,1), A2:A7, "<"&DATE(2026,3,1))'
+        result: 1000
+  steps:
+    - '`">="&D2` builds the text ">=46054" (the serial number of Feb 1, 2026). SUMIFS compares it with the dates in A2:A7.'
+    - '`"<="&E2` adds the upper limit. Both conditions must be true, so only Feb 3, Feb 14 and Feb 28 are included.'
+    - 'The amounts on those rows are added: 250 + 600 + 150 = 1000.'
+    - 'Using `<` with the first day of the next month is a safe way to include the entire last day.'
+  errors:
+    - error: Returns 0
+      cause: The dates in column A are text, not real dates (they are often left-aligned).
+      fix: Convert them with DATEVALUE or Text to Columns; =ISNUMBER(A2) should return TRUE.
+    - error: Last day missing
+      cause: The dates contain times, so 2026-02-28 15:30 is greater than 2026-02-28.
+      fix: Use "<"&E2+1 as the upper bound.
+    - error: '#VALUE!'
+      cause: The sum range and the date ranges have different sizes.
+      fix: Use ranges covering the same rows.
+  faq:
+    - q: Why does the operator go in quotes?
+      a: SUMIFS criteria are text. The & joins the operator with the date's serial number to form a condition such as ">=46054".
+    - q: How do I count rows between two dates instead?
+      a: Use COUNTIFS with the same two conditions, e.g. =COUNTIFS(A2:A7, ">="&D2, A2:A7, "<="&E2).
+  related: [sumifs, sum-by-month, days-between-dates, eomonth, countifs]
+
+- id: countif
+  category: conditional
+  launch: true
+  slugs: {excel: countif-excel, sheets: countif-google-sheets}
+  title: How to Use COUNTIF
+  summary: >-
+    COUNTIF counts the cells in a range that meet one condition: a specific word, numbers above a
+    threshold, blanks, or anything except a value. Four worked examples show exactly which
+    criteria to type, including the surprising way blank cells are treated.
+  problem: >-
+    In a class results sheet you want to know how many students passed, how many scored 70 or
+    more, and how many results are still missing.
+  excel:
+    formula: '=COUNTIF(C2:C8, "Pass")'
+    explain: >-
+      Syntax: `COUNTIF(range, criteria)`. Count the cells in C2:C8 equal to "Pass" (not
+      case-sensitive).
+    notes: >-
+      Criteria follow the same rules as SUMIF: operators go in quotes (`">=70"`), cell references
+      are joined with & (`">="&E1`), and wildcards are supported (`"*pass*"` counts cells that
+      contain "pass"). Note that "<>Pass" also counts empty cells, which surprises many people.
+      COUNTIF only accepts ranges, not arrays, so you cannot pass it the result of another
+      calculation such as `LEFT(A2:A8,1)`; use SUMPRODUCT for that.
+    diff: >-
+      Excel uses the identical syntax, and "<>Pass" also counts blank cells there.
+  sheets:
+    formula: '=COUNTIF(C2:C8, "Pass")'
+    explain: >-
+      Same syntax in Google Sheets: `COUNTIF(range, criterion)`.
+    notes: >-
+      COUNTIF works the same way in Google Sheets. For patterns that wildcards cannot express,
+      Sheets users can combine REGEXMATCH with SUMPRODUCT, for example counting codes that start
+      with two letters followed by digits: `=SUMPRODUCT(REGEXMATCH(A2:A8, "^[A-Z]{2}\d+$"))`.
+      COUNTUNIQUE is another Sheets-only helper when you need distinct values instead of matches.
+    alternatives:
+      - label: Count cells matching a regular expression
+        formula: '=SUMPRODUCT(REGEXMATCH(A2:A8, "^[A-Z]{2}\d+$"))'
+    diff: >-
+      Google Sheets uses the same syntax. For complex patterns, combine REGEXMATCH and SUMPRODUCT.
+  example:
+    intro: Ivy's result has not been entered yet.
+    grid:
+      - [Student, Score, Result, null, Question, Count]
+      - [Ava, 88, Pass, null, Passed]
+      - [Liam, 54, Fail, null, Scored 70+]
+      - [Mia, 92, Pass, null, Missing result]
+      - [Noah, 67, Pass, null, Not "Pass"]
+      - [Zoe, 45, Fail]
+      - [Eli, 73, Pass]
+      - [Ivy, null, null]
+    checks:
+      - cell: F2
+        excel: '=COUNTIF(C2:C8, "Pass")'
+        result: 4
+      - cell: F3
+        excel: '=COUNTIF(B2:B8, ">=70")'
+        result: 3
+      - cell: F4
+        excel: '=COUNTIF(C2:C8, "")'
+        result: 1
+      - cell: F5
+        label: includes the blank cell
+        excel: '=COUNTIF(C2:C8, "<>Pass")'
+        result: 3
+  steps:
+    - '`C2:C8` is the range to check; it can be a column or a block of cells.'
+    - '`"Pass"` counts exact matches, ignoring case.'
+    - '`">=70"` applies a comparison to numbers. Text and empty cells are ignored, so Ivy is not counted.'
+    - '`""` counts empty cells (and cells containing an empty string from a formula).'
+    - '`"<>Pass"` counts everything that is not Pass, including the empty cell: Liam, Zoe and Ivy.'
+  errors:
+    - error: Count is 0
+      cause: Leading or trailing spaces in the data, or numbers stored as text when counting with ">".
+      fix: Clean the data with TRIM and convert text numbers to real numbers.
+    - error: Count includes blanks
+      cause: '"<>value" counts empty cells too.'
+      fix: 'Use COUNTIFS to exclude blanks: =COUNTIFS(C2:C8, "<>Pass", C2:C8, "<>").'
+    - error: Wrong count for long numbers
+      cause: COUNTIF converts text that looks like a number, so IDs longer than 15 digits are compared as rounded numbers.
+      fix: 'Use =SUMPRODUCT(--(A2:A8=E2)) for long numeric IDs.'
+  faq:
+    - q: How do I count cells that contain a word?
+      a: Use wildcards, e.g. =COUNTIF(A2:A100, "*mouse*").
+    - q: How do I count with two conditions?
+      a: Use COUNTIFS, which takes several range/criteria pairs.
+    - q: How do I count non-blank cells?
+      a: Use =COUNTIF(A2:A100, "<>") or =COUNTA(A2:A100).
+  related: [countifs, sumif, count-unique, contains-text]
+
+- id: countifs
+  category: conditional
+  launch: true
+  slugs: {excel: countifs-excel, sheets: countifs-google-sheets}
+  title: COUNTIFS with Multiple Criteria
+  summary: >-
+    COUNTIFS counts rows that meet several conditions at once, such as deals that are both won
+    and above a certain size, or values between two numbers. Includes a worked pipeline example
+    and how to do OR logic.
+  problem: >-
+    In a sales pipeline you want to count won deals in the East, won deals worth at least
+    10,000, and deals between 5,000 and 10,000.
+  excel:
+    formula: '=COUNTIFS(B2:B8, "East", D2:D8, "Won")'
+    explain: >-
+      Syntax: `COUNTIFS(criteria_range1, criteria1, [criteria_range2, criteria2], ...)`. A row
+      is counted only if every condition is true.
+    notes: >-
+      To count values between two numbers, use the same column twice with two conditions. For
+      OR logic (Won OR Lost in East), use an array constant and SUM: `=SUM(COUNTIFS(B2:B8,
+      "East", D2:D8, {"Won","Lost"}))`. All ranges must be the same shape; unlike SUMIFS there is
+      no separate range to add.
+    diff: >-
+      Excel uses the same syntax; SUM(COUNTIFS(..., {"Won","Lost"})) works there without
+      ARRAYFORMULA.
+  sheets:
+    formula: '=COUNTIFS(B2:B8, "East", D2:D8, "Won")'
+    explain: >-
+      Same syntax in Google Sheets.
+    notes: >-
+      COUNTIFS behaves the same in Google Sheets, but array constants for OR logic must be
+      wrapped in ARRAYFORMULA: `=ARRAYFORMULA(SUM(COUNTIFS(B2:B8, "East", D2:D8,
+      {"Won","Lost"})))`. Alternatively, count the rows of a FILTER result with
+      `=ROWS(FILTER(A2:A8, B2:B8="East", C2:C8>=10000))`, which also lets you use conditions that
+      COUNTIFS cannot express, such as comparisons between two columns.
+    alternatives:
+      - label: OR logic in Google Sheets
+        formula: '=ARRAYFORMULA(SUM(COUNTIFS(B2:B8, "East", D2:D8, {"Won","Lost"})))'
+    diff: >-
+      Google Sheets uses the same syntax, but array constants for OR logic need ARRAYFORMULA.
+  example:
+    intro: A small sales pipeline.
+    grid:
+      - [Rep, Region, Deal size, Stage, null, Question, Count]
+      - [Kim, East, 12000, Won, null, East and Won]
+      - [Ruiz, West, 8000, Lost, null, 'Won and >= 10,000']
+      - [Patel, East, 15000, Won, null, '5,000 to 10,000']
+      - [Lee, North, 11000, Won]
+      - [Kim, East, 3000, Lost]
+      - [Ruiz, West, 22000, Won]
+      - [Patel, East, 9000, Won]
+    checks:
+      - cell: G2
+        excel: '=COUNTIFS(B2:B8, "East", D2:D8, "Won")'
+        result: 3
+      - cell: G3
+        excel: '=COUNTIFS(D2:D8, "Won", C2:C8, ">=10000")'
+        result: 4
+      - cell: G4
+        excel: '=COUNTIFS(C2:C8, ">=5000", C2:C8, "<=10000")'
+        result: 2
+  steps:
+    - 'Each pair is a range and a condition. `B2:B8, "East"` keeps East rows.'
+    - '`D2:D8, "Won"` keeps only won deals among those. Kim (12,000), Patel (15,000) and Patel (9,000) remain: 3.'
+    - 'Conditions on numbers use quoted operators: `">=10000"`.'
+    - 'Using the same column twice creates a range: at least 5,000 and at most 10,000 matches 8,000 and 9,000.'
+  errors:
+    - error: '#VALUE!'
+      cause: The criteria ranges are different sizes.
+      fix: Make every range cover the same rows.
+    - error: Count too high with "<>"
+      cause: '"<>Won" also counts blank cells.'
+      fix: 'Add another condition that excludes blanks: D2:D8, "<>".'
+    - error: Count is 0
+      cause: Numbers stored as text or trailing spaces.
+      fix: Clean and convert the data, then re-check each condition separately with COUNTIF.
+  faq:
+    - q: Is there a limit to the number of conditions?
+      a: COUNTIFS accepts up to 127 range/criteria pairs in Excel; you will rarely need more than a few.
+    - q: How do I count rows where two columns are equal?
+      a: COUNTIFS cannot compare columns to each other. Use =SUMPRODUCT(--(B2:B8=C2:C8)).
+    - q: How do I count rows between two dates?
+      a: 'Use the date column twice: =COUNTIFS(A2:A100, ">="&E1, A2:A100, "<="&E2), where E1 and E2 hold the start and end dates. Join the operator and the cell with &, exactly as with numbers.'
+    - q: Can COUNTIFS use wildcards?
+      a: Yes. =COUNTIFS(A2:A8, "K*", D2:D8, "Won") counts won deals for reps whose name starts with K. Use * for any number of characters and ? for exactly one character.
+  related: [countif, sumifs, count-unique, maxifs-minifs]
+
+- id: maxifs-minifs
+  category: conditional
+  launch: true
+  slugs: {excel: maxifs-minifs-excel, sheets: maxifs-minifs-google-sheets}
+  title: MAX and MIN with Criteria (MAXIFS / MINIFS)
+  summary: >-
+    MAXIFS and MINIFS return the largest or smallest number that meets one or more conditions,
+    such as the best month for one store. This page shows both functions and the array formula to
+    use in Excel versions that do not have them.
+  problem: >-
+    You track monthly revenue for several stores and want the highest and lowest month for a
+    chosen store, and the best result of any store in February.
+  excel:
+    formula: '=MAXIFS(C2:C7, A2:A7, E2)'
+    explain: >-
+      Syntax: `MAXIFS(max_range, criteria_range1, criteria1, ...)`. MINIFS uses the same
+      arguments. The value range comes first, like SUMIFS.
+    notes: >-
+      MAXIFS and MINIFS exist in Excel 2019, 2021, 2024 and Microsoft 365. In Excel 2016 and
+      older they return #NAME?; use `=MAX(IF(A2:A7=E2, C2:C7))` confirmed with Ctrl+Shift+Enter
+      instead. When no row meets the conditions, MAXIFS returns 0 rather than an error, which can
+      be misleading for negative numbers; check with COUNTIFS first if that matters.
+    alternatives:
+      - label: Excel 2016 and older (array formula)
+        formula: '=MAX(IF(A2:A7=E2, C2:C7))'
+    diff: >-
+      MAXIFS/MINIFS have the same syntax in Excel 2019 and later; Excel 2016 needs MAX(IF(...)).
+  sheets:
+    formula: '=MAXIFS(C2:C7, A2:A7, E2)'
+    explain: >-
+      Same syntax in Google Sheets.
+    notes: >-
+      Google Sheets supports MAXIFS and MINIFS with the same arguments. An equally common Sheets
+      pattern is to take the MAX of a FILTER, which reads naturally and can be reused for other
+      statistics such as MEDIAN or AVERAGE on the same subset: `=MAX(FILTER(C2:C7, A2:A7=E2))`.
+      Unlike MAXIFS, the FILTER version returns #N/A when nothing matches instead of 0.
+    alternatives:
+      - label: MAX of a FILTER
+        formula: '=MAX(FILTER(C2:C7, A2:A7=E2))'
+    diff: >-
+      Google Sheets uses the same MAXIFS / MINIFS syntax.
+  example:
+    intro: Revenue by store and month.
+    grid:
+      - [Store, Month, Revenue, null, Store, Result]
+      - [Downtown, Jan, 18200, null, Downtown]
+      - [Airport, Jan, 9400]
+      - [Downtown, Feb, 16900]
+      - [Airport, Feb, 11250]
+      - [Mall, Jan, 13700]
+      - [Mall, Feb, 12100]
+    checks:
+      - cell: F2
+        label: best month for Downtown
+        excel: '=MAXIFS(C2:C7, A2:A7, E2)'
+        result: 18200
+      - cell: F3
+        label: weakest month for Downtown
+        excel: '=MINIFS(C2:C7, A2:A7, E2)'
+        result: 16900
+      - cell: F4
+        label: best store result in February
+        excel: '=MAXIFS(C2:C7, B2:B7, "Feb")'
+        result: 16900
+  steps:
+    - '`C2:C7` holds the numbers to compare.'
+    - '`A2:A7, E2` keeps only rows for the store in E2 (Downtown): 18,200 and 16,900.'
+    - MAXIFS returns the larger of those, MINIFS the smaller.
+    - Add more pairs for more conditions, e.g. `B2:B7, "Feb"`.
+  errors:
+    - error: '#NAME?'
+      cause: Excel 2016 or older does not have MAXIFS / MINIFS.
+      fix: Use =MAX(IF(...)) entered with Ctrl+Shift+Enter, or AGGREGATE.
+    - error: Returns 0
+      cause: No row meets the conditions (or the numbers are text).
+      fix: Check with COUNTIFS; wrap in IF(COUNTIFS(...)=0, "None", MAXIFS(...)).
+    - error: '#VALUE!'
+      cause: The criteria range and max range are different sizes.
+      fix: Use ranges covering the same rows.
+  faq:
+    - q: How do I get the name that goes with the maximum?
+      a: Combine with a lookup, e.g. =XLOOKUP(MAXIFS(C2:C7,A2:A7,E2), C2:C7, B2:B7) returns the month of the best result (first match if there is a tie).
+    - q: Is there an AVERAGEIFS too?
+      a: Yes, AVERAGEIFS uses the same argument order and works in Excel 2007+ and Google Sheets.
+    - q: How do I find the second-highest value with a condition?
+      a: MAXIFS only returns the top value. Use LARGE with FILTER in Excel 365 or Google Sheets, e.g. =LARGE(FILTER(C2:C7, A2:A7=E2), 2), or the array formula =LARGE(IF(A2:A7=E2, C2:C7), 2) in older Excel.
+  related: [sumifs, countifs, xlookup, weighted-average]
+
+- id: sum-by-month
+  category: conditional
+  launch: true
+  slugs: {excel: sum-by-month-excel, sheets: sum-by-month-google-sheets}
+  title: How to Sum by Month
+  summary: >-
+    To total daily transactions by month, use SUMIFS with a start date and EOMONTH as the end
+    date. This guide builds a monthly summary that you can fill down, plus a SUMPRODUCT version
+    and a one-formula QUERY report for Google Sheets.
+  problem: >-
+    Transactions are listed with their dates. You want a summary with one row per month and the
+    total for that month.
+  excel:
+    formula: '=SUMIFS($B$2:$B$7, $A$2:$A$7, ">="&D2, $A$2:$A$7, "<="&EOMONTH(D2, 0))'
+    explain: >-
+      D2 holds the first day of the month. EOMONTH(D2, 0) returns the last day of the same
+      month, so SUMIFS adds every transaction between the two.
+    notes: >-
+      Put real dates (the 1st of each month) in the month column and format them as "mmm yyyy";
+      typing text like "Jan" will not work with the comparison. In Microsoft 365 you can build the
+      month list automatically with `=UNIQUE(EOMONTH(A2:A7, -1)+1)`. A PivotTable grouped by
+      month is the no-formula alternative when you only need a one-off report.
+    alternatives:
+      - label: SUMPRODUCT by month number and year
+        formula: '=SUMPRODUCT((MONTH($A$2:$A$7)=MONTH(D2))*(YEAR($A$2:$A$7)=YEAR(D2))*$B$2:$B$7)'
+    diff: >-
+      Excel uses the identical SUMIFS + EOMONTH formula. A PivotTable grouped by month is the
+      no-formula alternative.
+  sheets:
+    formula: '=SUMIFS($B$2:$B$7, $A$2:$A$7, ">="&D2, $A$2:$A$7, "<="&EOMONTH(D2, 0))'
+    explain: >-
+      Identical in Google Sheets.
+    notes: >-
+      Google Sheets can produce the whole month-by-month summary with one QUERY formula, no
+      helper column needed: `=QUERY(A2:B7, "select year(A), month(A)+1, sum(B) where A is not
+      null group by year(A), month(A)+1 label year(A) 'Year', month(A)+1 'Month', sum(B)
+      'Total'", 0)`. QUERY's month() is zero-based (January = 0), which is why the formula adds 1.
+    alternatives:
+      - label: One-formula monthly report with QUERY
+        formula: '=QUERY(A2:B7, "select year(A), month(A)+1, sum(B) where A is not null group by year(A), month(A)+1 label year(A) ''Year'', month(A)+1 ''Month'', sum(B) ''Total''", 0)'
+    diff: >-
+      The same formula works in Google Sheets, which can also build the full monthly summary
+      with one QUERY.
+  example:
+    intro: D2:D4 contain the first day of each month (formatted as month and year).
+    grid:
+      - [Date, Amount, null, Month, Total]
+      - [2026-01-05, 120, null, 2026-01-01]
+      - [2026-01-19, 80, null, 2026-02-01]
+      - [2026-02-02, 200, null, 2026-03-01]
+      - [2026-02-20, 50]
+      - [2026-03-11, 75]
+      - [2026-03-30, 25]
+    checks:
+      - cell: E2
+        label: filled down to E4
+        excel: '=SUMIFS($B$2:$B$7, $A$2:$A$7, ">="&D2, $A$2:$A$7, "<="&EOMONTH(D2, 0))'
+        fill: [E2, E3, E4]
+        results: [200, 250, 100]
+      - cell: F2
+        label: SUMPRODUCT version, filled down to F4
+        excel: '=SUMPRODUCT((MONTH($A$2:$A$7)=MONTH(D2))*(YEAR($A$2:$A$7)=YEAR(D2))*$B$2:$B$7)'
+        fill: [F2, F3, F4]
+        results: [200, 250, 100]
+  steps:
+    - '`">="&D2` keeps dates on or after the 1st of the month.'
+    - '`EOMONTH(D2, 0)` returns the last day of that month (Jan 31, Feb 28, Mar 31), and `"<="&` turns it into an upper limit.'
+    - 'The absolute references ($) keep the data ranges fixed while D2 changes to D3 and D4 as you fill down.'
+    - The SUMPRODUCT version compares the month and year of every date with the month and year in column D and multiplies by the amounts.
+  errors:
+    - error: All totals are 0
+      cause: The month column contains text ("Jan") or the transaction dates are text.
+      fix: Use real dates such as 2026-01-01 formatted as "mmm yyyy", and check the data with ISNUMBER.
+    - error: Last day of the month missing
+      cause: Dates include times, so the 31st at 14:00 is after EOMONTH's midnight.
+      fix: Use "<"&EOMONTH(D2,0)+1 as the upper limit.
+    - error: January of two years added together
+      cause: The SUMPRODUCT version only checks MONTH.
+      fix: Also compare YEAR, as in the formula above.
+  faq:
+    - q: How do I sum by week instead?
+      a: Put the start date of each week in the summary column and use "<"&D2+7 as the upper limit.
+    - q: Can I sum by month without a summary table?
+      a: Use a PivotTable grouped by months (Excel), or the QUERY formula above (Google Sheets).
+  related: [sumifs-between-dates, sumifs, eomonth, sumif]
+
+- id: count-unique
+  category: conditional
+  launch: true
+  slugs: {excel: count-unique-excel, sheets: count-unique-google-sheets}
+  title: How to Count Unique Values
+  summary: >-
+    Count how many different values appear in a list, for example how many distinct customers
+    placed orders. This page covers the modern UNIQUE approach, the classic SUMPRODUCT/COUNTIF
+    formula for older Excel, and counting values that appear only once.
+  problem: >-
+    Your order log repeats customer names. You want the number of distinct customers, not the
+    number of orders.
+  excel:
+    formula: '=COUNTA(UNIQUE(A2:A8))'
+    explain: >-
+      UNIQUE returns each distinct customer once; COUNTA counts them.
+    notes: >-
+      UNIQUE needs Microsoft 365 or Excel 2021+. If the range may contain blank cells, filter
+      them out first, otherwise the blank counts as one value: `=COUNTA(UNIQUE(FILTER(A2:A100,
+      A2:A100<>"")))`. For older Excel use the SUMPRODUCT/COUNTIF formula below; it gets slow
+      above a few thousand rows because it counts every value against every other value.
+    alternatives:
+      - label: Older Excel versions
+        formula: '=SUMPRODUCT(1/COUNTIF(A2:A8, A2:A8))'
+      - label: Older Excel, range with blanks
+        formula: '=SUMPRODUCT((A2:A8<>"")/COUNTIF(A2:A8, A2:A8&""))'
+    diff: >-
+      In Excel, use COUNTA(UNIQUE(...)) in Microsoft 365, or SUMPRODUCT(1/COUNTIF(...)) in older
+      versions; Excel has no COUNTUNIQUE.
+  sheets:
+    formula: '=COUNTUNIQUE(A2:A8)'
+    explain: >-
+      COUNTUNIQUE is a Google Sheets function that counts distinct values directly and ignores
+      empty cells.
+    notes: >-
+      Google Sheets has a dedicated COUNTUNIQUE function, which is the simplest choice. For
+      distinct values that meet a condition, use COUNTUNIQUEIFS (for example distinct customers
+      in one region: `=COUNTUNIQUEIFS(A2:A8, B2:B8, "East")`). The UNIQUE function in Sheets also
+      supports the exactly_once argument, so `=COUNTA(UNIQUE(A2:A8, FALSE, TRUE))` counts values
+      that appear only once.
+    alternatives:
+      - label: Values that appear exactly once
+        formula: '=COUNTA(UNIQUE(A2:A8, FALSE, TRUE))'
+    diff: >-
+      Google Sheets has a dedicated COUNTUNIQUE function, which ignores blank cells, and COUNTUNIQUEIFS for counting with conditions.
+  example:
+    intro: Seven orders from four different customers.
+    grid:
+      - [Customer, null, Question, Count]
+      - [Acme, null, Distinct customers]
+      - [Globex, null, Classic formula]
+      - [Acme, null, Ordered exactly once]
+      - [Initech]
+      - [Globex]
+      - [Acme]
+      - [Umbrella]
+    checks:
+      - cell: D2
+        excel: '=COUNTA(UNIQUE(A2:A8))'
+        sheets: '=COUNTUNIQUE(A2:A8)'
+        array: true
+        result: 4
+      - cell: D3
+        excel: '=SUMPRODUCT(1/COUNTIF(A2:A8, A2:A8))'
+        result: 4
+      - cell: D4
+        label: Initech and Umbrella
+        excel: '=COUNTA(UNIQUE(A2:A8, FALSE, TRUE))'
+        array: true
+        result: 2
+  steps:
+    - '`UNIQUE(A2:A8)` returns {Acme; Globex; Initech; Umbrella}.'
+    - '`COUNTA` counts the four items.'
+    - 'In the classic formula, `COUNTIF(A2:A8, A2:A8)` returns how often each value occurs: {3;2;3;1;2;3;1}.'
+    - '`1/` turns those into fractions (each Acme contributes 1/3), so each customer adds up to exactly 1. SUMPRODUCT adds them: 4.'
+    - 'UNIQUE''s third argument (exactly_once = TRUE) returns only values that occur once.'
+  errors:
+    - error: '#DIV/0! in the classic formula'
+      cause: The range contains blank cells, and COUNTIF of a blank returns 0.
+      fix: 'Use the blank-safe version: =SUMPRODUCT((A2:A8<>"")/COUNTIF(A2:A8, A2:A8&"")).'
+    - error: Count is one too high
+      cause: A blank cell inside the range was counted as a unique value by UNIQUE.
+      fix: Wrap the range in FILTER(..., range<>"") before UNIQUE.
+    - error: '"Acme" and "Acme " counted separately'
+      cause: Trailing spaces make the values different.
+      fix: Clean the column with TRIM first.
+  faq:
+    - q: Is UNIQUE case-sensitive?
+      a: No. "acme" and "Acme" are treated as the same value in both Excel and Google Sheets.
+    - q: How do I count unique values with a condition?
+      a: In Excel 365 use =COUNTA(UNIQUE(FILTER(A2:A8, B2:B8="East"))); in Google Sheets use COUNTUNIQUEIFS.
+    - q: How do I list the unique values instead of counting them?
+      a: Use =UNIQUE(A2:A8) in Excel 365 or Google Sheets; it spills the distinct values down the column. Wrap it in SORT for an alphabetical list, e.g. =SORT(UNIQUE(A2:A8)).
+  related: [countif, countifs, lookup-multiple-values, textjoin]

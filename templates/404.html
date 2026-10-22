@@ -1,2 +1,2 @@
 {% extends "base.html" %}
-{% block main %}<h1>404</h1><p>页面不存在，<a href="{{ base_path }}/">返回首页</a>。</p>{% endblock %}
+{% block main %}<h1>404</h1><p>{{ ui.not_found }}. <a href="{{ base_path }}/">{{ ui.home }} &rarr;</a></p>{% endblock %}

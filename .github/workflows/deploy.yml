@@ -25,6 +25,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      LLM_API_URL: ${{ secrets.LLM_API_URL }}   # optional; empty = free template pipeline
     outputs:
       base_url: ${{ steps.pages.outputs.base_url }}
     steps:
@@ -40,22 +42,34 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
 
+      # Optional: only when an LLM is configured, install LibreOffice so LLM-drafted pages can be
+      # recalculated and rejected if any example result is wrong. Not needed for the default
+      # (hand-written data) pipeline.
+      - name: Install LibreOffice for draft verification (LLM mode only)
+        if: env.LLM_API_URL != '' && github.event_name != 'push'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libreoffice-calc
+
       - name: Generate new content (daily cron / manual only)
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.redeploy != 'true')
         env:
-          # 接入大模型时在仓库 Settings -> Secrets 配置，不配置则使用免费模板生成器
-          LLM_API_URL: ${{ secrets.LLM_API_URL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
-        run: python scripts/generate.py
+        # Publishes launch pages + up to generate_per_run queued keywords that have real content.
+        # Keywords without content are skipped (never stubbed). With an LLM secret, drafts are
+        # gated + recalculated before publishing.
+        run: |
+          python scripts/generate.py ${LLM_API_URL:+--provider llm}
+          python scripts/kwqueue.py status
 
       - name: Commit generated content
         run: |
           git config user.name "autosite-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add content
+          git add content niches
           git diff --cached --quiet || git commit -m "auto: content $(date -u +%F)"
 
+      # Project Pages site: base_url is https://<user>.github.io/<repo>, so every internal link is
+      # built under the /<repo> sub-path (e.g. /sheets-formulas). Works unchanged with a custom domain.
       - name: Build + link check + self-heal (rollback on failure)
         env:
           SITE_BASE_URL: ${{ steps.pages.outputs.base_url }}

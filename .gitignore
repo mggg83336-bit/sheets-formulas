@@ -4,3 +4,6 @@ dist.tmp/
 state/
 __pycache__/
 *.pyc
+
+# paid product: keep out of the public site repo (own local repo inside product/)
+product/

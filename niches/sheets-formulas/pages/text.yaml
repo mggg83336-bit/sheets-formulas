@@ -1,0 +1,647 @@
+# Text formulas
+- id: textjoin
+  category: text
+  launch: true
+  slugs: {excel: textjoin-excel, sheets: textjoin-google-sheets}
+  title: How to Use TEXTJOIN
+  summary: >-
+    TEXTJOIN combines text from many cells with a delimiter of your choice and can skip empty
+    cells automatically. It is the modern replacement for chains of & or CONCATENATE. This page
+    includes a conditional join, listing only the names that meet a condition, in one cell.
+  problem: >-
+    You need a comma-separated list of team members in one cell, both for everyone and for one
+    team only, for example to paste into an email or a report header.
+  excel:
+    formula: '=TEXTJOIN(", ", TRUE, B2:B7)'
+    explain: >-
+      Syntax: `TEXTJOIN(delimiter, ignore_empty, text1, [text2], ...)`. Join B2:B7 with ", ",
+      skipping empty cells because the second argument is TRUE.
+    notes: >-
+      TEXTJOIN is available in Excel 2019, 2021, 2024 and Microsoft 365. In Excel 2016 and older
+      you have to chain cells with & or use CONCATENATE, neither of which can skip blanks. For a
+      conditional list in Microsoft 365, feed FILTER into TEXTJOIN. In Excel 2019, which has
+      TEXTJOIN but not FILTER, use `IF(A2:A7="Red", B2:B7, "")` as the text argument and confirm
+      with Ctrl+Shift+Enter. A single cell holds at most 32,767 characters.
+    alternatives:
+      - label: Excel 2019 conditional join (array formula)
+        formula: '=TEXTJOIN(", ", TRUE, IF(A2:A7="Red", B2:B7, ""))'
+    diff: >-
+      Excel uses the identical TEXTJOIN syntax (Excel 2019 and later). Excel has no JOIN function.
+  sheets:
+    formula: '=TEXTJOIN(", ", TRUE, B2:B7)'
+    explain: >-
+      Same syntax in Google Sheets.
+    notes: >-
+      Google Sheets also has the older JOIN function (`=JOIN(", ", B2:B7)`), which does not skip
+      empty cells, so TEXTJOIN is usually better. For a conditional join, FILTER works directly
+      inside TEXTJOIN. If you use the IF version instead, wrap it in ARRAYFORMULA, otherwise Sheets
+      evaluates only the first row: `=ARRAYFORMULA(TEXTJOIN(", ", TRUE, IF(A2:A7="Red", B2:B7,
+      "")))`. To join with a line break, use CHAR(10) as the delimiter and turn on text wrapping.
+    alternatives:
+      - label: Conditional join with IF (needs ARRAYFORMULA in Sheets)
+        formula: '=ARRAYFORMULA(TEXTJOIN(", ", TRUE, IF(A2:A7="Red", B2:B7, "")))'
+    diff: >-
+      Google Sheets uses the same syntax and also has JOIN, which does not skip blanks.
+  example:
+    intro: Join all members, then only the Red team.
+    grid:
+      - [Team, Member, null, List]
+      - [Red, Ana]
+      - [Blue, Ben]
+      - [Red, Chloe]
+      - [Green, Dev]
+      - [Red, Eva]
+      - [Blue, Finn]
+    checks:
+      - cell: D2
+        label: everyone
+        excel: '=TEXTJOIN(", ", TRUE, B2:B7)'
+        result: Ana, Ben, Chloe, Dev, Eva, Finn
+      - cell: D3
+        label: Red team only
+        excel: '=TEXTJOIN(", ", TRUE, FILTER(B2:B7, A2:A7="Red"))'
+        array: true
+        result: Ana, Chloe, Eva
+  steps:
+    - 'The delimiter `", "` is placed between items (not after the last one).'
+    - '`TRUE` skips empty cells so you never get ", ," gaps. Use FALSE to keep a placeholder for blanks.'
+    - '`B2:B7` can be any mix of ranges and single values, e.g. `TEXTJOIN(" ", TRUE, A2, B2, C2)`.'
+    - In the conditional version, FILTER first reduces the list to the Red rows and TEXTJOIN joins only those.
+  errors:
+    - error: '#NAME?'
+      cause: Excel 2016 or older does not have TEXTJOIN.
+      fix: Use & or CONCATENATE, or open the file in Excel 2019+ / Microsoft 365.
+    - error: '#VALUE!'
+      cause: The result is longer than 32,767 characters.
+      fix: Join fewer cells or split the output across cells.
+    - error: Numbers lose their formatting
+      cause: TEXTJOIN uses the raw value, so 0.5 stays 0.5 even if the cell shows 50%.
+      fix: Format inside the join, e.g. TEXT(C2:C7, "0%").
+  faq:
+    - q: What is the difference between TEXTJOIN, CONCAT and CONCATENATE?
+      a: TEXTJOIN adds a delimiter and can skip blanks. CONCAT joins ranges without a delimiter. CONCATENATE only accepts individual cells.
+    - q: How do I join with a line break?
+      a: Use CHAR(10) as the delimiter and enable Wrap Text on the cell.
+  related: [lookup-multiple-values, split-text, count-unique, trim]
+
+- id: split-text
+  category: text
+  launch: true
+  slugs: {excel: split-text-excel, sheets: split-text-google-sheets}
+  title: How to Split Text into Columns with a Formula
+  summary: >-
+    Split "Name, Department, City" into separate cells with TEXTSPLIT in Excel 365 or SPLIT in
+    Google Sheets. A classic formula for older Excel is included, along with the SPLIT quirk that
+    splits on every character of the delimiter.
+  problem: >-
+    Each row has one cell containing several values separated by commas, for example from a form
+    export. You want each value in its own column, and you want it to update when the source
+    changes, which Text to Columns does not do.
+  excel:
+    formula: '=TEXTSPLIT(A2, ",")'
+    explain: >-
+      Syntax: `TEXTSPLIT(text, col_delimiter, [row_delimiter], [ignore_empty], [match_mode],
+      [pad_with])`. Split A2 at each comma; the parts spill to the right.
+    notes: >-
+      TEXTSPLIT is available in Microsoft 365, Excel 2024 and Excel for the web. If your data has a space after
+      each comma, split on ", " (comma and space) or wrap the result in TRIM. For several possible
+      delimiters pass an array: `TEXTSPLIT(A2, {",",";"})`. In Excel 2021 and older use the
+      SUBSTITUTE/REPT formula below; copy it across as many columns as you need parts. For a
+      one-off split, Data > Text to Columns is faster but does not update.
+    alternatives:
+      - label: Any Excel version (copy across; n-th part from the column number)
+        formula: '=TRIM(MID(SUBSTITUTE($A2, ",", REPT(" ", 100)), (COLUMN(A1)-1)*100+1, 100))'
+    diff: >-
+      TEXTSPLIT (Excel 365 / 2024) treats the delimiter as a whole string; older Excel needs the
+      SUBSTITUTE/REPT formula.
+  sheets:
+    formula: '=SPLIT(A2, ",")'
+    explain: >-
+      Syntax: `SPLIT(text, delimiter, [split_by_each], [remove_empty_text])`. The parts spill to
+      the right.
+    notes: >-
+      Watch the third argument: by default SPLIT treats every character in the delimiter as a
+      separate delimiter. `=SPLIT(A2, ", ")` therefore splits on commas AND spaces, breaking "Ana
+      Lopez" into two cells. Use `=SPLIT(A2, ", ", FALSE)` to split on the exact text ", ". SPLIT
+      also removes empty parts by default (the fourth argument). It turns numeric-looking parts
+      into numbers, so a ZIP code like 02134 loses its leading zero; format the output column as
+      plain text first if that matters.
+    alternatives:
+      - label: Split on the exact text ", " (not on each character)
+        formula: '=SPLIT(A2, ", ", FALSE)'
+      - label: Split a whole column at once
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", SPLIT(A2:A, ",")))'
+    diff: >-
+      By default SPLIT splits on each character of the
+      delimiter, so pass FALSE as the third argument to split on a multi-character string.
+  example:
+    intro: Each cell in column A holds name, department and city.
+    grid:
+      - [Record, Name, Department, City]
+      - ['Ana Lopez,Sales,Madrid']
+      - ['Ben Carter,IT,Boston']
+      - ['Chloe Wong,Finance,Singapore']
+    checks:
+      - cell: B2
+        label: spills into B2:D2
+        excel: '=TEXTSPLIT(A2, ",")'
+        sheets: '=SPLIT(A2, ",")'
+        spill_cells: [B2, C2, D2]
+        spill_results: [Ana Lopez, Sales, Madrid]
+      - cell: B3
+        label: classic formula, filled across to D3
+        excel: '=TRIM(MID(SUBSTITUTE($A3, ",", REPT(" ", 100)), (COLUMN(A1)-1)*100+1, 100))'
+        fill: [B3, C3, D3]
+        results: [Ben Carter, IT, Boston]
+      - cell: B4
+        label: classic formula, filled across to D4
+        excel: '=TRIM(MID(SUBSTITUTE($A4, ",", REPT(" ", 100)), (COLUMN(A2)-1)*100+1, 100))'
+        fill: [B4, C4, D4]
+        results: [Chloe Wong, Finance, Singapore]
+  steps:
+    - 'TEXTSPLIT / SPLIT find every comma and return the pieces between them as separate cells.'
+    - The results spill into the cells to the right, so leave enough empty columns.
+    - 'The classic formula replaces each comma with 100 spaces, which pushes every part into its own 100-character block.'
+    - '`MID(..., (n-1)*100+1, 100)` cuts out block n, where n comes from COLUMN(A1)=1, COLUMN(B1)=2, and so on as you copy right.'
+    - TRIM removes the padding spaces, leaving just the value. It works as long as each part is shorter than 100 characters.
+  errors:
+    - error: Names split in two (Google Sheets)
+      cause: SPLIT with a delimiter like ", " splits on each character, including the space.
+      fix: Add FALSE as the third argument.
+    - error: '#SPILL! / #REF!'
+      cause: The cells to the right are not empty.
+      fix: Clear them before entering the formula.
+    - error: Leading spaces in the parts
+      cause: The data uses ", " but you split on ",".
+      fix: Split on ", " (with FALSE in Sheets) or wrap the result in TRIM.
+  faq:
+    - q: How do I split into rows instead of columns?
+      a: In Excel 365 use the row delimiter, =TEXTSPLIT(A2, , ","). In Google Sheets use =TRANSPOSE(SPLIT(A2, ",")).
+    - q: How do I get only the second part?
+      a: Excel 365, =INDEX(TEXTSPLIT(A2, ","), 2); Google Sheets, =INDEX(SPLIT(A2, ","), 2).
+  related: [text-before-character, text-after-character, textjoin, trim]
+
+- id: text-before-character
+  category: text
+  launch: true
+  slugs: {excel: text-before-character-excel, sheets: text-before-character-google-sheets}
+  title: How to Extract Text Before a Character
+  summary: >-
+    Get everything before a character such as "@", "-" or a space: the username part of an
+    email, a first name, or a product prefix. Excel 365 has TEXTBEFORE; LEFT with FIND works
+    everywhere, and Google Sheets can use REGEXEXTRACT.
+  problem: >-
+    You have a column of email addresses and need the part before the @ sign in a separate
+    column.
+  excel:
+    formula: '=TEXTBEFORE(A2, "@")'
+    explain: >-
+      Syntax: `TEXTBEFORE(text, delimiter, [instance_num], [match_mode], [match_end],
+      [if_not_found])`. Returns the text before the first "@".
+    notes: >-
+      TEXTBEFORE needs Microsoft 365, Excel 2024 or Excel for the web. Use a negative instance number to
+      count from the end: `TEXTBEFORE(A2, ".", -1)` returns everything before the last dot. The
+      if_not_found argument avoids #N/A when the character is missing. In any other version use
+      LEFT with FIND; FIND returns the position of the character and LEFT takes everything before
+      it.
+    alternatives:
+      - label: Any Excel version
+        formula: '=LEFT(A2, FIND("@", A2)-1)'
+      - label: Before the LAST occurrence (Microsoft 365)
+        formula: '=TEXTBEFORE(A2, ".", -1)'
+    diff: >-
+      TEXTBEFORE exists only in Excel (Microsoft 365 / 2024); Google Sheets does not have it.
+  sheets:
+    formula: '=LEFT(A2, FIND("@", A2)-1)'
+    explain: >-
+      FIND returns the position of "@"; LEFT takes all characters before it.
+    notes: >-
+      Google Sheets does not have TEXTBEFORE; typing it returns #NAME?. LEFT with FIND is the
+      standard replacement. REGEXEXTRACT is the more flexible Sheets option: `^[^@]+` means "from
+      the start, every character that is not @". Regular expressions also make it easy to take
+      the text before the last occurrence: `=REGEXEXTRACT(A2, "(.*)\.")` is greedy and stops at
+      the final dot. Note that REGEXEXTRACT only works on text, so convert numbers with A2&"".
+    alternatives:
+      - label: REGEXEXTRACT version
+        formula: '=REGEXEXTRACT(A2, "^[^@]+")'
+      - label: Before the last dot
+        formula: '=REGEXEXTRACT(A2, "(.*)\.")'
+    diff: >-
+      Google Sheets has no TEXTBEFORE, so LEFT with FIND (or REGEXEXTRACT) is the way there.
+  example:
+    intro: Extract the username before the @.
+    grid:
+      - [Email, TEXTBEFORE, LEFT + FIND]
+      - [ana.lopez@acme.com]
+      - [ben@globex.io]
+      - [chloe.wong@initech.co]
+    checks:
+      - cell: B2
+        label: Excel 365, filled down
+        excel: '=TEXTBEFORE(A2, "@")'
+        sheets: '=REGEXEXTRACT(A2, "^[^@]+")'
+        fill: [B2, B3, B4]
+        results: [ana.lopez, ben, chloe.wong]
+      - cell: C2
+        label: works everywhere, filled down
+        excel: '=LEFT(A2, FIND("@", A2)-1)'
+        fill: [C2, C3, C4]
+        results: [ana.lopez, ben, chloe.wong]
+  steps:
+    - '`FIND("@", A2)` returns the position of the @ sign: 10 in ana.lopez@acme.com.'
+    - '`-1` excludes the @ itself, so LEFT takes 9 characters.'
+    - '`LEFT(A2, 9)` returns ana.lopez.'
+    - TEXTBEFORE does the same in one step and can count occurrences from either end.
+  errors:
+    - error: '#VALUE!'
+      cause: FIND did not find the character in that cell (e.g. an empty cell or a value without @).
+      fix: 'Wrap in IFERROR, or in Excel 365 use if_not_found: =TEXTBEFORE(A2, "@", , , , "").'
+    - error: '#NAME? in Google Sheets'
+      cause: TEXTBEFORE is an Excel-only function.
+      fix: Use LEFT/FIND or REGEXEXTRACT.
+    - error: Wrong part when the character is not unique
+      cause: FIND returns the first occurrence.
+      fix: Use TEXTBEFORE with -1 (Excel 365) or a greedy regular expression (Google Sheets) for the last occurrence.
+  faq:
+    - q: Is FIND case-sensitive?
+      a: Yes. Use SEARCH for a case-insensitive position; it also supports wildcards.
+    - q: How do I get the first word of a cell?
+      a: Use a space as the character, =LEFT(A2, FIND(" ", A2&" ")-1). Adding a space to A2 avoids an error for single words.
+    - q: How do I get the text before a space, comma or line break?
+      a: 'Replace "@" with the character you need: " " for a space, "," for a comma, or CHAR(10) for a line break inside the cell, e.g. =LEFT(A2, FIND(CHAR(10), A2)-1).'
+  related: [text-after-character, split-text, trim, contains-text]
+
+- id: text-after-character
+  category: text
+  launch: true
+  slugs: {excel: text-after-character-excel, sheets: text-after-character-google-sheets}
+  title: How to Extract Text After a Character
+  summary: >-
+    Return everything after the first or the last occurrence of a character, for example the
+    size code at the end of a SKU or the domain of an email address. Covers TEXTAFTER (Excel 365),
+    MID with FIND (all versions) and REGEXEXTRACT (Google Sheets).
+  problem: >-
+    Product codes look like SKU-RED-XL. You need the part after the first dash (RED-XL) and,
+    separately, just the size after the last dash (XL).
+  excel:
+    formula: '=TEXTAFTER(A2, "-")'
+    explain: >-
+      Returns the text after the first "-". Use -1 as the third argument to start from the last
+      dash instead.
+    notes: >-
+      TEXTAFTER is available in Microsoft 365, Excel 2024 and Excel for the web. In older versions use MID
+      with FIND for the first occurrence. For the last occurrence, the RIGHT/SUBSTITUTE/REPT
+      trick works in every version: it pads every dash with 100 spaces, takes the last 100
+      characters and trims them, leaving the final part.
+    alternatives:
+      - label: After the LAST dash (Microsoft 365)
+        formula: '=TEXTAFTER(A2, "-", -1)'
+      - label: After the first dash, any version
+        formula: '=MID(A2, FIND("-", A2)+1, LEN(A2))'
+      - label: After the last dash, any version
+        formula: '=TRIM(RIGHT(SUBSTITUTE(A2, "-", REPT(" ", 100)), 100))'
+    diff: >-
+      Excel 365 has TEXTAFTER (use -1 for the last occurrence). Google Sheets does not.
+  sheets:
+    formula: '=MID(A2, FIND("-", A2)+1, LEN(A2))'
+    explain: >-
+      FIND locates the first dash; MID returns everything from the next character on.
+    notes: >-
+      Google Sheets has no TEXTAFTER. Besides MID with FIND, REGEXEXTRACT handles both cases
+      neatly: `-(.*)` captures everything after the first dash, and `[^-]+$` matches the last
+      group of characters that contains no dash, i.e. everything after the final dash. A third
+      option for the last part is `=INDEX(SPLIT(A2, "-"), COUNTA(SPLIT(A2, "-")))`.
+    alternatives:
+      - label: After the first dash with REGEXEXTRACT
+        formula: '=REGEXEXTRACT(A2, "-(.*)")'
+      - label: After the last dash with REGEXEXTRACT
+        formula: '=REGEXEXTRACT(A2, "[^-]+$")'
+    diff: >-
+      Google Sheets has no TEXTAFTER; use MID/FIND or REGEXEXTRACT there.
+  example:
+    intro: Four ways to split the SKU.
+    grid:
+      - [SKU, TEXTAFTER first, TEXTAFTER last, MID + FIND, RIGHT + SUBSTITUTE]
+      - [SKU-RED-XL]
+      - [SKU-BLUE-M]
+      - [SKU-GREEN-S]
+    checks:
+      - cell: B2
+        label: Excel 365, filled down
+        excel: '=TEXTAFTER(A2, "-")'
+        sheets: '=REGEXEXTRACT(A2, "-(.*)")'
+        fill: [B2, B3, B4]
+        results: [RED-XL, BLUE-M, GREEN-S]
+      - cell: C2
+        label: Excel 365, filled down
+        excel: '=TEXTAFTER(A2, "-", -1)'
+        sheets: '=REGEXEXTRACT(A2, "[^-]+$")'
+        fill: [C2, C3, C4]
+        results: [XL, M, S]
+      - cell: D2
+        label: after first dash, any version
+        excel: '=MID(A2, FIND("-", A2)+1, LEN(A2))'
+        fill: [D2, D3, D4]
+        results: [RED-XL, BLUE-M, GREEN-S]
+      - cell: E2
+        label: after last dash, any version
+        excel: '=TRIM(RIGHT(SUBSTITUTE(A2, "-", REPT(" ", 100)), 100))'
+        fill: [E2, E3, E4]
+        results: [XL, M, S]
+  steps:
+    - '`FIND("-", A2)` returns 4, the position of the first dash in SKU-RED-XL.'
+    - '`MID(A2, 5, LEN(A2))` starts at the character after the dash and takes up to the full length, which simply means "to the end".'
+    - For the last part, SUBSTITUTE turns each dash into 100 spaces; RIGHT(..., 100) grabs the final block, which contains only spaces and "XL".
+    - TRIM removes the spaces, leaving XL.
+  errors:
+    - error: '#VALUE!'
+      cause: The character does not occur in the cell.
+      fix: Wrap in IFERROR(..., A2) to return the original text, or use TEXTAFTER's if_not_found argument.
+    - error: Returns the wrong segment
+      cause: FIND always finds the first occurrence.
+      fix: Use TEXTAFTER with -1, the RIGHT/SUBSTITUTE trick, or "[^-]+$" in Google Sheets.
+    - error: Part longer than 100 characters is cut off
+      cause: The REPT(" ", 100) padding is too short.
+      fix: Use a larger number such as 500 in both places.
+  faq:
+    - q: How do I get the domain from an email address?
+      a: Use the text after "@", e.g. =MID(A2, FIND("@", A2)+1, LEN(A2)) or =TEXTAFTER(A2, "@").
+    - q: How do I get the text after the second dash?
+      a: In Excel 365 use =TEXTAFTER(A2, "-", 2). In other versions, nest FIND, e.g. =MID(A2, FIND("-", A2, FIND("-", A2)+1)+1, LEN(A2)).
+  related: [text-before-character, split-text, trim, textjoin]
+
+- id: trim
+  category: text
+  launch: true
+  slugs: {excel: trim-excel, sheets: trim-google-sheets}
+  title: How to Remove Extra Spaces with TRIM
+  summary: >-
+    TRIM removes leading and trailing spaces and reduces runs of spaces between words to a single
+    space. It fixes failed lookups and duplicate-looking values. This guide also covers the
+    non-breaking spaces that TRIM cannot remove on its own.
+  problem: >-
+    Names imported from a CRM have random extra spaces, so "Ana Lopez" and " Ana  Lopez" are
+    treated as different people and lookups fail.
+  excel:
+    formula: '=TRIM(A2)'
+    explain: >-
+      Removes spaces at the start and end and leaves single spaces between words.
+    notes: >-
+      Excel's TRIM only removes the normal space character (code 32). Text copied from web pages
+      often contains non-breaking spaces (code 160), which look identical but survive TRIM;
+      replace them first with SUBSTITUTE. CLEAN removes non-printing control characters such as
+      line feeds from older systems. After cleaning, use Copy > Paste Special > Values to replace
+      the original column if you no longer need the formula.
+    alternatives:
+      - label: Also remove non-breaking spaces and control characters
+        formula: '=TRIM(CLEAN(SUBSTITUTE(A2, CHAR(160), " ")))'
+    diff: >-
+      Excel uses the identical TRIM function.
+  sheets:
+    formula: '=TRIM(A2)'
+    explain: >-
+      Same function in Google Sheets.
+    notes: >-
+      Google Sheets has a menu shortcut that does not need a helper column: select the range and
+      choose Data > Data cleanup > Trim whitespace. It edits the cells in place. For a formula
+      that cleans a whole column at once, use `=ARRAYFORMULA(TRIM(A2:A))`. To strip every kind of
+      whitespace, including non-breaking spaces and tabs, REGEXREPLACE works well:
+      `=TRIM(REGEXREPLACE(A2, "\s+", " "))`.
+    alternatives:
+      - label: Whole column with one formula
+        formula: '=ARRAYFORMULA(TRIM(A2:A))'
+      - label: Collapse all whitespace characters
+        formula: '=TRIM(REGEXREPLACE(A2, "\s+", " "))'
+    diff: >-
+      Google Sheets uses the same TRIM function and also offers Data > Data cleanup > Trim
+      whitespace.
+  example:
+    intro: The quotes show the hidden spaces in the raw values.
+    grid:
+      - [Raw name, Trimmed, Length before, Length after]
+      - ['  Ana   Lopez ']
+      - [' Ben Carter']
+      - ['Chloe  Wong  ']
+    checks:
+      - cell: B2
+        label: filled down
+        excel: '=TRIM(A2)'
+        fill: [B2, B3, B4]
+        results: [Ana Lopez, Ben Carter, Chloe Wong]
+      - cell: C2
+        excel: '=LEN(A2)'
+        fill: [C2, C3, C4]
+        results: [14, 11, 13]
+      - cell: D2
+        excel: '=LEN(B2)'
+        fill: [D2, D3, D4]
+        results: [9, 10, 10]
+  steps:
+    - TRIM deletes every space before the first character and after the last one.
+    - Runs of two or more spaces between words become one space.
+    - 'LEN shows the effect: "  Ana   Lopez " has 14 characters, "Ana Lopez" has 9.'
+    - 'Use the trimmed column for lookups, or clean the lookup value inside the formula: `VLOOKUP(TRIM(F2), ...)`.'
+  errors:
+    - error: Spaces still there
+      cause: They are non-breaking spaces (CHAR(160)) from web data.
+      fix: SUBSTITUTE(A2, CHAR(160), " ") before TRIM.
+    - error: Numbers become text
+      cause: TRIM always returns text, so trimmed numbers no longer add up.
+      fix: Wrap in VALUE, e.g. =VALUE(TRIM(A2)).
+    - error: Line breaks remain
+      cause: TRIM does not remove line feeds (CHAR(10)).
+      fix: Use CLEAN, or SUBSTITUTE(A2, CHAR(10), " ").
+  faq:
+    - q: Does TRIM remove single spaces between words?
+      a: No. It keeps one space between words and only removes extra ones.
+    - q: How do I remove all spaces?
+      a: Use =SUBSTITUTE(A2, " ", "").
+    - q: Why does my lookup still fail after TRIM?
+      a: 'Check whether one side is a number and the other text: TRIM always returns text, so a trimmed "102" will not match the number 102. Wrap it in VALUE, or compare with =ISNUMBER() on both sides to see which is which.'
+  related: [na-error, text-before-character, split-text, leading-zeros]
+
+- id: leading-zeros
+  category: text
+  launch: true
+  slugs: {excel: leading-zeros-excel, sheets: leading-zeros-google-sheets}
+  title: How to Add Leading Zeros
+  summary: >-
+    Pad numbers with zeros to a fixed length, such as 00042 for employee IDs or ZIP codes. Choose
+    between a custom number format (value stays a number) and TEXT or RIGHT formulas (value
+    becomes text), and learn how to stop the zeros disappearing in the first place.
+  problem: >-
+    Employee numbers must always have five digits for an import file, but the sheet shows 7, 42
+    and 315 because spreadsheets drop leading zeros from numbers.
+  excel:
+    formula: '=TEXT(A2, "00000")'
+    explain: >-
+      Each 0 in the format is a required digit, so the number is padded to five digits. The
+      result is text.
+    notes: >-
+      If you only need the zeros to show, apply a custom number format instead: select the cells,
+      press Ctrl+1, choose Custom and type 00000. The cells stay numbers, so they still sort and
+      calculate correctly. To keep zeros when typing, format the column as Text first or start
+      the entry with an apostrophe ('00042). In Microsoft 365, File > Options > Data > Automatic
+      data conversion lets you stop Excel from removing leading zeros when opening CSV files.
+    alternatives:
+      - label: Padding with RIGHT (works for text IDs too)
+        formula: '=RIGHT("00000"&A2, 5)'
+    diff: >-
+      Excel uses the same TEXT formula. Ctrl+1 > Custom > 00000 applies the display-only format.
+  sheets:
+    formula: '=TEXT(A2, "00000")'
+    explain: >-
+      Same formula in Google Sheets.
+    notes: >-
+      In Google Sheets apply the display-only version via Format > Number > Custom number format
+      and enter 00000. When importing a CSV, choose File > Import and untick "Convert text to
+      numbers, dates and formulas" so codes like 00042 are kept as text. To pad a whole column at
+      once, use `=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "00000")))`. REPT is useful when the
+      length is in another cell: `=REPT("0", 5-LEN(A2))&A2`.
+    alternatives:
+      - label: Whole column
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "00000")))'
+      - label: Variable length with REPT
+        formula: '=REPT("0", 5-LEN(A2))&A2'
+    diff: >-
+      The same TEXT formula works in Google Sheets; the display-only version is under Format >
+      Number > Custom number format.
+  example:
+    intro: Pad employee numbers to five digits.
+    grid:
+      - [Employee no., TEXT, RIGHT]
+      - [7]
+      - [42]
+      - [315]
+      - [1208]
+    checks:
+      - cell: B2
+        label: filled down
+        excel: '=TEXT(A2, "00000")'
+        fill: [B2, B3, B4, B5]
+        results: ['00007', '00042', '00315', '01208']
+      - cell: C2
+        label: filled down
+        excel: '=RIGHT("00000"&A2, 5)'
+        fill: [C2, C3, C4, C5]
+        results: ['00007', '00042', '00315', '01208']
+  steps:
+    - 'TEXT converts the number using the format "00000": every 0 is a digit placeholder that shows 0 if there is no digit.'
+    - 'RIGHT version: "00000"&A2 creates "0000042", and RIGHT(..., 5) keeps the last five characters, "00042".'
+    - Both results are text. Use a custom number format instead if the column must stay numeric.
+    - Numbers longer than five digits are not truncated by TEXT, but RIGHT would cut them, so pick the length to match your longest ID.
+  errors:
+    - error: Zeros disappear after typing
+      cause: The cell is formatted as a number, which has no leading zeros.
+      fix: Format as Text before typing, use an apostrophe, or use a custom number format.
+    - error: Lookups fail after padding
+      cause: The padded value is text and the lookup table contains numbers (or vice versa).
+      fix: Pad both sides, or compare with VALUE().
+    - error: Zeros lost when the CSV is reopened
+      cause: CSV files store no formatting; the app converts 00042 to 42 when opening.
+      fix: Import with Data > From Text/CSV (Excel) or untick conversion in File > Import (Sheets) and set the column to Text.
+  faq:
+    - q: Format or formula, which should I use?
+      a: Use a custom number format if the values are numbers you calculate with. Use TEXT/RIGHT if you need text, for example for an export or for joining with other text.
+    - q: How do I pad to a variable length?
+      a: Use =REPT("0", n-LEN(A2))&A2, where n is the target length.
+  related: [trim, textjoin, value-error, na-error]
+
+- id: contains-text
+  category: text
+  launch: true
+  slugs: {excel: contains-text-excel, sheets: contains-text-google-sheets}
+  title: How to Check if a Cell Contains Text
+  summary: >-
+    Test whether a cell contains a word or a substring anywhere inside it, return Yes/No or a
+    custom result, and count matching cells. Covers ISNUMBER with SEARCH (case-insensitive), FIND
+    (case-sensitive), COUNTIF with wildcards and REGEXMATCH in Google Sheets.
+  problem: >-
+    You want to flag every product whose description mentions "mouse", regardless of where the
+    word appears or how it is capitalised.
+  excel:
+    formula: '=ISNUMBER(SEARCH("mouse", A2))'
+    explain: >-
+      SEARCH returns the position of "mouse" (any case) or #VALUE! if it is missing. ISNUMBER
+      turns that into TRUE or FALSE.
+    notes: >-
+      `A2="mouse"` only checks whether the whole cell equals the word, which is a common mistake.
+      SEARCH is case-insensitive and supports wildcards; FIND is case-sensitive and does not.
+      To check for any of several words, pass an array and add the results:
+      `=SUM(--ISNUMBER(SEARCH({"mouse","keyboard"}, A2)))>0`. Note that searching for short words
+      also matches inside longer ones ("pad" matches "iPad"); include spaces or punctuation in the
+      search term if that matters.
+    alternatives:
+      - label: Any of several words
+        formula: '=SUM(--ISNUMBER(SEARCH({"mouse","keyboard"}, A2)))>0'
+    diff: >-
+      Excel uses the same ISNUMBER(SEARCH()) formula. REGEXTEST is available only in recent
+      Microsoft 365 builds.
+  sheets:
+    formula: '=ISNUMBER(SEARCH("mouse", A2))'
+    explain: >-
+      Same formula in Google Sheets.
+    notes: >-
+      Google Sheets also offers REGEXMATCH, which returns TRUE/FALSE directly. Add (?i) at the
+      start of the pattern for a case-insensitive match: `=REGEXMATCH(A2, "(?i)mouse")`. Regular
+      expressions make "any of several words" and whole-word matching easy, for example
+      `=REGEXMATCH(A2, "(?i)\b(mouse|keyboard)\b")`. REGEXMATCH needs text input, so use A2&"" if
+      the cell may contain a number.
+    alternatives:
+      - label: Case-insensitive REGEXMATCH
+        formula: '=REGEXMATCH(A2, "(?i)mouse")'
+      - label: Whole words, several options
+        formula: '=REGEXMATCH(A2, "(?i)\b(mouse|keyboard)\b")'
+    diff: >-
+      The same formula works in Google Sheets, where REGEXMATCH(A2, "(?i)mouse") is a shorter
+      alternative.
+  example:
+    intro: Which descriptions mention "mouse"?
+    grid:
+      - [Description, Contains, Yes or No, Case-sensitive, null, Count]
+      - [Wireless Mouse - Black]
+      - [USB-C Hub (7-in-1)]
+      - [Mouse Pad XL]
+      - [Laptop Stand]
+    checks:
+      - cell: B2
+        label: filled down
+        excel: '=ISNUMBER(SEARCH("mouse", A2))'
+        sheets: '=REGEXMATCH(A2, "(?i)mouse")'
+        fill: [B2, B3, B4, B5]
+        results: [true, false, true, false]
+      - cell: C2
+        label: filled down
+        excel: '=IF(ISNUMBER(SEARCH("mouse", A2)), "Yes", "No")'
+        fill: [C2, C3, C4, C5]
+        results: ['Yes', 'No', 'Yes', 'No']
+      - cell: D2
+        label: FIND is case-sensitive, so lowercase "mouse" is not found
+        excel: '=ISNUMBER(FIND("mouse", A2))'
+        fill: [D2, D3, D4, D5]
+        results: [false, false, false, false]
+      - cell: F2
+        label: how many cells contain the word
+        excel: '=COUNTIF(A2:A5, "*mouse*")'
+        result: 2
+  steps:
+    - '`SEARCH("mouse", A2)` returns 10 for "Wireless Mouse - Black" (the position where the word starts) and #VALUE! when the word is not there.'
+    - '`ISNUMBER(...)` converts a position into TRUE and the error into FALSE.'
+    - Wrap it in IF to show any text you like instead of TRUE/FALSE.
+    - 'COUNTIF with `"*mouse*"` counts cells that contain the word anywhere; the asterisks match any characters before and after.'
+  errors:
+    - error: Always FALSE
+      cause: Using =A2="mouse" checks for an exact full-cell match, or FIND was used with the wrong case.
+      fix: Use ISNUMBER(SEARCH(...)).
+    - error: '#VALUE! instead of FALSE'
+      cause: SEARCH was used without ISNUMBER.
+      fix: Wrap SEARCH in ISNUMBER or IFERROR.
+    - error: Unexpected matches
+      cause: The search term is part of a longer word.
+      fix: Search for " pad " with spaces, or use whole-word regular expressions in Google Sheets.
+  faq:
+    - q: How do I sum values where the description contains a word?
+      a: Use SUMIF with wildcards, e.g. =SUMIF(A2:A5, "*mouse*", B2:B5).
+    - q: How do I highlight cells that contain a word?
+      a: 'Use conditional formatting with a formula rule: =ISNUMBER(SEARCH("mouse", $A2)).'
+  related: [countif, text-before-character, sumif, trim]

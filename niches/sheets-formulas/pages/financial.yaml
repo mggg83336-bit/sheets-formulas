@@ -1,0 +1,416 @@
+# Financial & percentages
+- id: percentage-change
+  category: financial
+  launch: true
+  slugs: {excel: percentage-change-excel, sheets: percentage-change-google-sheets}
+  title: How to Calculate Percentage Change
+  summary: >-
+    Percentage change is (new - old) / old. This guide shows the formula, how to format the
+    result as a percentage, how to handle a starting value of zero, and the common mix-up
+    between percentage change and percentage points.
+  problem: >-
+    You have last year's and this year's sales per product and want the growth or decline in
+    percent.
+  excel:
+    formula: '=(C2-B2)/B2'
+    explain: >-
+      Subtract the old value from the new one and divide by the old value. Format the cell as a
+      percentage (Ctrl+Shift+%).
+    notes: >-
+      The parentheses matter: =C2-B2/B2 divides first and gives a wrong answer. The equivalent
+      form `=C2/B2-1` is shorter. When the old value is 0 the change is mathematically undefined,
+      so handle it explicitly instead of letting #DIV/0! appear in a report. For a percentage
+      that should always be shown with a sign, use a custom format such as +0.0%;-0.0%;0.0%.
+    alternatives:
+      - label: Shorter equivalent
+        formula: '=C2/B2-1'
+      - label: Handle a zero starting value
+        formula: '=IF(B2=0, "n/a", (C2-B2)/B2)'
+    diff: >-
+      Excel uses the identical formula; Ctrl+Shift+% applies the percentage format.
+  sheets:
+    formula: '=(C2-B2)/B2'
+    explain: >-
+      Same formula in Google Sheets; format with Format > Number > Percent.
+    notes: >-
+      Google Sheets has a dedicated function, `=TO_PERCENT((C2-B2)/B2)`, that applies percent
+      formatting as part of the formula, which is useful when the formula output is copied
+      elsewhere. Sheets also includes the operator function MINUS and DIVIDE if you prefer
+      function syntax: `=DIVIDE(MINUS(C2, B2), B2)`. Neither changes the result; they only change
+      formatting or readability.
+    alternatives:
+      - label: Formatted as a percentage by the formula
+        formula: '=TO_PERCENT((C2-B2)/B2)'
+    diff: >-
+      The same formula works in Google Sheets (format with Format > Number > Percent).
+  example:
+    intro: Sales per product in two years. Results are formatted as percentages.
+    grid:
+      - [Product, '2025', '2026', Change, Safe change]
+      - [Mice, 1200, 1500]
+      - [Hubs, 800, 680]
+      - [Stands, 0, 150]
+    checks:
+      - cell: D2
+        label: filled down
+        excel: '=(C2-B2)/B2'
+        fill: [D2, D3, D4]
+        results: ['25%', '-15%', '#DIV/0!']
+      - cell: E2
+        label: filled down
+        excel: '=IF(B2=0, "n/a", (C2-B2)/B2)'
+        fill: [E2, E3, E4]
+        results: ['25%', '-15%', n/a]
+  steps:
+    - '`C2-B2` is the absolute change: 1500 - 1200 = 300.'
+    - 'Dividing by the old value gives the relative change: 300 / 1200 = 0.25.'
+    - Formatting 0.25 as a percentage shows 25%. Negative results are declines (Hubs fell 15%).
+    - 'When the old value is 0 (Stands), there is no meaningful percentage, so the safe version shows "n/a".'
+  errors:
+    - error: '#DIV/0!'
+      cause: The old value is 0 or empty.
+      fix: Test it with IF(B2=0, ..., ...).
+    - error: Result like 2500%
+      cause: The result was multiplied by 100 and then formatted as a percentage.
+      fix: Do not multiply by 100 when using percentage formatting.
+    - error: Wrong result
+      cause: Missing parentheses, e.g. =C2-B2/B2.
+      fix: Write =(C2-B2)/B2.
+  faq:
+    - q: What is the difference between percentage change and percentage points?
+      a: If a rate goes from 10% to 12%, it rose 2 percentage points, but the percentage change is (12-10)/10 = 20%.
+    - q: How do I calculate a percentage of a total instead?
+      a: Divide the part by the total, e.g. =B2/SUM($B$2:$B$10), and lock the total with $.
+    - q: How do I apply a percentage increase to a number?
+      a: 'Multiply by 1 plus the percentage: =B2*(1+10%) increases B2 by 10%, and =B2*(1-10%) decreases it by 10%. Note that a 10% increase followed by a 10% decrease does not return to the original value.'
+    - q: How do I calculate the change between two percentages?
+      a: Subtract them for the change in percentage points (=C2-B2 shows 12% - 10% = 2%), or use the same (new-old)/old formula for the relative change (20%). Say which one you mean in reports, because both are often called "percent change".
+  related: [cagr, compound-interest, div0-error, weighted-average]
+
+- id: compound-interest
+  category: financial
+  launch: true
+  slugs: {excel: compound-interest-excel, sheets: compound-interest-google-sheets}
+  title: Compound Interest Formula
+  summary: >-
+    Calculate how an investment grows with compound interest, using the math formula
+    P*(1+r/n)^(n*t) or the built-in FV function. Includes monthly compounding, the sign
+    convention that confuses FV users, and regular monthly contributions.
+  problem: >-
+    You invest 10,000 at 5% per year, compounded monthly, for 10 years, and want the final balance
+    and the interest earned.
+  excel:
+    formula: '=B2*(1+B3/B4)^(B4*B5)'
+    explain: >-
+      Principal times (1 + rate per period) raised to the number of periods. B3/B4 is the
+      monthly rate and B4*B5 the number of months.
+    notes: >-
+      FV gives the same result and also handles regular deposits. Its sign convention follows cash
+      flow: money you pay out (the initial deposit) is negative and money you receive is positive,
+      which is why the formula uses -B2. To add a monthly contribution of 200, put -200 in the
+      third argument: `=FV(B3/B4, B4*B5, -200, -B2)`. Use the rate and the number of periods in
+      the same unit: monthly rate with months, annual rate with years.
+    alternatives:
+      - label: FV function
+        formula: '=FV(B3/B4, B4*B5, 0, -B2)'
+      - label: With a monthly contribution of 200
+        formula: '=FV(B3/B4, B4*B5, -200, -B2)'
+    diff: >-
+      Excel uses the same formula and the same FV function with the same sign convention.
+  sheets:
+    formula: '=B2*(1+B3/B4)^(B4*B5)'
+    explain: >-
+      Same formula in Google Sheets.
+    diff: >-
+      The same formula and FV function work in Google Sheets.
+  example:
+    intro: Inputs in B2:B5, results in B6:B8.
+    grid:
+      - [Input, Value]
+      - [Principal, 10000]
+      - [Annual rate, '5%']
+      - [Compounds per year, 12]
+      - [Years, 10]
+      - [Future value (formula)]
+      - [Future value (FV)]
+      - [Interest earned]
+    checks:
+      - cell: B6
+        excel: '=B2*(1+B3/B4)^(B4*B5)'
+        result: '16,470.09'
+        expect: 16470.0949769
+      - cell: B7
+        excel: '=FV(B3/B4, B4*B5, 0, -B2)'
+        result: '16,470.09'
+        expect: 16470.0949769
+      - cell: B8
+        excel: '=B6-B2'
+        result: '6,470.09'
+        expect: 6470.0949769
+  steps:
+    - '`B3/B4` converts the annual rate into a rate per period: 5% / 12 = 0.4167% per month.'
+    - '`B4*B5` is the number of compounding periods: 12 x 10 = 120 months.'
+    - '`(1+B3/B4)^(B4*B5)` is the growth factor, about 1.647.'
+    - Multiplying by the principal gives the balance, 16,470.09. Subtracting the principal gives the interest earned.
+    - Increase the compounding frequency (e.g. 365) to see that it matters far less than the rate and the number of years.
+  errors:
+    - error: Negative result from FV
+      cause: The present value was entered as a positive number.
+      fix: Enter the deposit as negative (-B2), or put a minus in front of FV.
+    - error: Result far too large
+      cause: The rate was entered as 5 instead of 5% (0.05).
+      fix: Enter the rate as a percentage or decimal.
+    - error: Mixed units
+      cause: Annual rate used with months (or monthly rate with years).
+      fix: Divide the rate and multiply the periods by the same number of periods per year.
+  faq:
+    - q: What is the formula for continuous compounding?
+      a: =B2*EXP(B3*B5), i.e. principal times e raised to rate times years.
+    - q: How do I show the balance for every year?
+      a: Put years 1 to 10 in a column and use =$B$2*(1+$B$3/$B$4)^($B$4*A12), where A12 is the year.
+  related: [pmt, cagr, percentage-change]
+
+- id: pmt
+  category: financial
+  launch: true
+  slugs: {excel: pmt-excel, sheets: pmt-google-sheets}
+  title: Loan Payment Formula with PMT
+  summary: >-
+    PMT calculates the fixed periodic payment for a loan or mortgage from the interest rate,
+    number of payments and loan amount. Worked example for a 30-year mortgage, plus total
+    interest and the sign convention.
+  problem: >-
+    You want the monthly payment for a 250,000 loan at 6.5% annual interest over 30 years, and the
+    total interest paid over the life of the loan.
+  excel:
+    formula: '=PMT(B3/12, B4*12, -B2)'
+    explain: >-
+      Syntax: `PMT(rate, nper, pv, [fv], [type])`. Monthly rate = annual rate / 12, number of
+      payments = years x 12, pv = loan amount (negative so the payment shows as positive).
+    notes: >-
+      PMT returns a negative number when the loan amount is positive, because the payment is money
+      going out; entering the amount as -B2 (or writing =-PMT(...)) gives a positive payment. The
+      result covers principal and interest only, not taxes, insurance or fees. Use IPMT and PPMT
+      to split a specific payment into interest and principal, and type = 1 if payments are made
+      at the start of each period.
+    alternatives:
+      - label: Interest part of the first payment
+        formula: '=IPMT(B3/12, 1, B4*12, -B2)'
+    diff: >-
+      Excel uses the same PMT, IPMT and PPMT functions with the same sign convention.
+  sheets:
+    formula: '=PMT(B3/12, B4*12, -B2)'
+    explain: >-
+      Same function in Google Sheets.
+    diff: >-
+      The same PMT, IPMT and PPMT functions work in Google Sheets.
+  example:
+    intro: A 30-year fixed-rate loan.
+    grid:
+      - [Input, Value]
+      - [Loan amount, 250000]
+      - [Annual rate, '6.5%']
+      - [Years, 30]
+      - [Monthly payment]
+      - [Total interest]
+      - [Interest in month 1]
+    checks:
+      - cell: B5
+        excel: '=PMT(B3/12, B4*12, -B2)'
+        result: '1,580.17'
+        expect: 1580.1700587
+      - cell: B6
+        excel: '=B5*B4*12-B2'
+        result: '318,861.22'
+        expect: 318861.2211437
+      - cell: B7
+        excel: '=IPMT(B3/12, 1, B4*12, -B2)'
+        result: '1,354.17'
+        expect: 1354.1666667
+  steps:
+    - '`B3/12` is the monthly interest rate (0.5417%).'
+    - '`B4*12` is the number of monthly payments, 360.'
+    - '`-B2` is the loan amount, negative because it is money you receive; the payment then comes out positive.'
+    - 'Total interest = payment x number of payments - loan amount: 1,580.17 x 360 - 250,000 = 318,861.22.'
+    - 'In month 1 almost all of the payment is interest: 250,000 x 0.5417% = 1,354.17.'
+  errors:
+    - error: Payment is negative
+      cause: The loan amount was entered as a positive pv.
+      fix: Use -B2 or put a minus sign in front of PMT.
+    - error: Payment is far too high
+      cause: The annual rate was used without dividing by 12, or years were used instead of months.
+      fix: Use rate/12 and years*12 for monthly payments.
+    - error: '#NUM!'
+      cause: The number of periods is 0 or the inputs are inconsistent.
+      fix: Check that nper is positive and the rate is a reasonable decimal.
+  faq:
+    - q: Does PMT include property tax and insurance?
+      a: No. PMT covers principal and interest only. Add escrow items separately.
+    - q: How do I calculate how much I can borrow for a given payment?
+      a: Use PV, e.g. =PV(B3/12, B4*12, -1500) returns the loan amount a 1,500 monthly payment supports.
+    - q: How do I build an amortization schedule?
+      a: List payment numbers 1 to 360 in a column, then use =IPMT($B$3/12, A10, $B$4*12, -$B$2) for the interest part and =PPMT($B$3/12, A10, $B$4*12, -$B$2) for the principal part of each payment. The two always add up to the PMT result.
+  related: [compound-interest, cagr, percentage-change]
+
+- id: cagr
+  category: financial
+  launch: true
+  slugs: {excel: cagr-excel, sheets: cagr-google-sheets}
+  title: How to Calculate CAGR
+  summary: >-
+    The compound annual growth rate (CAGR) is the constant yearly rate that takes a starting
+    value to an ending value over a number of years. Use (end/start)^(1/years)-1 or the RRI
+    function. Worked example included.
+  problem: >-
+    Revenue grew from 50,000 in 2020 to 84,000 in 2025. You want a single annual growth rate to
+    compare with other businesses.
+  excel:
+    formula: '=(B3/B2)^(1/B4)-1'
+    explain: >-
+      Ending value divided by starting value, raised to the power of 1/years, minus 1. Format the
+      result as a percentage.
+    notes: >-
+      RRI(nper, pv, fv) returns the same rate and is available from Excel 2013. The number of
+      years is the number of periods between the two values, not the number of data points: from
+      2020 to 2025 is 5 years even though there are six yearly figures. CAGR cannot be calculated
+      when the starting value is zero or when the two values have different signs.
+    alternatives:
+      - label: RRI function
+        formula: '=RRI(B4, B2, B3)'
+    diff: >-
+      Excel uses the same formula and the same RRI function (Excel 2013 and later).
+  sheets:
+    formula: '=(B3/B2)^(1/B4)-1'
+    explain: >-
+      Same formula in Google Sheets.
+    diff: >-
+      The same formula and RRI function work in Google Sheets.
+  example:
+    intro: Growth between 2020 and 2025.
+    grid:
+      - [Input, Value]
+      - [Start value (2020), 50000]
+      - [End value (2025), 84000]
+      - [Years, 5]
+      - [CAGR (formula)]
+      - [CAGR (RRI)]
+    checks:
+      - cell: B5
+        excel: '=(B3/B2)^(1/B4)-1'
+        result: '10.93%'
+        expect: 0.1093328057
+      - cell: B6
+        excel: '=RRI(B4, B2, B3)'
+        result: '10.93%'
+        expect: 0.1093328057
+  steps:
+    - '`B3/B2` is the total growth factor: 84,000 / 50,000 = 1.68.'
+    - '`^(1/B4)` takes the 5th root, the factor that applied five times gives 1.68: about 1.1093.'
+    - '`-1` turns the factor into a rate: 10.93% per year.'
+    - 'Check: 50,000 x 1.1093^5 is approximately 84,000.'
+  errors:
+    - error: '#NUM!'
+      cause: The start value is negative and the end value positive (or vice versa).
+      fix: CAGR is not defined in that case; report the absolute change instead.
+    - error: '#DIV/0!'
+      cause: The start value is 0.
+      fix: Use the first non-zero year as the start.
+    - error: Rate too low
+      cause: The number of data points (6) was used instead of the number of years between them (5).
+      fix: Use end year - start year.
+  faq:
+    - q: How is CAGR different from the average growth rate?
+      a: The simple average of yearly growth rates ignores compounding and overstates growth when rates vary. CAGR gives the single rate that reproduces the actual start and end values.
+    - q: Can I calculate CAGR for months?
+      a: Yes. Use the number of months as the period, then annualize with =(1+monthly_rate)^12-1.
+    - q: How do I project a future value from a CAGR?
+      a: 'Multiply the latest value by (1 + CAGR) raised to the number of years ahead, e.g. =B3*(1+B5)^3 for three years after 2025. Treat it as a trend line, not a forecast: CAGR smooths out every up and down year between the start and end.'
+    - q: Should I use CAGR or XIRR for investments with deposits?
+      a: CAGR only looks at the first and last value, so it ignores money added or withdrawn in between. For a portfolio with contributions, use XIRR with the dated cash flows instead; it works in both Excel and Google Sheets.
+  related: [compound-interest, percentage-change, pmt]
+
+- id: weighted-average
+  category: financial
+  launch: true
+  slugs: {excel: weighted-average-excel, sheets: weighted-average-google-sheets}
+  title: How to Calculate a Weighted Average
+  summary: >-
+    A weighted average gives some values more influence than others, like exams that count more
+    than homework or prices weighted by quantity. Use SUMPRODUCT divided by SUM; Google Sheets
+    also has AVERAGE.WEIGHTED.
+  problem: >-
+    A course grade is made of homework (20%), midterm (30%), project (20%) and final (30%). A
+    plain average of the four scores would treat them all as equally important.
+  excel:
+    formula: '=SUMPRODUCT(B2:B5, C2:C5)/SUM(C2:C5)'
+    explain: >-
+      SUMPRODUCT multiplies each score by its weight and adds the products; dividing by the sum of
+      weights gives the weighted average.
+    notes: >-
+      Dividing by SUM(C2:C5) means the weights do not have to add up to 100%: you can use 2, 3, 2,
+      3 or quantities instead of percentages. Excel has no dedicated weighted-average function, so
+      SUMPRODUCT/SUM is the standard. For a weighted average with a condition, multiply in the
+      condition: `=SUMPRODUCT((A2:A5="Final")*B2:B5*C2:C5)/SUMIFS(C2:C5, A2:A5, "Final")`.
+    alternatives:
+      - label: Plain average for comparison
+        formula: '=AVERAGE(B2:B5)'
+    diff: >-
+      Excel has no AVERAGE.WEIGHTED function, so SUMPRODUCT divided by SUM is the standard there.
+  sheets:
+    formula: '=AVERAGE.WEIGHTED(B2:B5, C2:C5)'
+    explain: >-
+      Syntax: `AVERAGE.WEIGHTED(values, weights, [additional values, additional weights])`.
+    notes: >-
+      Google Sheets has a built-in AVERAGE.WEIGHTED function, which is easier to read than
+      SUMPRODUCT and divides by the sum of weights automatically. It requires the values and
+      weights ranges to be the same size and the weights to be non-negative. The SUMPRODUCT/SUM
+      formula also works in Sheets and is the better choice if the file will be opened in Excel,
+      where AVERAGE.WEIGHTED does not exist.
+    alternatives:
+      - label: Excel-compatible version
+        formula: '=SUMPRODUCT(B2:B5, C2:C5)/SUM(C2:C5)'
+    diff: >-
+      Google Sheets also has a built-in AVERAGE.WEIGHTED function that gives the same result.
+  example:
+    intro: Scores and their weights.
+    grid:
+      - [Assessment, Score, Weight, null, Result]
+      - [Homework, 92, '20%']
+      - [Midterm, 78, '30%']
+      - [Project, 88, '20%']
+      - [Final, 84, '30%']
+    checks:
+      - cell: E2
+        label: weighted average
+        excel: '=SUMPRODUCT(B2:B5, C2:C5)/SUM(C2:C5)'
+        sheets: '=AVERAGE.WEIGHTED(B2:B5, C2:C5)'
+        result: 84.6
+      - cell: E3
+        label: plain average (ignores weights)
+        excel: '=AVERAGE(B2:B5)'
+        result: 85.5
+  steps:
+    - 'SUMPRODUCT multiplies row by row: 92 x 20% + 78 x 30% + 88 x 20% + 84 x 30% = 18.4 + 23.4 + 17.6 + 25.2 = 84.6.'
+    - SUM(C2:C5) is 100%, so the division leaves 84.6.
+    - The plain average is 85.5 because it lets the weak midterm count as much as the homework.
+    - If the weights were 2, 3, 2, 3 instead of percentages, the division by their sum (10) would give the same 84.6.
+  errors:
+    - error: Result far too large
+      cause: The formula was not divided by the sum of weights, and the weights do not add up to 1.
+      fix: Always divide by SUM(weights).
+    - error: '#VALUE!'
+      cause: The two ranges have different sizes.
+      fix: Use ranges covering the same rows.
+    - error: '#NAME? in Excel'
+      cause: AVERAGE.WEIGHTED is Google Sheets only.
+      fix: Use SUMPRODUCT/SUM.
+  faq:
+    - q: Do the weights have to add up to 100%?
+      a: No, as long as you divide by their sum. The result is the same.
+    - q: How do I calculate a weighted average price?
+      a: Use quantities as weights, e.g. =SUMPRODUCT(price, qty)/SUM(qty).
+    - q: How do I handle a missing score?
+      a: 'Leave the score cell empty and exclude its weight from the denominator: =SUMPRODUCT(B2:B5, C2:C5)/SUMIFS(C2:C5, B2:B5, "<>"). Otherwise the empty score counts as 0 and drags the average down.'
+    - q: Can SUMPRODUCT weight by a condition?
+      a: Yes. Multiply in a test, e.g. =SUMPRODUCT((A2:A5<>"Homework")*B2:B5*C2:C5)/SUMIFS(C2:C5, A2:A5, "<>Homework") averages everything except homework with the remaining weights.
+  related: [percentage-change, sumifs, maxifs-minifs, cagr]

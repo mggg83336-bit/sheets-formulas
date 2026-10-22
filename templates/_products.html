@@ -1,5 +1,10 @@
 {% if products %}<div class="products">{% for p in products %}
-  <div class="product"><strong>{{ p.name }}</strong> <span class="price">{{ p.price }}</span>
-  <p>{{ p.description }}</p>
-  <a class="buy" href="{{ p.url }}" rel="sponsored noopener" target="_blank">{{ p.button_text | default('购买') }}</a></div>{% endfor %}
+  <div class="product cta">
+    <p class="cta-kicker">Save time with ready-made templates</p>
+    <strong class="cta-name">{{ p.name }}</strong>{% if p.price %} <span class="price">{{ p.price }}</span>{% endif %}
+    <p>{{ p.description }}</p>
+    {% if p.bullets %}<ul>{% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+    {% if p.live %}<a class="buy" href="{{ p.url }}" rel="sponsored noopener" target="_blank">{{ p.button_text | default('Buy now') }}</a>
+    {% else %}<span class="buy disabled">Coming soon</span>{% endif %}
+  </div>{% endfor %}
 </div>{% endif %}

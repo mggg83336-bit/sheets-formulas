@@ -18,6 +18,43 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from common import (AD_PLACEHOLDER, CONTENT, DIST, PRODUCT_PLACEHOLDER, ROOT,
                     load_site, read_post, slugify)
+from structured import CATEGORY_LABELS, RELATED_PLACEHOLDER, SIBLING_PLACEHOLDER
+
+UI = {  # interface strings by site.language
+    "en": {"no_posts": "No pages yet.", "tag_desc": "{t}: all formula guides", "not_found": "Page not found",
+           "related_fallback": "More {c}", "sibling": "Using {p}? Read the {p} version of this guide",
+           "home": "Home"},
+    "zh-CN": {"no_posts": "暂无文章。", "tag_desc": "{t} 相关文章", "not_found": "页面不存在",
+              "related_fallback": "更多{c}", "sibling": "{p} 版本", "home": "首页"},
+}
+
+
+def resolve_links(m, by_slug, html, ui):
+    """Fill RELATED / SIBLING placeholders with links to pages that are actually published."""
+    if RELATED_PLACEHOLDER in html:
+        picks, seen = [], {m["slug"]}
+        for cands in m.get("related") or []:
+            cands = cands if isinstance(cands, list) else [cands]
+            for c in cands:
+                if c in by_slug and c not in seen:
+                    picks.append(by_slug[c])
+                    seen.add(c)
+                    break
+        if len(picks) < 3:  # top up with same-category pages so every page links onward
+            for o in by_slug.values():
+                if len(picks) >= 5:
+                    break
+                if o["slug"] not in seen and o.get("category") == m.get("category"):
+                    picks.append(o)
+                    seen.add(o["slug"])
+        items = "".join(f'<li><a href="{o["url"]}">{escape(o["title"])}</a></li>' for o in picks)
+        html = html.replace(RELATED_PLACEHOLDER, f'<ul class="related">{items}</ul>' if items else "")
+    if SIBLING_PLACEHOLDER in html:
+        sib = by_slug.get(m.get("sibling") or "")
+        link = (f'<p class="sibling"><a href="{sib["url"]}">{escape(ui["sibling"].format(p=sib.get("platform", "")))} &rarr;</a></p>'
+                if sib else "")
+        html = html.replace(f"<p>{SIBLING_PLACEHOLDER}</p>", link).replace(SIBLING_PLACEHOLDER, link)
+    return html
 
 
 def main():
@@ -31,6 +68,8 @@ def main():
     env = Environment(loader=FileSystemLoader(ROOT / "templates"),
                       autoescape=select_autoescape(["html"]))
     md = markdown.Markdown(extensions=["extra", "toc"])
+    env.filters["faq_entity"] = lambda f: {"@type": "Question", "name": f["q"],
+                                           "acceptedAnswer": {"@type": "Answer", "text": f["a"]}}
 
     posts = []
     for p in sorted(CONTENT.glob("*.md")):
@@ -44,6 +83,19 @@ def main():
         meta["tag_links"] = [(t, f"{base_path}/tags/{quote(slugify(t))}/") for t in meta.get("tags", [])]
         posts.append(meta)
     posts.sort(key=lambda m: (m["date"], m["slug"]), reverse=True)
+    ui = UI.get(cfg["site"].get("language", "en"), UI["en"])
+    by_slug = {m["slug"]: m for m in sorted(posts, key=lambda m: m["title"])}
+    for m in posts:
+        m["html"] = resolve_links(m, by_slug, m["html"], ui)
+        if m.get("category"):
+            m["category_label"] = CATEGORY_LABELS.get(m["category"], m["category"])
+            m["category_url"] = f"{base_path}/tags/{quote(slugify(m['category_label']))}/"
+            m["category_abs_url"] = f"{base_url}/tags/{quote(slugify(m['category_label']))}/"
+    groups = {}
+    for m in sorted(posts, key=lambda m: m["title"]):
+        groups.setdefault(m.get("category_label") or "", []).append(m)
+    order = list(CATEGORY_LABELS.values())
+    groups = sorted(groups.items(), key=lambda kv: order.index(kv[0]) if kv[0] in order else 99)
     if len({m["slug"] for m in posts}) != len(posts):
         raise SystemExit("duplicate slugs in content/posts")
 
@@ -52,7 +104,8 @@ def main():
     tmp.mkdir(parents=True)
     shutil.copytree(ROOT / "static", tmp / "static")
 
-    g = dict(site=cfg["site"], ads=cfg.get("ads", {}), products=cfg.get("products", []),
+    products = [dict(p, live="REPLACE_ME" not in p.get("url", "")) for p in cfg.get("products", [])]
+    g = dict(site=cfg["site"], ads=cfg.get("ads", {}), products=products, ui=ui,
              affiliate_links=cfg.get("affiliate_links", []), analytics=cfg.get("analytics", {}),
              base_path=base_path, base_url=base_url, year=dt.date.today().year)
     product_html = env.get_template("_products.html").render(**g)
@@ -63,7 +116,8 @@ def main():
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(env.get_template(tpl).render(**g, **kw), encoding="utf-8")
 
-    write("index.html", "index.html", posts=posts, page_title=cfg["site"]["title"],
+    write("index.html", "index.html", posts=posts, groups=groups, is_home=True,
+          page_title=cfg["site"]["title"] + (f" | {cfg['site']['tagline']}" if cfg["site"].get("tagline") else ""),
           description=cfg["site"]["description"], canonical=f"{base_url}/")
     for m in posts:
         body = m["html"].replace(AD_PLACEHOLDER, ad_html).replace(PRODUCT_PLACEHOLDER, product_html)
@@ -76,9 +130,9 @@ def main():
             tags.setdefault(t, []).append(m)
     for t, ps in tags.items():
         write(f"tags/{slugify(t)}/index.html", "index.html", posts=ps,
-              page_title=f"{t} | {cfg['site']['title']}", description=f"{t} 相关文章",
+              page_title=f"{t} | {cfg['site']['title']}", description=ui["tag_desc"].format(t=t),
               canonical=f"{base_url}/tags/{quote(slugify(t))}/")
-    write("404.html", "404.html", page_title="页面不存在", description="404", canonical=f"{base_url}/404.html")
+    write("404.html", "404.html", page_title=ui["not_found"], description="404", canonical=f"{base_url}/404.html")
 
     # sitemap.xml
     urls = [(f"{base_url}/", posts[0]["date"] if posts else dt.date.today().isoformat())]

@@ -1,0 +1,620 @@
+# Logic & error handling
+- id: if-and-or
+  category: logic
+  launch: true
+  slugs: {excel: if-and-or-excel, sheets: if-and-or-google-sheets}
+  title: IF with AND and OR
+  summary: >-
+    Combine IF with AND when every condition must be true, and with OR when any one of them is
+    enough. A worked bonus-eligibility example shows both, plus the shorthand that multiplies and
+    adds conditions for use inside array formulas.
+  problem: >-
+    Employees get a bonus only if they sold at least 50,000 AND have at least 2 years of service.
+    Separately, anyone who sold 50,000 OR has 5+ years should be flagged for a review.
+  excel:
+    formula: '=IF(AND(B2>=50000, C2>=2), "Bonus", "No bonus")'
+    explain: >-
+      AND returns TRUE only when all its conditions are TRUE; IF then returns the first value,
+      otherwise the second.
+    notes: >-
+      AND and OR accept up to 255 conditions. They do not work element-by-element inside array
+      formulas: `AND(B2:B6>=50000)` collapses the whole range into a single TRUE/FALSE. In a
+      spilling Microsoft 365 formula, use multiplication for AND and addition for OR instead:
+      `=IF((B2:B6>=50000)*(C2:C6>=2), "Bonus", "No bonus")` fills all five rows at once.
+    alternatives:
+      - label: One spilling formula for the whole column (Microsoft 365)
+        formula: '=IF((B2:B6>=50000)*(C2:C6>=2), "Bonus", "No bonus")'
+    diff: >-
+      Excel uses the identical IF/AND/OR formula. In Microsoft 365 the multiplied version spills
+      without any wrapper.
+  sheets:
+    formula: '=IF(AND(B2>=50000, C2>=2), "Bonus", "No bonus")'
+    explain: >-
+      Identical syntax in Google Sheets.
+    notes: >-
+      In Google Sheets, to fill the whole column from one cell, wrap the multiplied version in
+      ARRAYFORMULA and use open-ended ranges, adding a blank check so empty rows stay empty:
+      `=ARRAYFORMULA(IF(A2:A="", "", IF((B2:B>=50000)*(C2:C>=2), "Bonus", "No bonus")))`. As in
+      Excel, AND and OR cannot be used inside ARRAYFORMULA because they return a single value
+      for the whole range.
+    alternatives:
+      - label: Whole column with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", IF((B2:B>=50000)*(C2:C>=2), "Bonus", "No bonus")))'
+    diff: >-
+      Google Sheets uses the identical formula. To fill a whole column, use the multiplied
+      version inside ARRAYFORMULA.
+  example:
+    intro: Bonus requires both conditions; review requires either.
+    grid:
+      - [Employee, Sales, Years, Bonus, Review]
+      - [Ana, 52000, 3]
+      - [Ben, 38000, 6]
+      - [Chloe, 61000, 1]
+      - [Dev, 29000, 2]
+      - [Eva, 45000, 5]
+    checks:
+      - cell: D2
+        label: AND, filled down
+        excel: '=IF(AND(B2>=50000, C2>=2), "Bonus", "No bonus")'
+        fill: [D2, D3, D4, D5, D6]
+        results: [Bonus, No bonus, No bonus, No bonus, No bonus]
+      - cell: E2
+        label: OR, filled down
+        excel: '=IF(OR(B2>=50000, C2>=5), "Review", "No")'
+        fill: [E2, E3, E4, E5, E6]
+        results: [Review, Review, Review, 'No', Review]
+  steps:
+    - '`B2>=50000` and `C2>=2` are tests that return TRUE or FALSE.'
+    - '`AND(...)` is TRUE only if both are TRUE. Ana qualifies; Chloe has the sales but only 1 year, so she does not.'
+    - '`OR(...)` is TRUE if at least one test is TRUE. Ben qualifies for review on years alone, Chloe on sales alone.'
+    - IF returns the second argument for TRUE and the third for FALSE.
+    - 'Combine them for rules such as "A and (B or C)": `=IF(AND(B2>=50000, OR(C2>=2, D2="VIP")), ...)`.'
+  errors:
+    - error: Everything returns the FALSE value
+      cause: Numbers stored as text, so "52000" >= 50000 is FALSE (text is always greater than numbers in comparisons, but text never equals a number).
+      fix: Convert the column to numbers; =ISNUMBER(B2) should be TRUE.
+    - error: '#VALUE!'
+      cause: One of the conditions refers to a cell containing an error, or a range was passed where a single value was expected.
+      fix: Check the referenced cells and use single cells (B2) when filling down.
+    - error: Spilled formula gives one result for all rows
+      cause: AND/OR were used with ranges; they collapse to a single value.
+      fix: Use (test1)*(test2) for AND and (test1)+(test2) for OR in array formulas.
+  faq:
+    - q: How many conditions can AND or OR have?
+      a: Up to 255 in Excel and effectively unlimited in Google Sheets, but if you need many, a lookup table is usually clearer.
+    - q: Is there an XOR?
+      a: Yes. XOR returns TRUE when an odd number of conditions are TRUE (with two conditions, exactly one). It exists in Excel 2013+ and Google Sheets.
+  related: [nested-if, iferror, countifs, sumifs]
+
+- id: nested-if
+  category: logic
+  launch: true
+  slugs: {excel: nested-if-excel, sheets: nested-if-google-sheets}
+  title: Nested IF Formulas (and Cleaner Alternatives)
+  summary: >-
+    A nested IF puts one IF inside another to test several conditions in order, such as turning
+    scores into letter grades. Here is a correct nested IF, the easier-to-read IFS version, and
+    a lookup-table approach that avoids nesting altogether.
+  problem: >-
+    You need to convert test scores into grades: 90 and above is A, 80 to 89 is B, 70 to 79 is C,
+    60 to 69 is D, and anything lower is F.
+  excel:
+    formula: '=IF(B2>=90, "A", IF(B2>=80, "B", IF(B2>=70, "C", IF(B2>=60, "D", "F"))))'
+    explain: >-
+      Each IF handles one grade and passes everything else to the next IF. Because the tests run
+      from the highest threshold down, each one only needs a single comparison.
+    notes: >-
+      Excel allows up to 64 nested IFs, but more than three or four become hard to read and easy
+      to break. IFS (Excel 2019 and Microsoft 365) lists condition/value pairs without nesting;
+      end it with TRUE as a catch-all, otherwise unmatched values return #N/A. For grade tables,
+      tax brackets and commission tiers, an approximate-match lookup against a small table is the
+      most maintainable choice because the thresholds live in cells rather than inside the formula.
+    alternatives:
+      - label: IFS (Excel 2019+)
+        formula: '=IFS(B2>=90, "A", B2>=80, "B", B2>=70, "C", B2>=60, "D", TRUE, "F")'
+      - label: Lookup with an array constant
+        formula: '=LOOKUP(B2, {0,60,70,80,90}, {"F","D","C","B","A"})'
+    diff: >-
+      Excel uses the same nested IF. IFS needs Excel 2019 or Microsoft 365.
+  sheets:
+    formula: '=IF(B2>=90, "A", IF(B2>=80, "B", IF(B2>=70, "C", IF(B2>=60, "D", "F"))))'
+    explain: >-
+      Identical in Google Sheets.
+    notes: >-
+      Google Sheets supports IFS and SWITCH as well. A nested IF cannot be applied to a whole
+      column in Sheets without ARRAYFORMULA, but IFS inside ARRAYFORMULA can be awkward because
+      IFS evaluates every pair. A cleaner whole-column option is the lookup approach:
+      `=ARRAYFORMULA(IF(B2:B="", "", LOOKUP(B2:B, {0,60,70,80,90}, {"F","D","C","B","A"})))`.
+      In locales that use a comma as the decimal separator, array constants use backslashes and
+      semicolons instead of commas, e.g. {0\60\70}.
+    alternatives:
+      - label: Whole column of grades from one formula
+        formula: '=ARRAYFORMULA(IF(B2:B="", "", LOOKUP(B2:B, {0,60,70,80,90}, {"F","D","C","B","A"})))'
+    diff: >-
+      Google Sheets uses the same nested IF and also supports IFS.
+  example:
+    intro: Scores in column B, three ways to get the grade.
+    grid:
+      - [Student, Score, Nested IF, IFS, LOOKUP]
+      - [Ava, 95]
+      - [Liam, 83]
+      - [Mia, 71]
+      - [Noah, 64]
+      - [Zoe, 52]
+      - [Eli, 80]
+    checks:
+      - cell: C2
+        excel: '=IF(B2>=90, "A", IF(B2>=80, "B", IF(B2>=70, "C", IF(B2>=60, "D", "F"))))'
+        fill: [C2, C3, C4, C5, C6, C7]
+        results: [A, B, C, D, F, B]
+      - cell: D2
+        excel: '=IFS(B2>=90, "A", B2>=80, "B", B2>=70, "C", B2>=60, "D", TRUE, "F")'
+        fill: [D2, D3, D4, D5, D6, D7]
+        results: [A, B, C, D, F, B]
+      - cell: E2
+        excel: '=LOOKUP(B2, {0,60,70,80,90}, {"F","D","C","B","A"})'
+        fill: [E2, E3, E4, E5, E6, E7]
+        results: [A, B, C, D, F, B]
+  steps:
+    - 'The first IF checks the highest threshold. If B2 is 90 or more it returns "A" and stops.'
+    - 'Otherwise the next IF runs. It only needs `B2>=80` because anything 90+ was already handled.'
+    - The pattern continues down to the last IF, whose FALSE value ("F") catches everything else.
+    - 'Note the boundary: Eli''s 80 is a B because the test is >= 80. Use > if a score of exactly 80 should be a C.'
+    - 'LOOKUP finds the largest threshold that is less than or equal to the score in {0,60,70,80,90} and returns the grade in the same position.'
+  errors:
+    - error: Every score returns the same grade
+      cause: The tests are in the wrong order (e.g. >=60 checked first catches everything above 60).
+      fix: Test from the highest threshold down, or from the lowest up using < comparisons.
+    - error: '#N/A from IFS'
+      cause: No condition was TRUE and there was no catch-all.
+      fix: End IFS with TRUE, "default value".
+    - error: '"You''ve entered too few arguments" / parse error'
+      cause: A missing closing parenthesis or comma in a long nested IF.
+      fix: Count one closing parenthesis per IF at the end, or switch to IFS / LOOKUP.
+  faq:
+    - q: How many IFs can be nested?
+      a: 64 in Excel 2007 and later. Google Sheets has no fixed small limit, but readability suffers long before you reach any limit.
+    - q: When should I use SWITCH instead?
+      a: SWITCH is for exact values (e.g. turning "N" into "North"), not ranges of numbers like grade thresholds.
+  related: [if-and-or, iferror, vlookup, xlookup]
+
+- id: iferror
+  category: logic
+  launch: true
+  slugs: {excel: iferror-excel, sheets: iferror-google-sheets}
+  title: How to Use IFERROR (and IFNA)
+  summary: >-
+    IFERROR replaces any error result (#DIV/0!, #N/A, #VALUE! and so on) with a value you choose.
+    IFNA only catches #N/A, which makes it safer for lookups. This page shows when to use each and
+    why wrapping everything in IFERROR can hide real problems.
+  problem: >-
+    A price-per-unit column shows #DIV/0! whenever units are 0 or blank, and a lookup shows #N/A
+    for products that are not in the list. Both make the report look broken.
+  excel:
+    formula: '=IFERROR(B2/C2, "n/a")'
+    explain: >-
+      Syntax: `IFERROR(value, value_if_error)`. If B2/C2 is an error, show "n/a", otherwise show
+      the result of the division.
+    notes: >-
+      IFERROR catches every error type, including ones caused by typos (#NAME?) or broken
+      references (#REF!), so a mistake in your formula can turn into a quiet "n/a" that nobody
+      notices. Prefer IFNA around lookups, which only hides "not found", and test for the specific
+      condition where you can (`=IF(C2=0, "n/a", B2/C2)`). IFNA is available from Excel 2013.
+    alternatives:
+      - label: Test the cause instead of hiding all errors
+        formula: '=IF(C2=0, "n/a", B2/C2)'
+    diff: >-
+      Excel uses the identical IFERROR and IFNA functions (IFNA from Excel 2013).
+  sheets:
+    formula: '=IFERROR(B2/C2, "n/a")'
+    explain: >-
+      Identical in Google Sheets. In Sheets the second argument is optional: =IFERROR(B2/C2)
+      returns an empty cell on error.
+    notes: >-
+      In Google Sheets you can omit the second argument; `=IFERROR(B2/C2)` shows a blank cell
+      instead of an error, which is handy inside ARRAYFORMULA: `=ARRAYFORMULA(IFERROR(B2:B/C2:C))`
+      fills the whole column and leaves rows with errors empty. Hovering over an error cell in
+      Sheets shows the exact cause (for example "Function DIVIDE parameter 2 cannot be zero"),
+      which is worth reading before you hide it.
+    alternatives:
+      - label: Whole column, blank on error
+        formula: '=ARRAYFORMULA(IFERROR(B2:B/C2:C))'
+    diff: >-
+      Google Sheets uses the same functions; there the second IFERROR argument is optional
+      (a blank is returned on error).
+  example:
+    intro: Price per unit with missing units, and a lookup for a product that does not exist.
+    grid:
+      - [Product, Revenue, Units, Per unit, null, Lookup]
+      - [Mouse, 1250, 50]
+      - [Hub, 0, 0]
+      - [Stand, 960, 24]
+      - [Lamp, 555, null]
+    checks:
+      - cell: D2
+        label: filled down to D5
+        excel: '=IFERROR(B2/C2, "n/a")'
+        fill: [D2, D3, D4, D5]
+        results: [25, n/a, 40, n/a]
+      - cell: F2
+        label: IFNA around a lookup for "Webcam"
+        excel: '=IFNA(VLOOKUP("Webcam", A2:C5, 2, FALSE), "Not listed")'
+        result: Not listed
+  steps:
+    - '`B2/C2` is calculated first. For Hub (0 units) and Lamp (blank units) it returns #DIV/0!.'
+    - IFERROR checks whether that result is any kind of error. If it is, the second argument ("n/a") is shown instead.
+    - 'For valid rows the original result passes through unchanged: 1250/50 = 25, 960/24 = 40.'
+    - IFNA works the same way but only reacts to #N/A, the error lookups return when a value is not found.
+  errors:
+    - error: Real mistakes hidden
+      cause: IFERROR also hides #NAME? (typo) and #REF! (deleted cells).
+      fix: Use IFNA for lookups and a specific IF test for division.
+    - error: Totals ignore hidden problems
+      cause: Returning 0 or "" from IFERROR makes rows silently drop out of sums and averages.
+      fix: Return a visible marker such as "check" during development, and only switch to "" once the data is clean.
+    - error: '#NAME? on IFNA'
+      cause: Excel 2010 or older does not have IFNA.
+      fix: Use IF(ISNA(formula), "Not listed", formula), or upgrade.
+  faq:
+    - q: What is the difference between IFERROR and IFNA?
+      a: IFERROR catches all error types. IFNA catches only #N/A, so other problems such as a wrong range still show up.
+    - q: Can IFERROR return a blank cell?
+      a: It can return an empty string with "" (both apps). In Google Sheets you can also omit the second argument.
+  related: [na-error, div0-error, value-error, vlookup, xlookup]
+
+- id: na-error
+  category: errors
+  launch: true
+  slugs: {excel: na-error-excel, sheets: na-error-google-sheets}
+  title: How to Fix the #N/A Error
+  titles: {excel: 'How to Fix the #N/A Error in Excel', sheets: 'How to Fix the #N/A Error in Google Sheets'}
+  summary: >-
+    #N/A means "value not available": a lookup could not find what it was looking for. Most of
+    the time the value is there, but it is stored differently, as text instead of a number or with
+    an invisible space. This guide shows how to find the real cause and fix it, not just hide it.
+  problem: >-
+    Your VLOOKUP returns #N/A for codes you can clearly see in the table. The lookup codes were
+    pasted from an email or exported from another system.
+  excel:
+    formula: '=VLOOKUP(VALUE(TRIM(D2)), $A$2:$B$5, 2, FALSE)'
+    explain: >-
+      TRIM removes stray spaces and VALUE turns the text "102" into the number 102, so it matches
+      the numeric codes in column A.
+    notes: >-
+      Excel marks numbers stored as text with a small green triangle; select the cells and choose
+      "Convert to Number" to fix them permanently. Non-breaking spaces (character 160, common in
+      data copied from web pages) are not removed by TRIM; use
+      `SUBSTITUTE(D2, CHAR(160), "")` first. If the codes in the table are text and the lookup
+      value is a number, convert the other way with `TEXT(D2, "0")` or `D2&""`.
+    alternatives:
+      - label: Handle non-breaking spaces from web data
+        formula: '=VLOOKUP(VALUE(TRIM(SUBSTITUTE(D2, CHAR(160), ""))), $A$2:$B$5, 2, FALSE)'
+    diff: >-
+      The same fix works in Excel. Excel also flags numbers stored as text with a green triangle
+      and offers "Convert to Number".
+  sheets:
+    formula: '=VLOOKUP(VALUE(TRIM(D2)), $A$2:$B$5, 2, FALSE)'
+    explain: >-
+      Same fix in Google Sheets.
+    notes: >-
+      In Google Sheets, hover over the #N/A cell to see the exact message, for example "Did not
+      find value '102' in VLOOKUP evaluation". The quotes around 102 are a strong hint that the
+      value is text. Sheets has no green triangle for numbers stored as text; check with
+      `=ISTEXT(D2)` or use Data > Data cleanup > Trim whitespace, then Format > Number > Number.
+      FILTER also returns #N/A when nothing matches ("No matches are found in FILTER evaluation").
+    diff: >-
+      Google Sheets needs the same fix. Hover over the error to read the exact message.
+  example:
+    intro: >-
+      The codes in column A are numbers. D2 is the text "102" and D3 is "104 " with a trailing
+      space, so a plain VLOOKUP fails.
+    grid:
+      - [Code, Item, null, Lookup value, Plain VLOOKUP, Fixed]
+      - [101, Bolts, null, '102']
+      - [102, Nuts, null, '104 ']
+      - [103, Washers]
+      - [104, Screws]
+    checks:
+      - cell: E2
+        label: plain lookup, filled down
+        excel: '=VLOOKUP(D2, $A$2:$B$5, 2, FALSE)'
+        fill: [E2, E3]
+        results: ['#N/A', '#N/A']
+        verify: false
+        why_unverified: LibreOffice silently converts the text "102" in lookups; Excel and Google Sheets return #N/A as shown
+      - cell: F2
+        label: cleaned lookup value, filled down
+        excel: '=VLOOKUP(VALUE(TRIM(D2)), $A$2:$B$5, 2, FALSE)'
+        fill: [F2, F3]
+        results: [Nuts, Screws]
+  steps:
+    - '#N/A from VLOOKUP, XLOOKUP, MATCH or HLOOKUP means the exact value was not found in the lookup column.'
+    - 'Test the suspicion directly: `=D2=A3` returns FALSE even though both show 102, and `=ISTEXT(D2)` returns TRUE.'
+    - '`TRIM(D2)` removes the trailing space from "104 ".'
+    - '`VALUE(...)` converts the cleaned text into a real number that matches column A.'
+    - Once the data is fixed at the source, you can go back to the plain formula, and wrap it in IFNA only for values that are genuinely missing.
+  errors:
+    - error: Number vs text
+      cause: One side is the number 102, the other the text "102".
+      fix: Convert one side with VALUE() or TEXT(), or convert the whole column.
+    - error: Extra or invisible spaces
+      cause: Trailing spaces or non-breaking spaces from copied web data.
+      fix: Use TRIM, and SUBSTITUTE(..., CHAR(160), "") for non-breaking spaces.
+    - error: Approximate match on unsorted data
+      cause: The last argument of VLOOKUP / MATCH was omitted.
+      fix: Use FALSE (VLOOKUP) or 0 (MATCH) for exact matches.
+    - error: Lookup range does not include the value
+      cause: The table range stops before the last row, or the range shifted when copied because it was not locked.
+      fix: Lock the range with $ or use an Excel Table / open-ended range.
+  faq:
+    - q: Should I just wrap the formula in IFERROR?
+      a: Only after you have confirmed the missing values are genuinely missing. Use IFNA rather than IFERROR so other problems still show.
+    - q: Why does #N/A appear in my SUM?
+      a: Any #N/A inside the range makes SUM return #N/A. Fix the lookups, or use AGGREGATE(9, 6, range) in Excel to sum while ignoring errors.
+  related: [vlookup, iferror, trim, xlookup, index-match]
+
+- id: value-error
+  category: errors
+  launch: true
+  slugs: {excel: value-error-excel, sheets: value-error-google-sheets}
+  title: 'How to Fix the #VALUE! Error'
+  titles: {excel: 'How to Fix the #VALUE! Error in Excel', sheets: 'How to Fix the #VALUE! Error in Google Sheets'}
+  summary: >-
+    #VALUE! means a formula received the wrong type of value, usually text where it expected a
+    number. This guide shows the common causes (units typed into number cells, dates stored as
+    text, mismatched ranges) and the formulas that clean the data.
+  problem: >-
+    A line-total column multiplies price by quantity, but one price was typed as "4 USD", so the
+    total shows #VALUE!.
+  excel:
+    formula: '=VALUE(SUBSTITUTE(B2, " USD", ""))*C2'
+    explain: >-
+      SUBSTITUTE strips the " USD" suffix and VALUE converts the remaining text to a number, so
+      the multiplication works for every row.
+    notes: >-
+      Excel automatically converts text that looks like a number ("4.20") in arithmetic, but not
+      text with letters or symbols such as "4 USD" or "N/A". Click the error indicator next to the
+      cell and choose "Show Calculation Steps" to see which part fails. Also watch out for
+      functions like SUM, which skip text instead of failing: `=SUM(B2:B4)` silently ignores
+      "4 USD", which is worse than an error because the total is just wrong.
+    alternatives:
+      - label: Check which cells are not numbers
+        formula: '=ISNUMBER(B2)'
+    diff: >-
+      Excel uses the same cleaning formula; "Show Calculation Steps" (Formulas > Evaluate Formula)
+      helps locate the failing part.
+  sheets:
+    formula: '=VALUE(SUBSTITUTE(B2, " USD", ""))*C2'
+    explain: >-
+      Same fix in Google Sheets.
+    notes: >-
+      Google Sheets explains the error when you hover over it, for example "Function MULTIPLY
+      parameter 1 expects number values. But '4 USD' is a text and cannot be coerced to a
+      number." For messy values with different currency symbols or units, REGEXEXTRACT pulls out
+      just the numeric part: `=VALUE(REGEXEXTRACT(B2, "[0-9.]+"))*C2`. Locale also matters in
+      Sheets: in a locale that uses a decimal comma, "4.20" is text, so check File > Settings.
+    alternatives:
+      - label: Extract the number from any text with REGEXEXTRACT
+        formula: '=VALUE(REGEXEXTRACT(B2&"", "[0-9.]+"))*C2'
+    diff: >-
+      The same fix works in Google Sheets. Hover over the error for an explanation, and
+      REGEXEXTRACT can pull out numbers from messy text.
+  example:
+    intro: One price was typed with a currency suffix.
+    grid:
+      - [Item, Price, Qty, Total, Fixed total]
+      - [Pen, 1.5, 10]
+      - [Pad, 4 USD, 5]
+      - [Clip, 0.25, 40]
+    checks:
+      - cell: D2
+        label: plain multiplication, filled down
+        excel: '=B2*C2'
+        fill: [D2, D3, D4]
+        results: [15, '#VALUE!', 10]
+      - cell: E2
+        label: cleaned, filled down
+        excel: '=VALUE(SUBSTITUTE(B2, " USD", ""))*C2'
+        fill: [E2, E3, E4]
+        results: [15, 20, 10]
+  steps:
+    - '`B3*C3` fails because "4 USD" is text that cannot be converted to a number.'
+    - '`SUBSTITUTE(B3, " USD", "")` returns the text "4".'
+    - '`VALUE("4")` returns the number 4, so the multiplication gives 20.'
+    - For rows that were already numbers, SUBSTITUTE returns the number as text (e.g. "1.5") and VALUE converts it back, so the formula is safe for the whole column.
+  errors:
+    - error: Text in a number column
+      cause: Units, currency codes, "N/A" or a space typed into a cell used in arithmetic.
+      fix: Clean the cells, or strip the text with SUBSTITUTE / REGEXEXTRACT and VALUE.
+    - error: Dates stored as text
+      cause: Imported dates such as "2026.03.15" are not recognized, so date math fails.
+      fix: Convert with DATEVALUE or DATE(LEFT(...), MID(...), RIGHT(...)).
+    - error: Ranges of different sizes
+      cause: Array calculations like SUMPRODUCT(A2:A10, B2:B11) need same-size ranges.
+      fix: Make every range cover the same rows.
+  faq:
+    - q: Why does =A1+A2 give #VALUE! but =SUM(A1:A2) does not?
+      a: The + operator must convert every input to a number and fails on text. SUM simply ignores text cells, which avoids the error but can give a wrong total.
+    - q: How do I find which cell causes #VALUE!?
+      a: Use Formulas > Evaluate Formula in Excel, or hover over the error in Google Sheets to read the message, then check each referenced cell with ISNUMBER.
+  related: [iferror, div0-error, na-error, trim]
+
+- id: div0-error
+  category: errors
+  launch: true
+  slugs: {excel: div0-error-excel, sheets: div0-error-google-sheets}
+  title: 'How to Fix the #DIV/0! Error'
+  titles: {excel: 'How to Fix the #DIV/0! Error in Excel', sheets: 'How to Fix the #DIV/0! Error in Google Sheets'}
+  summary: >-
+    #DIV/0! appears when a formula divides by zero or by an empty cell. This page shows how to
+    show a blank or a message instead, how AVERAGE-type functions trigger it, and when the error
+    is actually useful.
+  problem: >-
+    An average-order-value column divides revenue by orders. Months with no orders, or where the
+    orders cell is still empty, show #DIV/0!.
+  excel:
+    formula: '=IF(C2=0, "", B2/C2)'
+    explain: >-
+      An empty cell counts as 0, so C2=0 catches both zeros and blanks. Only when C2 has a
+      non-zero value is the division performed.
+    notes: >-
+      Checking the divisor with IF is clearer than IFERROR because it only handles the division
+      problem; IFERROR would also hide a typo or a #REF!. AVERAGE, AVERAGEIF and AVERAGEIFS return
+      #DIV/0! when there is nothing to average, for example when no row meets the condition.
+      Returning "" makes the cell look empty, but remember that charts and some formulas treat ""
+      differently from a truly blank cell.
+    alternatives:
+      - label: AVERAGEIF with no matches
+        formula: '=IFERROR(AVERAGEIF(A2:A5, "May", B2:B5), 0)'
+    diff: >-
+      Excel uses the identical formula.
+  sheets:
+    formula: '=IF(C2=0, "", B2/C2)'
+    explain: >-
+      Identical in Google Sheets.
+    notes: >-
+      Google Sheets also has a DIVIDE function, and its hover message reads "Function DIVIDE
+      parameter 2 cannot be zero", which makes the cause easy to confirm. To fill a whole column
+      without errors, use ARRAYFORMULA with the same test:
+      `=ARRAYFORMULA(IF(C2:C=0, "", B2:B/C2:C))`. Because empty rows also have C=0, the formula
+      leaves them blank automatically.
+    alternatives:
+      - label: Whole column with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(C2:C=0, "", B2:B/C2:C))'
+    diff: >-
+      The same formula works in Google Sheets.
+  example:
+    intro: February had no orders and April's orders are not entered yet.
+    grid:
+      - [Month, Revenue, Orders, Plain division, Fixed, null, Avg revenue in May]
+      - [Jan, 4200, 60]
+      - [Feb, 0, 0]
+      - [Mar, 3150, 45]
+      - [Apr, 2800, null]
+    checks:
+      - cell: D2
+        label: plain division, filled down
+        excel: '=B2/C2'
+        fill: [D2, D3, D4, D5]
+        results: [70, '#DIV/0!', 70, '#DIV/0!']
+      - cell: E2
+        label: fixed, filled down
+        excel: '=IF(C2=0, "", B2/C2)'
+        fill: [E2, E3, E4, E5]
+        results: [70, '', 70, '']
+      - cell: G2
+        label: AVERAGEIF with no matching month
+        excel: '=IFERROR(AVERAGEIF(A2:A5, "May", B2:B5), 0)'
+        result: 0
+  steps:
+    - Division by 0 is undefined, so the spreadsheet returns #DIV/0!. A blank cell is treated as 0.
+    - '`C2=0` is TRUE for 0 and for an empty cell.'
+    - When it is TRUE, IF returns "" (an empty-looking cell); otherwise it performs the division.
+    - AVERAGEIF divides the matching total by the number of matches. With no "May" rows that count is 0, so IFERROR supplies 0.
+  errors:
+    - error: Division by an empty cell
+      cause: The divisor has not been filled in yet.
+      fix: Test the divisor with IF(C2=0, ...) or IF(C2="", ...).
+    - error: AVERAGE of nothing
+      cause: The range contains no numbers, or AVERAGEIF(S) found no match.
+      fix: Wrap in IFERROR, or test with COUNTIF first.
+    - error: Divisor is text
+      cause: Text in the divisor causes #VALUE!, not #DIV/0!. If you see #DIV/0!, the divisor really is zero or empty.
+      fix: Check the cell the divisor refers to, including hidden rows.
+  faq:
+    - q: Should I return 0 or blank?
+      a: Return blank ("") when there is no meaningful value, so averages and charts are not pulled down by fake zeros. Return 0 only when zero is the true answer.
+    - q: Why is #DIV/0! sometimes useful?
+      a: It signals missing input. In a template, leaving it visible until the user fills in the divisor can prevent wrong decisions based on an incomplete sheet.
+  related: [iferror, value-error, percentage-change, weighted-average]
+
+- id: ref-error
+  category: errors
+  launch: true
+  slugs: {excel: ref-error-excel, sheets: ref-error-google-sheets}
+  title: 'How to Fix the #REF! Error'
+  titles: {excel: 'How to Fix the #REF! Error in Excel', sheets: 'How to Fix the #REF! Error in Google Sheets'}
+  summary: >-
+    #REF! means a formula points to a cell that does not exist: it was deleted, or the formula
+    asks for a column or row outside its range. In Google Sheets #REF! has extra meanings, such as
+    a blocked array or missing IMPORTRANGE permission. Here is how to tell which one you have.
+  problem: >-
+    After deleting a column, several totals show #REF!. Elsewhere a VLOOKUP shows #REF! even
+    though nothing was deleted.
+  excel:
+    formula: '=VLOOKUP("South", A2:C4, 3, FALSE)'
+    explain: >-
+      The fixed lookup asks for column 3, which exists in the 3-column range A2:C4. Asking for
+      column 4 is what produced the #REF!.
+    notes: >-
+      When you delete a row, column or sheet that a formula uses, Excel replaces the reference
+      with #REF! inside the formula itself (for example `=SUM(B2,#REF!)`); undo (Ctrl+Z) right
+      away is the quickest fix. Use Find & Select > Find with "#REF!" and Look in: Formulas to
+      list every broken formula. Ranges such as SUM(B2:B10) survive deleting a row inside them;
+      individual references like B2+B3+B4 do not. Excel shows #SPILL!, not #REF!, when a dynamic
+      array is blocked.
+    diff: >-
+      In Excel #REF! means a deleted or out-of-range reference; a blocked dynamic array shows
+      #SPILL! instead of #REF!.
+  sheets:
+    formula: '=VLOOKUP("South", A2:C4, 3, FALSE)'
+    explain: >-
+      Same fix for the out-of-range column in Google Sheets.
+    notes: >-
+      Google Sheets uses #REF! for more situations than Excel, so always hover to read the message.
+      "Array result was not expanded because it would overwrite data in B3" means a spilling
+      formula is blocked: clear the cells it needs. "Circular dependency detected" means the
+      formula refers to its own cell. "You need to connect these sheets" appears the first time an
+      IMPORTRANGE runs: click Allow access. "Reference does not exist" is the classic deleted
+      reference.
+    diff: >-
+      Google Sheets also uses #REF! for blocked array results, circular dependencies and
+      IMPORTRANGE permission; hover to read the exact message.
+  example:
+    intro: A 3-column table. The broken formulas ask for a column or row that is not inside the range.
+    grid:
+      - [Region, Q1, Q2, null, Broken, Fixed]
+      - [North, 100, 120]
+      - [South, 90, 95]
+      - [West, 70, 88]
+    checks:
+      - cell: E2
+        label: column 4 of a 3-column range
+        excel: '=VLOOKUP("South", A2:C4, 4, FALSE)'
+        result: '#REF!'
+        verify: false
+        why_unverified: LibreOffice returns #VALUE! here; Excel and Google Sheets return #REF! (documented behaviour)
+      - cell: F2
+        excel: '=VLOOKUP("South", A2:C4, 3, FALSE)'
+        result: 95
+      - cell: E3
+        label: row 4 of a 3-row range
+        excel: '=INDEX(B2:B4, 4)'
+        result: '#REF!'
+      - cell: F3
+        excel: '=INDEX(B2:B4, 3)'
+        result: 70
+  steps:
+    - Click the cell and look at the formula. If it literally contains "#REF!", a referenced cell, column or sheet was deleted.
+    - If it does not, the formula is asking for a position outside its range, like column 4 of A2:C4 or row 4 of B2:B4.
+    - Fix deleted references by undoing the deletion or re-selecting the correct cells.
+    - Fix out-of-range positions by correcting the index or widening the range, e.g. A2:D4 if a fourth column really exists.
+  errors:
+    - error: Deleted row, column or sheet
+      cause: A formula referenced a cell that was removed.
+      fix: Undo, or rewrite the reference; use ranges rather than single-cell references so deletions inside them are absorbed.
+    - error: Index out of range
+      cause: VLOOKUP column number, INDEX row/column or OFFSET points outside the range.
+      fix: Correct the number or enlarge the range.
+    - error: Copied formula moved off the sheet
+      cause: Copying =A1 upward or leftward from row 1 or column A would need a cell that does not exist.
+      fix: Use absolute references ($A$1) where the reference should not move.
+    - error: Closed external workbook (Excel) / missing access (Sheets)
+      cause: INDIRECT to a closed workbook, or IMPORTRANGE without permission.
+      fix: Open the source workbook, or click Allow access in Google Sheets.
+  faq:
+    - q: Can I recover a formula after #REF! replaced the reference?
+      a: Only with Undo or version history (File > Info > Version History in Excel, File > Version history in Google Sheets). The original address is not stored anywhere else.
+    - q: How do I prevent #REF! when deleting columns?
+      a: Use whole ranges, Excel Tables (structured references) or XLOOKUP / INDEX MATCH instead of hard-coded column numbers.
+  related: [vlookup, index-match, vlookup-another-sheet, iferror, na-error]

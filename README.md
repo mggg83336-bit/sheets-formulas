@@ -8,14 +8,20 @@
 ```
 autosite/
 ├── site.yaml                  # 全站唯一配置：站名、网址、方向、广告代码、商品/联盟链接、健康检查参数
-├── niches/example/            # 方向配置（换方向就复制这个目录）
-│   ├── niche.yaml             #   关键词/主题列表 + 标题/摘要/正文模板（Jinja2）
-│   └── items.csv              #   可选结构化数据，每行生成一页（程序化 SEO）
+├── niches/sheets-formulas/    # 当前方向：Excel & Google Sheets 公式教程（结构化数据，详见该目录 README.md）
+│   ├── niche.yaml             #   pages_dir / queue_file / 质量门槛
+│   ├── pages/*.yaml           #   40 个手写公式条目（launch 首发集）
+│   └── queue.csv              #   关键词队列（keywords_300.csv 导入，每天按序发布）
+├── niches/example/            # 旧的模板式方向示例（换方向时可参考）
+├── product/                   # 付费商品：build_pack.py 生成 Formula-Template-Pack.xlsx + LISTING.md（已 gitignore，见下）
 ├── content/posts/*.md         # 生成出来的文章（带 front matter，会提交进仓库）
 ├── templates/                 # 页面模板：base/index/post/404，广告位 _ad.html，购买按钮 _products.html
 ├── static/style.css
 ├── scripts/
-│   ├── generate.py            # 内容流水线（幂等：已写过的关键词自动跳过）
+│   ├── generate.py            # 内容流水线（幂等：已写过的关键词自动跳过；--refresh 重新渲染）
+│   ├── structured.py          # 结构化条目 → 页面（示例表格、可复制公式、FAQ、相关公式）+ 质量门槛
+│   ├── kwqueue.py             # 关键词队列：ingest（导入纯文本/CSV）、status（统计）
+│   ├── verify_formulas.py     # 用 LibreOffice 重算所有示例公式，核对页面里写的结果
 │   ├── providers/             # 内容生成器插槽：template（默认免费）/ llm（大模型预留位）
 │   ├── build.py               # 构建 dist/：页面 + sitemap.xml + robots.txt + feed.xml(RSS) + 404
 │   ├── linkcheck.py           # 链接检查（站内必查，站外可选）
@@ -36,6 +42,24 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 SITE_BASE_URL=http://127.0.0.1:8765 .venv/bin/python scripts/build.py && \
   python3 -m http.server 8765 --directory dist   # 本地预览
 ```
+
+## 当前方向：sheets-formulas（FormulaFix）
+
+- 网址：`https://mggg83336-bit.github.io/sheets-formulas/`（项目 Pages，所有站内链接都带 `/sheets-formulas` 前缀，
+  CI 用 `actions/configure-pages` 的 base_url 自动设置）。
+- **首发**：`pages/*.yaml` 中 `launch: true` 的 40 个条目，第一次运行全部发布（主平台版本）。
+- **每日发布**：`generate.py` 按 `queue.csv` 顺序，每次最多发布 `generate_per_run`（6）个
+  **已有真实内容且通过质量门槛**的关键词；没有内容的关键词一律跳过，绝不发空壳页。
+  目前可自动发布的是 29 个 Google Sheets 版本（约 5 天发完）；其余 224 个关键词需要先补内容
+  （手写条目，或配置 `LLM_API_URL` 后由大模型起草，草稿必须通过质量门槛 + LibreOffice 重算才会发布）。
+- 加关键词：`.venv/bin/python scripts/kwqueue.py ingest 新关键词.txt`（一行一个），
+  查看进度：`.venv/bin/python scripts/kwqueue.py status`。
+- 改了条目内容：`.venv/bin/python scripts/generate.py --refresh` 重新渲染已发布页面（保留日期）。
+- 校验示例：`.venv/bin/python scripts/verify_formulas.py`（需要本机装 LibreOffice）。
+- 商品：`.venv/bin/python product/build_pack.py` 生成 `product/Formula-Template-Pack.xlsx`，
+  上架文案在 `product/LISTING.md`。`product/` 已加入 `.gitignore`，因为 Pages 免费版要求仓库公开，
+  提交进去等于把付费商品免费送出。它在本机有一个独立的本地 git 仓库做版本管理。
+  Gumroad 上架后，把链接填进 `site.yaml → products[0].url`（替换 `REPLACE_ME`），按钮会从“Coming soon”变成购买链接。
 
 ## 换方向（接入具体业务）
 
@@ -81,9 +105,9 @@ Cloudflare Pages → Create project → 连接这个 GitHub 仓库。
 | 1 | **GitHub 账号** | 注册或登录 GitHub，新建一个仓库（公开仓库可以免费用 Pages），把本目录推上去；或者在自己的 1 对 1 对话里给执行官授权 GitHub 连接，由执行官来推。 |
 | 2 | **开启 Pages** | 仓库 Settings → Pages → Source 选 **GitHub Actions**。 |
 | 3 | **Actions 权限** | Settings → Actions → General → Workflow permissions 选 **Read and write**（自动提交内容、回滚、打标签都要用）。 |
-| 4 | **填写网址** | 把 `site.yaml` 的 `base_url` 改成 `https://<用户名>.github.io/<仓库名>`（CI 会自动识别，这一步主要影响本地构建）。 |
+| 4 | **填写网址** | 已填好 `https://mggg83336-bit.github.io/sheets-formulas`，仓库名必须是 `sheets-formulas`（账号 `mggg83336-bit`）。 |
 | 5 | **广告联盟实名**（可选） | 申请 Google AdSense 之类的广告联盟，需要本人实名、绑定收款账户、验证网站所有权，审核通过后把代码粘进 `site.yaml → ads`。 |
-| 6 | **商品/收款平台实名**（可选） | 开通 Gumroad / Lemon Squeezy 店铺，完成身份和收款信息（银行卡/PayPal 等）验证，上架商品后把链接填进 `products`。 |
+| 6 | **商品/收款平台实名**（可选） | 开通 Gumroad / Lemon Squeezy 店铺，完成身份和收款信息（银行卡/PayPal 等）验证，上架商品后把链接填进 `products`（商品文件和文案：`product/`）。 |
 | 7 | **联盟计划**（可选） | 注册联盟推广计划（实名、税务信息），把带推广码的链接填进 `affiliate_links`。 |
 | 8 | **搜索引擎收录**（可选，推荐） | 在 Google Search Console / Bing Webmaster 验证网站，提交 `sitemap.xml`。 |
 | 9 | **大模型 Key**（可选） | 用 `llm` 生成器时，在仓库 Secrets 填 `LLM_API_URL` / `LLM_API_KEY`。 |

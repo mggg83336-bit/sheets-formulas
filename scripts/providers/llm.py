@@ -44,3 +44,56 @@ def generate(topic: dict, niche: dict, ctx: dict) -> dict:
     except Exception as e:  # noqa: BLE001 —— 任何失败都回落，保证无人值守
         print(f"[llm] fallback to template: {e}")
     return base
+
+
+# ---------------------------------------------------------------- structured niches
+ENTRY_PROMPT = """You write one page for an Excel & Google Sheets formula help site.
+Keyword: "{kw}" (platform: {platform}).
+Return ONLY a JSON object with exactly the same keys and structure as this example entry
+(different topic, same depth), no markdown fences:
+{example}
+Rules:
+- Formulas must be correct, tested syntax for {platform}; note real differences between Excel and Google Sheets.
+- The worked example must be small real data in "grid" (row 1 = headers). Every check gives the
+  exact cell, formula and the exact result that formula returns on that grid (it will be recalculated
+  and the page is rejected if any result is wrong).
+- No filler, no marketing language. If the keyword is not a real, answerable spreadsheet task,
+  return {{"skip": "reason"}}.
+"""
+
+
+def generate_entry(keyword, platform_key, slug, category, example_entry):
+    """Ask an LLM (if configured) for a structured entry. Returns dict or None.
+
+    The caller still runs the quality gate AND recalculates every example with LibreOffice
+    before anything is published, so a wrong or thin answer is rejected, not posted.
+    """
+    url = os.environ.get("LLM_API_URL")
+    if not url:
+        return None
+    ex = {k: v for k, v in example_entry.items() if not k.startswith("_") and k not in ("launch", "slugs", "related")}
+    platform = "Excel" if platform_key == "excel" else "Google Sheets"
+    payload = {
+        "model": os.environ.get("LLM_MODEL", "default"),
+        "messages": [{"role": "user", "content": ENTRY_PROMPT.format(
+            kw=keyword, platform=platform, example=json.dumps(ex, ensure_ascii=False, default=str))}],
+    }
+    try:
+        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={
+            "Content-Type": "application/json",
+            **({"Authorization": f"Bearer {os.environ['LLM_API_KEY']}"} if os.environ.get("LLM_API_KEY") else {}),
+        })
+        with urllib.request.urlopen(req, timeout=180) as r:
+            text = json.load(r)["choices"][0]["message"]["content"].strip()
+        text = text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        entry = json.loads(text)
+    except Exception as e:  # noqa: BLE001
+        print(f"[llm] entry generation failed for {slug}: {e}")
+        return None
+    if not isinstance(entry, dict) or entry.get("skip"):
+        print(f"[llm] skipped {slug}: {entry.get('skip') if isinstance(entry, dict) else 'bad output'}")
+        return None
+    entry.update({"id": slug, "slugs": {platform_key: slug}, "primary": platform_key,
+                  "category": category or entry.get("category", "other"), "launch": False,
+                  "related": [], "source": "llm"})
+    return entry

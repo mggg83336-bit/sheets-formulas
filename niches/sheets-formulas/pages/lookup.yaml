@@ -1,0 +1,722 @@
+# Lookup & reference pages. Schema: see niches/sheets-formulas/README.md
+- id: vlookup
+  category: lookup
+  launch: true
+  slugs: {excel: vlookup-excel, sheets: vlookup-google-sheets}
+  title: How to Use VLOOKUP
+  summary: >-
+    VLOOKUP finds a value in the first column of a table and returns a value from another
+    column in the same row. This guide shows the exact syntax, a worked price-list example,
+    why you should almost always use FALSE for an exact match, and how to fix the errors
+    people hit most often.
+  problem: >-
+    You have a product table with IDs in the first column and prices and stock levels in the
+    columns to the right. Somewhere else (an order form, a report) you type a product ID and
+    want the price to appear automatically instead of scrolling and copying it by hand.
+  excel:
+    formula: '=VLOOKUP(F2, $A$2:$D$6, 3, FALSE)'
+    explain: >-
+      Syntax: `VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])`. Look up F2
+      in the first column of A2:D6 and return the value from the 3rd column of that range
+      (column C). FALSE means exact match only.
+    notes: >-
+      In Microsoft 365 and Excel 2021 you can look up a whole list at once:
+      `=VLOOKUP(F2:F10, $A$2:$D$6, 3, FALSE)` spills one result per ID. If you are on
+      Microsoft 365, XLOOKUP is usually the better choice because it can look left, defaults
+      to an exact match and does not break when you insert a column inside the table.
+      VLOOKUP is still worth knowing because it works in every Excel version back to the
+      1990s and in files you share with people on older versions.
+    alternatives:
+      - label: Same lookup with XLOOKUP (Microsoft 365 / Excel 2021+)
+        formula: '=XLOOKUP(F2, $A$2:$A$6, $C$2:$C$6, "Not found")'
+    diff: >-
+      Excel's VLOOKUP syntax is identical. In Microsoft 365 a range as the first argument
+      spills results automatically, without ARRAYFORMULA.
+  sheets:
+    formula: '=VLOOKUP(F2, $A$2:$D$6, 3, FALSE)'
+    explain: >-
+      Syntax: `VLOOKUP(search_key, range, index, [is_sorted])`. Google Sheets names the last
+      argument is_sorted, but it behaves the same way: FALSE (or 0) means exact match.
+    notes: >-
+      Google Sheets uses the same arguments as Excel, but the fourth one is called
+      `is_sorted`. To fill a whole column of results with one formula, wrap it in
+      ARRAYFORMULA and use an open-ended range, for example
+      `=ARRAYFORMULA(IF(F2:F="", "", VLOOKUP(F2:F, $A$2:$D$6, 3, FALSE)))`. The IF part keeps
+      empty rows blank instead of showing #N/A. Sheets also has XLOOKUP, so you can look up
+      columns to the left without rearranging your data.
+    alternatives:
+      - label: Fill an entire column with one formula
+        formula: '=ARRAYFORMULA(IF(F2:F="", "", VLOOKUP(F2:F, $A$2:$D$6, 3, FALSE)))'
+    diff: >-
+      Google Sheets uses the same syntax (the last argument is called is_sorted). To return a
+      whole column of results, wrap the formula in ARRAYFORMULA.
+  example:
+    intro: >-
+      Product IDs are in column A. The ID to find is typed in F2, and G2 and H2 return its
+      price and stock.
+    grid:
+      - [Product ID, Product, Price, Stock, null, Lookup ID, Price, Stock]
+      - [P-101, Wireless Mouse, 24.99, 120, null, P-104]
+      - [P-102, USB-C Hub, 39.5, 45]
+      - [P-103, Laptop Stand, 32, 0]
+      - [P-104, Webcam HD, 54.9, 18]
+      - [P-105, Desk Lamp, 27.75, 60]
+    checks:
+      - cell: G2
+        label: price of the ID in F2
+        excel: '=VLOOKUP(F2, $A$2:$D$6, 3, FALSE)'
+        result: 54.9
+      - cell: H2
+        label: stock of the same ID
+        excel: '=VLOOKUP(F2, $A$2:$D$6, 4, FALSE)'
+        result: 18
+    note: >-
+      The column number counts from the first column of the table range, not from column A of
+      the sheet. If your table started in column C, the price would still be column 3 of the
+      range.
+  steps:
+    - '`F2` is the value to find (P-104).'
+    - '`$A$2:$D$6` is the table. VLOOKUP always searches the **leftmost** column of this range, so the IDs must be in column A here. The dollar signs keep the range fixed when you copy the formula down.'
+    - '`3` tells VLOOKUP to return the value from the third column of the range (Price). Use 4 for Stock.'
+    - '`FALSE` forces an exact match. If you leave it out, VLOOKUP assumes the first column is sorted and does an approximate match, which can quietly return the wrong row.'
+    - VLOOKUP stops at the first match it finds. If an ID appears twice, only the first row is used.
+  errors:
+    - error: '#N/A'
+      cause: The lookup value is not in the first column, often because of an extra space or because one side is a number and the other is text that looks like a number.
+      fix: 'Check the value with `=LEN(F2)`, clean it with TRIM, or convert it with VALUE / TEXT so both sides match. Wrap the formula in IFNA to show a friendly message: `=IFNA(VLOOKUP(...), "Not found")`.'
+    - error: '#REF!'
+      cause: The column number is larger than the number of columns in the table range (for example 5 for A2:D6).
+      fix: Use a column number that exists inside the range, or widen the range.
+    - error: Wrong value returned, no error
+      cause: The fourth argument was omitted or set to TRUE, so an approximate match was used on unsorted data.
+      fix: Always end the formula with FALSE unless you deliberately want a range lookup on sorted data (for example tax brackets).
+    - error: Results break after inserting a column
+      cause: The column number is a hard-coded 3, so inserting a column inside the table shifts the data but not the number.
+      fix: 'Use `MATCH("Price", $A$1:$D$1, 0)` as the column number, or switch to XLOOKUP / INDEX MATCH.'
+  faq:
+    - q: Can VLOOKUP look to the left?
+      a: No. VLOOKUP only searches the first column of the range and returns values to its right. Use XLOOKUP or INDEX with MATCH to return a column on the left.
+    - q: Is VLOOKUP case-sensitive?
+      a: No. "p-104" and "P-104" are treated as the same value. For a case-sensitive lookup, use INDEX and MATCH with EXACT inside an array formula.
+    - q: What is the difference between TRUE and FALSE in VLOOKUP?
+      a: FALSE returns only exact matches. TRUE (or leaving the argument out) does an approximate match and requires the first column to be sorted in ascending order; it returns the largest value less than or equal to the lookup value.
+  related: [xlookup, index-match, vlookup-multiple-criteria, vlookup-another-sheet, na-error, iferror]
+
+- id: xlookup
+  category: lookup
+  launch: true
+  slugs: {excel: xlookup-excel, sheets: xlookup-google-sheets}
+  title: How to Use XLOOKUP
+  summary: >-
+    XLOOKUP searches one range and returns the matching item from another range. It replaces
+    VLOOKUP, HLOOKUP and most INDEX MATCH formulas: it can look left, defaults to an exact
+    match, and has a built-in "not found" message. Here is the syntax, a worked example and
+    the optional arguments you will actually use.
+  problem: >-
+    You have an employee table and want to type a name and get the employee ID. The ID column
+    is to the left of the name column, so VLOOKUP cannot do it without rearranging the data.
+  excel:
+    formula: '=XLOOKUP(F2, B2:B6, A2:A6, "Not found")'
+    explain: >-
+      Syntax: `XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found],
+      [match_mode], [search_mode])`. Find F2 in B2:B6 and return the item in the same position
+      of A2:A6.
+    notes: >-
+      XLOOKUP is available in Microsoft 365, Excel 2021, Excel 2024 and Excel for the web. In
+      Excel 2019 and older it returns #NAME?, so use INDEX MATCH if the file is shared with
+      people on older versions. Useful options: match_mode 2 enables wildcards (* and ?),
+      match_mode -1 returns the next smaller item, and search_mode -1 searches from the last
+      row up, which gives you the most recent entry when a value appears more than once.
+    alternatives:
+      - label: Most recent match (search from the bottom)
+        formula: '=XLOOKUP(F2, B2:B6, D2:D6, "Not found", 0, -1)'
+      - label: Wildcard match (name starts with the text in F2)
+        formula: '=XLOOKUP(F2&"*", B2:B6, A2:A6, "Not found", 2)'
+    diff: >-
+      The syntax is the same in Excel, but XLOOKUP only exists in Microsoft 365, Excel 2021 and
+      later; older versions show #NAME?.
+  sheets:
+    formula: '=XLOOKUP(F2, B2:B6, A2:A6, "Not found")'
+    explain: >-
+      Syntax in Google Sheets: `XLOOKUP(search_key, lookup_range, result_range,
+      [missing_value], [match_mode], [search_mode])`. Arguments work the same as in Excel.
+    notes: >-
+      Google Sheets added XLOOKUP in 2022, and the argument order matches Excel, so formulas
+      copy across unchanged. The lookup range must be a single row or a single column of the
+      same size as the result range, otherwise Sheets returns an error saying the ranges have
+      mismatched sizes. If you share a sheet with someone who downloads it as .xlsx for an old
+      Excel version, XLOOKUP will not work there; INDEX MATCH is the safest choice for that case.
+    diff: >-
+      Google Sheets supports XLOOKUP with the same argument order, so this formula works
+      unchanged there.
+  example:
+    intro: Look up the employee ID (column A) for the name typed in column F.
+    grid:
+      - [Employee ID, Name, Department, Salary, null, Name, Employee ID]
+      - [E-1001, Ana Lopez, Sales, 58000, null, David Kim]
+      - [E-1002, Ben Carter, IT, 72000, null, Zoe Hart]
+      - [E-1003, Chloe Wong, Finance, 66000]
+      - [E-1004, David Kim, IT, 69500]
+      - [E-1005, Emma Novak, Marketing, 61000]
+    checks:
+      - cell: G2
+        label: ID for David Kim (a column to the left)
+        excel: '=XLOOKUP(F2, B2:B6, A2:A6, "Not found")'
+        result: E-1004
+      - cell: G3
+        label: a name that is not in the list
+        excel: '=XLOOKUP(F3, B2:B6, A2:A6, "Not found")'
+        result: Not found
+  steps:
+    - '`F2` is the value to search for.'
+    - '`B2:B6` is where to search. Unlike VLOOKUP, this can be any column, it does not have to be the first one.'
+    - '`A2:A6` is what to return. It must have the same number of rows as the search range; here it is to the left, which VLOOKUP cannot do.'
+    - '`"Not found"` is returned instead of #N/A when there is no match.'
+    - Match mode and search mode are optional. Leaving them out gives an exact match searched from top to bottom, which is what you want most of the time.
+  errors:
+    - error: '#NAME?'
+      cause: Your Excel version does not have XLOOKUP (Excel 2019 or older), or the function name is misspelled.
+      fix: Use INDEX MATCH instead, or open the file in Microsoft 365 / Excel for the web.
+    - error: '#VALUE!'
+      cause: The lookup array and return array have different sizes, for example B2:B6 and A2:A7.
+      fix: Make both ranges cover exactly the same rows.
+    - error: '#N/A'
+      cause: No match and no if_not_found argument, often due to stray spaces or numbers stored as text.
+      fix: Add a fourth argument such as "Not found", and clean the data with TRIM or VALUE.
+  faq:
+    - q: Is XLOOKUP better than VLOOKUP?
+      a: In most cases yes. It can return columns to the left, defaults to an exact match, does not break when columns are inserted, and can return several columns at once. VLOOKUP is only better for compatibility with old Excel versions.
+    - q: Can XLOOKUP return more than one column?
+      a: Yes. Give it a multi-column return range such as C2:D6 and the result spills into adjacent cells.
+    - q: Does Google Sheets have XLOOKUP?
+      a: Yes. Google Sheets has had XLOOKUP since 2022 with the same arguments as Excel.
+  related: [vlookup, xlookup-return-multiple-columns, index-match, vlookup-multiple-criteria, last-value]
+
+- id: xlookup-return-multiple-columns
+  category: lookup
+  launch: true
+  slugs: {excel: xlookup-return-multiple-columns-excel, sheets: xlookup-return-multiple-columns-google-sheets}
+  title: XLOOKUP to Return Multiple Columns
+  summary: >-
+    One XLOOKUP can return several columns at once: give it a multi-column return range and the
+    results spill across. This page shows how to return adjacent columns, columns in a different
+    order, and a whole matching row.
+  problem: >-
+    For a given employee you want the department and the salary next to each other. Writing one
+    lookup per column works, but it is slower to maintain and easy to get out of sync.
+  excel:
+    formula: '=XLOOKUP(F2, B2:B6, C2:D6)'
+    explain: >-
+      The return array C2:D6 is two columns wide, so the result spills into G2 and H2.
+    notes: >-
+      Spilled results need empty cells to the right; if anything is in the way, Excel shows
+      #SPILL!. To return columns that are not next to each other, or in a different order,
+      build the return array with CHOOSECOLS or HSTACK (Microsoft 365 and Excel 2024). When you copy the
+      formula down, lock the ranges with $ so every row looks at the same table.
+    alternatives:
+      - label: Non-adjacent columns in any order (salary, then ID)
+        formula: '=XLOOKUP(F2, B2:B6, CHOOSECOLS(A2:D6, 4, 1))'
+      - label: The same with HSTACK
+        formula: '=XLOOKUP(F2, B2:B6, HSTACK(D2:D6, A2:A6))'
+    diff: >-
+      Excel uses the same formula. Curly-brace arrays like {D2:D6, A2:A6} do not work in Excel,
+      so use CHOOSECOLS or HSTACK there.
+  sheets:
+    formula: '=XLOOKUP(F2, B2:B6, C2:D6)'
+    explain: >-
+      Google Sheets spills the two returned values into G2 and H2 just like Excel.
+    notes: >-
+      In Google Sheets you can also build the return range with curly braces, which is shorter
+      and works in every version of Sheets: `{D2:D6, A2:A6}` puts Salary first and ID second. If
+      a spilled result would overwrite existing data, Sheets shows #REF! with the message "Array
+      result was not expanded because it would overwrite data", which is the Sheets equivalent of
+      Excel's #SPILL!. CHOOSECOLS and HSTACK also exist in Sheets.
+    alternatives:
+      - label: Non-adjacent columns with curly braces
+        formula: '=XLOOKUP(F2, B2:B6, {D2:D6, A2:A6})'
+    diff: >-
+      Google Sheets uses the same formula. A blocked spill shows #REF! instead of #SPILL!, and
+      you can also build the return range with curly braces such as {D2:D6, A2:A6}.
+  example:
+    intro: Type a name in F2; the department and salary spill into G2:H2.
+    grid:
+      - [Employee ID, Name, Department, Salary, null, Name, Department, Salary]
+      - [E-1001, Ana Lopez, Sales, 58000, null, Chloe Wong]
+      - [E-1002, Ben Carter, IT, 72000]
+      - [E-1003, Chloe Wong, Finance, 66000]
+      - [E-1004, David Kim, IT, 69500]
+      - [E-1005, Emma Novak, Marketing, 61000]
+    checks:
+      - cell: G2
+        label: one formula, two results (spills into H2)
+        excel: '=XLOOKUP(F2, B2:B6, C2:D6)'
+        spill_cells: [G2, H2]
+        spill_results: [Finance, 66000]
+  steps:
+    - XLOOKUP finds the position of F2 in B2:B6 (Chloe Wong is the 3rd item).
+    - It returns the 3rd row of the return range. Because C2:D6 has two columns, that row contains two values.
+    - The two values spill into G2 and H2. Only G2 contains the formula; H2 shows the spilled result.
+    - To return the full record, use A2:D6 as the return range and leave four empty cells to the right.
+  errors:
+    - error: '#SPILL! (Excel) / #REF! (Google Sheets)'
+      cause: A cell in the spill area is not empty.
+      fix: Clear the cells to the right of the formula, including cells that contain only a space.
+    - error: '#VALUE!'
+      cause: The return range has a different number of rows than the lookup range.
+      fix: Make the lookup range and the return range start and end on the same rows.
+    - error: Only one value appears
+      cause: The formula is in an old Excel version or inside a table column that cannot spill (Excel tables do not allow spilled formulas).
+      fix: Move the formula outside the Excel Table, or use one XLOOKUP per column.
+  faq:
+    - q: Can I copy a spilling XLOOKUP down a column?
+      a: Yes, as long as each row has enough empty cells to its right. Lock the lookup and return ranges with $ so they do not shift.
+    - q: How do I return the columns in a different order?
+      a: Wrap the return range in CHOOSECOLS (Excel 365 and Google Sheets), e.g. CHOOSECOLS(A2:D6, 4, 1), or in Google Sheets use {D2:D6, A2:A6}.
+  related: [xlookup, vlookup, index-match, lookup-multiple-values]
+
+- id: index-match
+  category: lookup
+  launch: true
+  slugs: {excel: index-match-excel, sheets: index-match-google-sheets}
+  title: How to Use INDEX MATCH
+  summary: >-
+    INDEX MATCH is the classic flexible lookup: MATCH finds the row number and INDEX returns the
+    value at that position. It can look left, does not break when columns are inserted, and works
+    in every version of Excel and Google Sheets. This guide covers the one-way and two-way forms.
+  problem: >-
+    You have a table of countries with their ISO code in the last column. You want to type a
+    code and get the country name, which sits to the left of the code, and you also want a
+    formula that can pick any column by its header.
+  excel:
+    formula: '=INDEX(A2:A6, MATCH(E2, C2:C6, 0))'
+    explain: >-
+      MATCH(E2, C2:C6, 0) returns the position of the code in C2:C6. INDEX(A2:A6, position)
+      returns the country in that position.
+    notes: >-
+      INDEX MATCH works in every Excel version, which makes it the safest lookup for workbooks
+      shared with people on Excel 2016 or 2019. In Microsoft 365, XMATCH can replace MATCH and
+      adds a search-from-the-end mode. Always use 0 as the last MATCH argument for an exact
+      match; 1 (the default) assumes sorted data.
+    alternatives:
+      - label: Microsoft 365 equivalent with XLOOKUP
+        formula: '=XLOOKUP(E2, C2:C6, A2:A6)'
+    diff: >-
+      Excel uses the identical formula, and it works in every Excel version.
+  sheets:
+    formula: '=INDEX(A2:A6, MATCH(E2, C2:C6, 0))'
+    explain: >-
+      Same functions and arguments in Google Sheets.
+    notes: >-
+      INDEX MATCH works identically in Google Sheets. One Sheets-specific trick: INDEX accepts
+      the result of FILTER or QUERY as its range, so you can chain it with other array functions
+      without ARRAYFORMULA. For multiple criteria, Sheets users often prefer FILTER, which
+      returns every match instead of only the first.
+    diff: >-
+      Google Sheets uses the identical formula.
+  example:
+    intro: Find the country (column A) for the code in E2, and the capital using the header name.
+    grid:
+      - [Country, Capital, Code, null, Code, Result]
+      - [France, Paris, FR, null, CA]
+      - [Japan, Tokyo, JP]
+      - [Brazil, Brasília, BR]
+      - [Canada, Ottawa, CA]
+      - [Kenya, Nairobi, KE]
+    checks:
+      - cell: F2
+        label: country for code CA (left lookup)
+        excel: '=INDEX(A2:A6, MATCH(E2, C2:C6, 0))'
+        result: Canada
+      - cell: F3
+        label: two-way lookup, column chosen by its header
+        excel: '=INDEX(A2:C6, MATCH(E2, C2:C6, 0), MATCH("Capital", A1:C1, 0))'
+        result: Ottawa
+  steps:
+    - '`MATCH(E2, C2:C6, 0)` searches C2:C6 for "CA" and returns 4, because CA is the 4th item.'
+    - '`INDEX(A2:A6, 4)` returns the 4th item of A2:A6: Canada.'
+    - 'In the two-way version, INDEX gets a row number and a column number: the second MATCH looks up the header "Capital" in A1:C1 and returns 2.'
+    - Because the return column is referenced directly, inserting a new column inside the table does not break the formula.
+  errors:
+    - error: '#N/A'
+      cause: MATCH did not find the value (extra spaces, text vs number) or the last argument was omitted, so MATCH ran an approximate search.
+      fix: Use 0 as the third MATCH argument and clean the data with TRIM / VALUE.
+    - error: Wrong row returned
+      cause: The INDEX range and the MATCH range start on different rows, e.g. A1:A6 vs C2:C6.
+      fix: Make both ranges start and end on the same rows.
+    - error: '#REF!'
+      cause: The row or column number from MATCH is larger than the INDEX range.
+      fix: Make the INDEX range at least as large as the ranges searched by MATCH.
+  faq:
+    - q: Why use INDEX MATCH instead of VLOOKUP?
+      a: It can return a column to the left, it does not depend on a hard-coded column number, and it only reads the two columns it needs.
+    - q: Is INDEX MATCH faster than XLOOKUP?
+      a: The difference is negligible on normal-sized sheets. Choose XLOOKUP for readability in Microsoft 365 and Google Sheets, and INDEX MATCH for compatibility with older Excel.
+  related: [xlookup, vlookup, vlookup-multiple-criteria, na-error]
+
+- id: vlookup-multiple-criteria
+  category: lookup
+  launch: true
+  slugs: {excel: vlookup-multiple-criteria-excel, sheets: vlookup-multiple-criteria-google-sheets}
+  title: VLOOKUP with Multiple Criteria
+  summary: >-
+    VLOOKUP only matches one value, but there are three reliable ways to look up a row that must
+    match two or more conditions: XLOOKUP with multiplied conditions, INDEX MATCH as an array, and
+    VLOOKUP with a helper key. Each is shown below with a worked example.
+  problem: >-
+    Your sales table has a Region column and a Product column. You need the units for one
+    specific region and product, for example West + Apples, but each region appears several times
+    and so does each product.
+  excel:
+    formula: '=XLOOKUP(1, (A2:A7=E2)*(B2:B7=F2), C2:C7)'
+    explain: >-
+      Each comparison returns TRUE/FALSE for every row. Multiplying them turns TRUE*TRUE into 1,
+      so XLOOKUP finds the first row where both conditions are met.
+    notes: >-
+      The XLOOKUP version needs Microsoft 365 or Excel 2021+. In Excel 2019 and older use the
+      INDEX MATCH version and confirm it with Ctrl+Shift+Enter, because those versions have no
+      dynamic arrays.
+      If you prefer plain VLOOKUP, add a helper column that joins the criteria (for example
+      `=A2&"|"&B2`), put it as the first column of the lookup range and search for `E2&"|"&F2`.
+      The separator prevents false matches such as "AB"&"C" vs "A"&"BC".
+    alternatives:
+      - label: INDEX MATCH array version (all Excel versions)
+        formula: '=INDEX(C2:C7, MATCH(1, (A2:A7=E2)*(B2:B7=F2), 0))'
+      - label: VLOOKUP with a virtual helper column
+        formula: '=VLOOKUP(E2&"|"&F2, CHOOSE({1,2}, A2:A7&"|"&B2:B7, C2:C7), 2, FALSE)'
+    diff: >-
+      In Excel 365 the usual answer is XLOOKUP with multiplied conditions, which returns only the
+      first match. FILTER also exists in Excel 365.
+  sheets:
+    formula: '=FILTER(C2:C7, A2:A7=E2, B2:B7=F2)'
+    explain: >-
+      FILTER takes one condition per argument and returns every row that meets all of them.
+    notes: >-
+      In Google Sheets, FILTER is the most natural way to match several criteria because each
+      condition is simply another argument, and it works without ARRAYFORMULA. It returns all
+      matches, so if duplicates are possible and you only want the first, wrap it in
+      `INDEX(..., 1)`. The VLOOKUP helper-key trick also works in Sheets, but the expression
+      inside the curly braces must be wrapped in ARRAYFORMULA, otherwise only the first row is
+      evaluated.
+    alternatives:
+      - label: First match only
+        formula: '=INDEX(FILTER(C2:C7, A2:A7=E2, B2:B7=F2), 1)'
+      - label: VLOOKUP with a virtual helper column
+        formula: '=ARRAYFORMULA(VLOOKUP(E2&"|"&F2, {A2:A7&"|"&B2:B7, C2:C7}, 2, FALSE))'
+    diff: >-
+      FILTER is simpler in Google Sheets: one argument per condition, and it returns every match.
+  example:
+    intro: Find the units for the region in E2 and the product in F2.
+    grid:
+      - [Region, Product, Units, null, Region, Product, Units]
+      - [East, Apples, 120, null, West, Apples]
+      - [East, Pears, 80]
+      - [West, Apples, 95]
+      - [West, Pears, 60]
+      - [North, Apples, 150]
+      - [North, Pears, 70]
+    checks:
+      - cell: G2
+        label: XLOOKUP (Excel) / FILTER (Google Sheets)
+        excel: '=XLOOKUP(1, (A2:A7=E2)*(B2:B7=F2), C2:C7)'
+        sheets: '=FILTER(C2:C7, A2:A7=E2, B2:B7=F2)'
+        result: 95
+      - cell: G3
+        label: INDEX MATCH version
+        excel: '=INDEX(C2:C7, MATCH(1, (A2:A7=E2)*(B2:B7=F2), 0))'
+        array: true
+        result: 95
+  steps:
+    - '`(A2:A7=E2)` returns {FALSE;FALSE;TRUE;TRUE;FALSE;FALSE}: which rows are West.'
+    - '`(B2:B7=F2)` returns {TRUE;FALSE;TRUE;FALSE;TRUE;FALSE}: which rows are Apples.'
+    - 'Multiplying the two arrays gives {0;0;1;0;0;0}. Only row 3 of the range meets both conditions.'
+    - XLOOKUP (or MATCH) searches that array for 1 and returns the Units from the same position, 95.
+    - Add more conditions by multiplying more comparisons, e.g. `*(D2:D7=G2)`.
+  errors:
+    - error: '#N/A'
+      cause: No row meets all conditions, or a criterion has a trailing space.
+      fix: 'Check each condition separately (e.g. `=COUNTIFS(A2:A7,E2,B2:B7,F2)` should be at least 1) and use an if_not_found argument.'
+    - error: '#VALUE!'
+      cause: The ranges in the conditions have different sizes.
+      fix: Make every range cover the same rows (A2:A7, B2:B7, C2:C7).
+    - error: Returns the wrong row in older Excel
+      cause: The INDEX MATCH array formula was entered with plain Enter in Excel 2019 or older.
+      fix: Re-enter it with Ctrl+Shift+Enter, or use the helper-column method.
+  faq:
+    - q: Can VLOOKUP itself take two lookup values?
+      a: Not directly. Join the criteria into one key (with a helper column or CHOOSE) so VLOOKUP has a single value to search for.
+    - q: How do I sum instead of returning the first match?
+      a: Use SUMIFS, e.g. =SUMIFS(C2:C7, A2:A7, E2, B2:B7, F2). It adds all matching rows instead of returning one.
+    - q: How do I use OR instead of AND between the criteria?
+      a: Add the conditions instead of multiplying them, e.g. ((A2:A7="East")+(A2:A7="West"))>0.
+  related: [xlookup, index-match, vlookup, lookup-multiple-values, sumifs, countifs]
+
+- id: vlookup-another-sheet
+  category: lookup
+  launch: true
+  slugs: {excel: vlookup-another-sheet-excel, sheets: vlookup-another-sheet-google-sheets}
+  title: VLOOKUP from Another Sheet
+  summary: >-
+    To look up a value on a different tab, put the sheet name and an exclamation mark in front of
+    the range. This guide shows the exact quoting rules for sheet names with spaces, how to point
+    at another file, and why the result sometimes turns into #REF!.
+  problem: >-
+    Your orders are on one tab and the price list lives on a separate tab called "Price List".
+    You want each order row to pull its unit price from that tab automatically.
+  excel:
+    formula: '=VLOOKUP(B2, ''Price List''!$A$2:$C$5, 3, FALSE)'
+    explain: >-
+      `'Price List'!$A$2:$C$5` means range A2:C5 on the tab named Price List. The single quotes
+      are required because the name contains a space.
+    notes: >-
+      The easiest way to get the reference right is to type `=VLOOKUP(B2,` then click the other
+      tab and select the range; Excel writes the quotes for you. To look up from another
+      workbook, the reference includes the file name in square brackets, for example
+      `'[Prices.xlsx]Price List'!$A$2:$C$5`. While the source file is closed Excel stores the full
+      path and shows the last saved values; open it and refresh with Data > Edit Links if values
+      look stale.
+    alternatives:
+      - label: Lookup from another workbook
+        formula: '=VLOOKUP(B2, ''[Prices.xlsx]Price List''!$A$2:$C$5, 3, FALSE)'
+    diff: >-
+      Excel uses the same sheet reference syntax. Another workbook is referenced as
+      '[Prices.xlsx]Price List'!A2:C5 rather than with IMPORTRANGE.
+  sheets:
+    formula: '=VLOOKUP(B2, ''Price List''!$A$2:$C$5, 3, FALSE)'
+    explain: >-
+      Same syntax in Google Sheets: quote the tab name when it contains spaces or punctuation.
+    notes: >-
+      To look up from a different Google Sheets file, wrap the range in IMPORTRANGE with the
+      file's URL and the range as text. The first time you use IMPORTRANGE with a new file,
+      the cell shows #REF! with an "Allow access" button; click it once and the lookup starts
+      working. IMPORTRANGE refreshes automatically when the source changes, so there is no
+      "Edit Links" step as in Excel, but large imports can slow the sheet down: import only the
+      columns you need.
+    alternatives:
+      - label: Lookup from another Google Sheets file
+        formula: '=VLOOKUP(B2, IMPORTRANGE("https://docs.google.com/spreadsheets/d/FILE_ID", "Price List!A2:C5"), 3, FALSE)'
+    diff: >-
+      Google Sheets uses the same tab reference. For another file, wrap the range in
+      IMPORTRANGE("file URL", "Price List!A2:C5") and click Allow access once.
+  example:
+    intro: The Orders tab (below) looks up each SKU on the Price List tab.
+    grid:
+      - [Order, SKU, Qty, Unit price]
+      - [1001, SKU-03, 2]
+      - [1002, SKU-01, 10]
+      - [1003, SKU-04, 25]
+    other_sheets:
+      Price List:
+        - [SKU, Description, Unit Price]
+        - [SKU-01, Notebook, 3.5]
+        - [SKU-02, Pen pack, 4.25]
+        - [SKU-03, Stapler, 12]
+        - [SKU-04, Folder, 1.8]
+    checks:
+      - cell: D2
+        label: filled down to D4
+        excel: '=VLOOKUP(B2, ''Price List''!$A$2:$C$5, 3, FALSE)'
+        fill: [D2, D3, D4]
+        results: [12, 3.5, 1.8]
+  steps:
+    - '`B2` is the SKU on the current (Orders) tab.'
+    - '`''Price List''!` switches the reference to the other tab. Use quotes whenever the tab name has a space, hyphen or starts with a number; quotes are optional for simple names like Prices!A2:C5.'
+    - '`$A$2:$C$5` is locked with dollar signs so it stays the same when you fill the formula down.'
+    - '`3, FALSE` returns the third column (Unit Price) with an exact match.'
+  errors:
+    - error: '#REF!'
+      cause: The tab was renamed in a way the formula could not follow, the tab was deleted, or (Google Sheets) IMPORTRANGE access has not been granted yet.
+      fix: Re-select the range on the correct tab, or click Allow access on the IMPORTRANGE cell.
+    - error: Excel asks you to pick a file / "Update values" dialog
+      cause: The tab name in the formula does not exist, so Excel thinks it is an external file.
+      fix: Check the spelling of the tab name and the quotes, or build the reference by clicking.
+    - error: '#N/A'
+      cause: The SKU is not found on the other tab (spaces, different case of codes, number vs text).
+      fix: Compare the two values with =B2='Price List'!A2 and clean with TRIM or VALUE.
+  faq:
+    - q: Do I need quotes around the sheet name?
+      a: Only when the name contains spaces or special characters, but quotes never hurt, so 'Prices'!A2:C5 also works.
+    - q: Can VLOOKUP search several sheets at once?
+      a: Not by itself. Nest lookups with IFNA, e.g. =IFNA(VLOOKUP(B2,Sheet1!A:C,3,FALSE), VLOOKUP(B2,Sheet2!A:C,3,FALSE)), or combine the sheets first (VSTACK in Excel 365 and Google Sheets).
+  related: [vlookup, xlookup, index-match, ref-error, na-error]
+
+- id: last-value
+  category: lookup
+  launch: true
+  slugs: {excel: last-value-excel, sheets: last-value-google-sheets}
+  title: How to Lookup the Last Value in a Column
+  summary: >-
+    Need the most recent entry in a log, a running balance or a meter reading? These formulas
+    return the last non-empty value in a column, even when there are blank cells in between,
+    plus the matching date from the next column.
+  problem: >-
+    You record a reading every day in column B, sometimes skipping a day. A dashboard cell should
+    always show the latest reading and its date without editing the formula when new rows are added.
+  excel:
+    formula: '=LOOKUP(2, 1/(B2:B100<>""), B2:B100)'
+    explain: >-
+      1/(B2:B100<>"") gives 1 for filled cells and #DIV/0! for blanks. LOOKUP searches for 2,
+      cannot find it, and falls back to the last numeric value, which is the last filled row.
+    notes: >-
+      This LOOKUP trick works in every Excel version without Ctrl+Shift+Enter and ignores gaps.
+      In Microsoft 365 there is a more readable option: `=XLOOKUP(TRUE, B2:B100<>"", B2:B100, ,
+      0, -1)` searches from the bottom up. Avoid whole-column references like B:B inside these
+      array calculations in big workbooks; a generous fixed range such as B2:B5000 is faster.
+    alternatives:
+      - label: Microsoft 365 with XLOOKUP (search from the bottom)
+        formula: '=XLOOKUP(TRUE, B2:B100<>"", B2:B100, , 0, -1)'
+      - label: Microsoft 365 with TAKE and FILTER
+        formula: '=TAKE(FILTER(B2:B100, B2:B100<>""), -1)'
+    diff: >-
+      The classic LOOKUP(2, 1/...) trick works in every Excel version. CHOOSEROWS also exists in Excel 365.
+  sheets:
+    formula: '=CHOOSEROWS(FILTER(B2:B, B2:B<>""), -1)'
+    explain: >-
+      FILTER keeps the non-empty cells and CHOOSEROWS with -1 returns the last of them.
+    notes: >-
+      In Google Sheets, open-ended ranges such as B2:B are normal and grow automatically as you
+      add rows. FILTER plus CHOOSEROWS is the clearest way to get the last entry. If you prefer
+      a formula that works in very old sheets too, use INDEX with COUNTA, which works as long as
+      there are no blank cells in the column. Note that TAKE, which Excel users often reach for,
+      does not exist in Google Sheets.
+    alternatives:
+      - label: INDEX + COUNTA (column without gaps)
+        formula: '=INDEX(B2:B, COUNTA(B2:B))'
+      - label: Matching date of the last reading
+        formula: '=CHOOSEROWS(FILTER(A2:A, B2:B<>""), -1)'
+    diff: >-
+      FILTER plus CHOOSEROWS is easier to read in Google Sheets and works with open-ended ranges. TAKE is not available in Sheets.
+  example:
+    intro: Readings with gaps. D2 returns the last reading and D3 the date it was recorded.
+    grid:
+      - [Date, Reading, null, Latest]
+      - [2026-03-02, 412]
+      - [2026-03-03, 398]
+      - [2026-03-04, null]
+      - [2026-03-05, 405]
+      - [2026-03-06, 421]
+      - [2026-03-07, null]
+    checks:
+      - cell: D2
+        label: last reading
+        excel: '=LOOKUP(2, 1/(B2:B7<>""), B2:B7)'
+        sheets: '=CHOOSEROWS(FILTER(B2:B7, B2:B7<>""), -1)'
+        result: 421
+      - cell: D3
+        label: date of that reading (format the cell as a date)
+        excel: '=LOOKUP(2, 1/(B2:B7<>""), A2:A7)'
+        sheets: '=CHOOSEROWS(FILTER(A2:A7, B2:B7<>""), -1)'
+        result: 2026-03-06
+  steps:
+    - '`B2:B7<>""` returns TRUE for filled cells and FALSE for blanks.'
+    - '`1/(...)` turns TRUE into 1 and FALSE into a #DIV/0! error.'
+    - 'LOOKUP looks for 2 in that array. Because 2 is larger than every value, it returns the position of the last number it can find and skips the errors, so blanks never count.'
+    - The third argument decides what to return from that position, B for the reading or A for the date.
+  errors:
+    - error: Returns 0 or an old value
+      cause: Cells that look empty contain a formula returning "" or a space, so they count as filled.
+      fix: 'Test with `TRIM(B2:B100)<>""` instead of `B2:B100<>""`, or make the source formulas return truly empty values.'
+    - error: '#N/A'
+      cause: The whole range is empty.
+      fix: Wrap the formula in IFNA, e.g. =IFNA(LOOKUP(2, 1/(B2:B100<>""), B2:B100), "No data").
+    - error: Slow workbook
+      cause: Whole-column references (B:B) in array calculations evaluate a million rows.
+      fix: Use a bounded range like B2:B5000, or an Excel Table column reference.
+  faq:
+    - q: Does this work with text values?
+      a: Yes. The LOOKUP(2, 1/(...)) pattern returns the last non-empty value whether it is a number or text.
+    - q: How do I get the last value that meets a condition?
+      a: Multiply in the condition, e.g. =LOOKUP(2, 1/((B2:B100<>"")*(C2:C100="Paid")), B2:B100).
+  related: [xlookup, index-match, lookup-multiple-values, eomonth]
+
+- id: lookup-multiple-values
+  category: lookup
+  launch: true
+  slugs: {excel: lookup-multiple-values-excel, sheets: lookup-multiple-values-google-sheets}
+  title: How to Lookup and Return Multiple Values
+  summary: >-
+    VLOOKUP and XLOOKUP stop at the first match. When a customer has several orders and you
+    need all of them, use FILTER to list every match, or TEXTJOIN to put them in one cell. An
+    INDEX/SMALL version for older Excel is included.
+  problem: >-
+    Your order log lists each order with its customer. For a given customer you want every order
+    ID, not just the first one VLOOKUP would return.
+  excel:
+    formula: '=FILTER(A2:A7, B2:B7=E2, "No orders")'
+    explain: >-
+      FILTER returns every value in A2:A7 where the customer in B2:B7 equals E2, spilling one
+      result per row. The third argument is shown when nothing matches.
+    notes: >-
+      FILTER needs Microsoft 365 or Excel 2021+. For Excel 2019 and older, use the INDEX/SMALL
+      formula below in F2, confirm with Ctrl+Shift+Enter in versions before 365, and copy it down
+      as many rows as the largest possible number of matches; extra rows show blank. Add SORT
+      around FILTER to order the results, e.g. `=SORT(FILTER(A2:C7, B2:B7=E2), 3, -1)` to sort
+      by amount, largest first.
+    alternatives:
+      - label: All matches in one cell
+        formula: '=TEXTJOIN(", ", TRUE, FILTER(A2:A7, B2:B7=E2))'
+      - label: Older Excel (copy down; array formula)
+        formula: '=IFERROR(INDEX($A$2:$A$7, SMALL(IF($B$2:$B$7=$E$2, ROW($B$2:$B$7)-ROW($B$2)+1), ROWS($F$2:F2))), "")'
+    diff: >-
+      FILTER works the same in Excel 365 and Excel 2021. Older Excel needs the INDEX/SMALL
+      array formula instead.
+  sheets:
+    formula: '=FILTER(A2:A7, B2:B7=E2)'
+    explain: >-
+      Google Sheets FILTER takes the range and one or more conditions. It has no "if empty"
+      argument, so wrap it in IFERROR or IFNA for a custom message.
+    notes: >-
+      Google Sheets' FILTER does not have Excel's third if_empty argument; when nothing matches
+      it returns #N/A with the message "No matches are found in FILTER evaluation". Use
+      `=IFNA(FILTER(A2:A7, B2:B7=E2), "No orders")`. QUERY is a powerful alternative in Sheets:
+      it can filter, sort and pick columns in one formula using a SQL-like language, which is
+      handy when you need several columns of each matching row.
+    alternatives:
+      - label: Custom message when nothing matches
+        formula: '=IFNA(FILTER(A2:A7, B2:B7=E2), "No orders")'
+      - label: QUERY version (orders and amounts, largest first)
+        formula: '=QUERY(A2:C7, "select A, C where B = ''"&E2&"'' order by C desc", 0)'
+    diff: >-
+      Google Sheets' FILTER has no if_empty argument, so use IFNA(FILTER(...), "No orders").
+  example:
+    intro: All orders for the customer in E2.
+    grid:
+      - [Order ID, Customer, Amount, null, Customer, Orders, All in one cell]
+      - [5001, Acme, 250, null, Acme]
+      - [5002, Globex, 120]
+      - [5003, Acme, 75]
+      - [5004, Initech, 300]
+      - [5005, Acme, 180]
+      - [5006, Globex, 90]
+    checks:
+      - cell: F2
+        label: spills down to F4
+        excel: '=FILTER(A2:A7, B2:B7=E2, "No orders")'
+        sheets: '=FILTER(A2:A7, B2:B7=E2)'
+        spill_cells: [F2, F3, F4]
+        spill_results: [5001, 5003, 5005]
+      - cell: G2
+        label: joined into one cell
+        excel: '=TEXTJOIN(", ", TRUE, FILTER(A2:A7, B2:B7=E2))'
+        array: true
+        result: 5001, 5003, 5005
+  steps:
+    - '`B2:B7=E2` is evaluated for every row and returns TRUE for the three Acme rows.'
+    - FILTER keeps only the rows of A2:A7 where that test is TRUE and spills them downward.
+    - TEXTJOIN joins the filtered list with ", " and TRUE skips empty values.
+    - The results update automatically when orders are added inside the range; use a bigger range or an Excel Table to include future rows.
+  errors:
+    - error: '#CALC! (Excel) / #N/A (Google Sheets)'
+      cause: No row matched and no if_empty value was given.
+      fix: Use FILTER's third argument in Excel, or IFNA in Google Sheets.
+    - error: '#SPILL! / #REF!'
+      cause: Cells below the formula are not empty, so the list cannot expand.
+      fix: Clear the cells below the formula.
+    - error: '#VALUE!'
+      cause: The condition range has a different size than the range being filtered.
+      fix: Make both ranges cover the same rows.
+  faq:
+    - q: Can VLOOKUP return multiple matches?
+      a: No, VLOOKUP returns only the first match. Use FILTER (Excel 365, Google Sheets) or the INDEX/SMALL array formula in older Excel.
+    - q: How do I return the matches across columns instead of down?
+      a: Wrap the result in TRANSPOSE, e.g. =TRANSPOSE(FILTER(A2:A7, B2:B7=E2)).
+  related: [vlookup-multiple-criteria, textjoin, xlookup, count-unique]

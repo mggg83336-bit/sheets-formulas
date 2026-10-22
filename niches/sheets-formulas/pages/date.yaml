@@ -1,0 +1,411 @@
+# Dates & times
+- id: days-between-dates
+  category: date
+  launch: true
+  slugs: {excel: days-between-dates-excel, sheets: days-between-dates-google-sheets}
+  title: How to Calculate Days Between Two Dates
+  summary: >-
+    Dates are stored as serial numbers, so subtracting one date from another gives the number of
+    days between them. This page covers simple subtraction, the DAYS function, counting both the
+    start and end day, and why the answer sometimes appears as a date.
+  problem: >-
+    For each project you know the start and end date and need the duration in days, both
+    exclusive (difference) and inclusive (counting both days).
+  excel:
+    formula: '=B2-A2'
+    explain: >-
+      Excel stores each date as the number of days since January 1, 1900, so the difference of two
+      dates is a number of days.
+    notes: >-
+      If the result looks like a date (e.g. 1/15/1900), the cell inherited a date format; set it to
+      General or Number. DAYS(end, start) gives the same result and makes the order of arguments
+      explicit. For whole months or years between dates use DATEDIF, and for working days use
+      NETWORKDAYS. If either date includes a time, wrap them in INT to count calendar days only.
+    alternatives:
+      - label: DAYS function
+        formula: '=DAYS(B2, A2)'
+      - label: Calendar days when the values include times
+        formula: '=INT(B2)-INT(A2)'
+    diff: >-
+      Excel uses the same subtraction; set the result cell to General if it shows a date.
+  sheets:
+    formula: '=B2-A2'
+    explain: >-
+      Google Sheets also stores dates as serial numbers (days since December 30, 1899), so
+      subtraction works the same way.
+    notes: >-
+      In Google Sheets, a result that shows as a date can be fixed with Format > Number > Number.
+      Sheets is stricter about dates typed as text: if your dates are left-aligned they are text,
+      and subtraction returns #VALUE!. Convert them with DATEVALUE, or check File > Settings >
+      Locale, because 03/04/2026 means March 4 in the United States locale and April 3 in the
+      United Kingdom locale. DAYS and DATEDIF work as in Excel.
+    diff: >-
+      The same subtraction works in Google Sheets; if the result shows as a date, use Format >
+      Number > Number.
+  example:
+    intro: Duration of three periods.
+    grid:
+      - [Start, End, Days (B-A), DAYS, Inclusive]
+      - [2026-01-15, 2026-03-02]
+      - [2026-02-01, 2026-02-28]
+      - [2025-12-20, 2026-01-05]
+    checks:
+      - cell: C2
+        excel: '=B2-A2'
+        fill: [C2, C3, C4]
+        results: [46, 27, 16]
+      - cell: D2
+        excel: '=DAYS(B2, A2)'
+        fill: [D2, D3, D4]
+        results: [46, 27, 16]
+      - cell: E2
+        label: counts both the start and end day
+        excel: '=B2-A2+1'
+        fill: [E2, E3, E4]
+        results: [47, 28, 17]
+  steps:
+    - Each date is a whole number behind the scenes (2026-01-15 is 46037).
+    - Subtracting gives the gap in days. January 15 to March 2, 2026 is 16 days left in January + 28 in February + 2 in March = 46.
+    - Add 1 when both the first and the last day should count, for example for hotel nights vs. days of a trip.
+    - DAYS(end, start) does the same subtraction; note that the end date comes first.
+  errors:
+    - error: Result shows as a date
+      cause: The result cell is formatted as a date.
+      fix: Format it as General / Number.
+    - error: '#VALUE!'
+      cause: One of the dates is text, not a real date.
+      fix: Convert with DATEVALUE or re-enter it; =ISNUMBER(A2) should be TRUE.
+    - error: Negative number
+      cause: The start and end dates are reversed.
+      fix: Swap the references, or use =ABS(B2-A2).
+  faq:
+    - q: How do I count only weekdays?
+      a: Use NETWORKDAYS(start, end), which excludes Saturdays, Sundays and optional holidays.
+    - q: How do I calculate days from a date until today?
+      a: Use =TODAY()-A2. The result updates every day.
+    - q: How do I calculate the difference in years or months?
+      a: 'Use DATEDIF: =DATEDIF(A2, B2, "M") returns complete months and =DATEDIF(A2, B2, "Y") complete years. For a decimal number of years, use =YEARFRAC(A2, B2).'
+  related: [networkdays, datedif-age, eomonth, sumifs-between-dates]
+
+- id: datedif-age
+  category: date
+  launch: true
+  slugs: {excel: datedif-age-excel, sheets: datedif-age-google-sheets}
+  title: How to Calculate Age with DATEDIF
+  summary: >-
+    DATEDIF returns the number of complete years, months or days between two dates, which makes
+    it the standard way to calculate age from a birth date. This page shows age in years, years
+    plus months, and the quirks of this partly hidden function.
+  problem: >-
+    You have employees' birth dates and need their current age in complete years, plus a "35
+    years, 11 months" style label for an HR report.
+  excel:
+    formula: '=DATEDIF(B2, TODAY(), "Y")'
+    explain: >-
+      Syntax: `DATEDIF(start_date, end_date, unit)`. "Y" returns complete years between the birth
+      date and today.
+    notes: >-
+      DATEDIF is a legacy function kept for Lotus compatibility: it works in all Excel versions but
+      does not appear in autocomplete or the Insert Function dialog, so you have to type it in
+      full. Microsoft documents that the "MD" unit can return wrong results, so avoid it and use
+      "YM" for months. YEARFRAC is an alternative (`=INT(YEARFRAC(B2, TODAY(), 1))`), but its
+      day-count basis can make it off by one around birthdays in leap years.
+    alternatives:
+      - label: Years and months
+        formula: '=DATEDIF(B2, TODAY(), "Y")&" years, "&DATEDIF(B2, TODAY(), "YM")&" months"'
+    diff: >-
+      Excel supports DATEDIF too, but it is hidden from autocomplete and its "MD" unit is
+      documented as unreliable.
+  sheets:
+    formula: '=DATEDIF(B2, TODAY(), "Y")'
+    explain: >-
+      Same function and units in Google Sheets.
+    notes: >-
+      Unlike Excel, Google Sheets lists DATEDIF in autocomplete and documents all units ("Y", "M",
+      "D", "MD", "YM", "YD"). To calculate ages for a whole column at once, combine it with
+      ARRAYFORMULA and skip empty rows: `=ARRAYFORMULA(IF(B2:B="", "", DATEDIF(B2:B, TODAY(),
+      "Y")))`. TODAY() recalculates when the sheet is opened or edited, and you can set
+      File > Settings > Calculation to also refresh every hour.
+    alternatives:
+      - label: Ages for a whole column
+        formula: '=ARRAYFORMULA(IF(B2:B="", "", DATEDIF(B2:B, TODAY(), "Y")))'
+    diff: >-
+      Google Sheets has the same DATEDIF function and shows it in autocomplete.
+  example:
+    intro: >-
+      To make the example reproducible, ages are calculated as of the date in F2 (June 30, 2026).
+      In a live sheet use TODAY() instead of $F$2.
+    grid:
+      - [Name, Birth date, Age, Years and months, null, As of]
+      - [Ana, 1990-07-14, null, null, null, 2026-06-30]
+      - [Ben, 1985-12-03]
+      - [Chloe, 2001-02-28]
+    checks:
+      - cell: C2
+        label: filled down
+        excel: '=DATEDIF(B2, $F$2, "Y")'
+        fill: [C2, C3, C4]
+        results: [35, 40, 25]
+      - cell: D2
+        label: filled down
+        excel: '=DATEDIF(B2, $F$2, "Y")&" years, "&DATEDIF(B2, $F$2, "YM")&" months"'
+        fill: [D2, D3, D4]
+        results: ['35 years, 11 months', '40 years, 6 months', '25 years, 4 months']
+  steps:
+    - '"Y" counts complete years. Ana turns 36 on July 14, 2026, so on June 30 she is still 35.'
+    - '"YM" counts the complete months after the last full year: from July 14, 2025 to June 30, 2026 is 11 months.'
+    - The start date must be earlier than the end date; otherwise DATEDIF returns #NUM!.
+    - Replace $F$2 with TODAY() for an age that updates automatically.
+  errors:
+    - error: '#NUM!'
+      cause: The birth date is after the end date (often a typo in the year, or swapped arguments).
+      fix: 'Check the order: DATEDIF(earlier date, later date, unit).'
+    - error: '#NAME? / formula not suggested (Excel)'
+      cause: Excel hides DATEDIF from autocomplete, so it is easy to misspell.
+      fix: Type =DATEDIF( in full; it still works.
+    - error: '#VALUE!'
+      cause: The birth date is text, not a real date.
+      fix: Convert with DATEVALUE or re-enter the date.
+  faq:
+    - q: Why not just use (TODAY()-B2)/365?
+      a: Leap years make that slightly wrong around birthdays. DATEDIF counts real calendar years.
+    - q: How do I get the age on a specific date?
+      a: Put that date in a cell and use it as the second argument, as in the example.
+  related: [days-between-dates, eomonth, networkdays]
+
+- id: networkdays
+  category: date
+  launch: true
+  slugs: {excel: networkdays-excel, sheets: networkdays-google-sheets}
+  title: How to Count Working Days with NETWORKDAYS
+  summary: >-
+    NETWORKDAYS counts the working days (Monday to Friday) between two dates, including both
+    ends, and can subtract a list of holidays. NETWORKDAYS.INTL handles other weekends. Worked
+    example with a real holiday list.
+  problem: >-
+    For project planning you need the number of business days between start and end dates, minus
+    public holidays.
+  excel:
+    formula: '=NETWORKDAYS(B2, C2, $G$2:$G$4)'
+    explain: >-
+      Syntax: `NETWORKDAYS(start_date, end_date, [holidays])`. Counts Monday to Friday between B2
+      and C2 inclusive, excluding any dates listed in G2:G4.
+    notes: >-
+      Keep holidays in a separate range or table and lock the reference with $ so you can fill the
+      formula down. For a different weekend use NETWORKDAYS.INTL: weekend code 7 means Friday and
+      Saturday, 11 means Sunday only, or pass a 7-character string such as "0000011" where 1 marks
+      a day off (Monday first). WORKDAY does the reverse calculation: it returns the date that is
+      a given number of working days after a start date.
+    alternatives:
+      - label: Friday-Saturday weekend
+        formula: '=NETWORKDAYS.INTL(B2, C2, 7, $G$2:$G$4)'
+      - label: Due date 10 working days after the start
+        formula: '=WORKDAY(B2, 10, $G$2:$G$4)'
+    diff: >-
+      Excel has the same NETWORKDAYS, NETWORKDAYS.INTL and WORKDAY functions.
+  sheets:
+    formula: '=NETWORKDAYS(B2, C2, $G$2:$G$4)'
+    explain: >-
+      Same function in Google Sheets.
+    diff: >-
+      Google Sheets has the same NETWORKDAYS, NETWORKDAYS.INTL and WORKDAY functions.
+  example:
+    intro: Holidays are listed in G2:G4.
+    grid:
+      - [Project, Start, End, Workdays, Minus holidays, null, Holidays]
+      - [Website, 2026-03-02, 2026-03-27, null, null, null, 2026-04-03]
+      - [Audit, 2026-04-01, 2026-04-30, null, null, null, 2026-12-25]
+      - [Launch, 2026-12-21, 2027-01-08, null, null, null, 2027-01-01]
+    checks:
+      - cell: D2
+        label: filled down
+        excel: '=NETWORKDAYS(B2, C2)'
+        fill: [D2, D3, D4]
+        results: [20, 22, 15]
+      - cell: E2
+        label: filled down
+        excel: '=NETWORKDAYS(B2, C2, $G$2:$G$4)'
+        fill: [E2, E3, E4]
+        results: [20, 21, 13]
+  steps:
+    - NETWORKDAYS counts every Monday to Friday from the start date to the end date, including both.
+    - March 2 to March 27, 2026 is exactly four Monday-to-Friday weeks, so 20 days.
+    - The holiday list removes dates that fall on weekdays inside the period. April 3 removes one day from the Audit; December 25 and January 1 remove two from the Launch.
+    - Holidays that fall on a weekend are ignored automatically, so they are never subtracted twice.
+  errors:
+    - error: '#VALUE!'
+      cause: A start, end or holiday value is text instead of a date.
+      fix: Convert the cells to real dates.
+    - error: Result one day too high or low
+      cause: NETWORKDAYS counts both the start and end day.
+      fix: Subtract 1 if the start day should not count.
+    - error: Holidays not subtracted after filling down
+      cause: The holiday range was not locked, so it moved down with each row.
+      fix: Use $G$2:$G$4.
+  faq:
+    - q: Does NETWORKDAYS count the start date?
+      a: Yes, both the start and the end date are included if they are working days.
+    - q: How do I count working hours?
+      a: Multiply the working days by the hours per day, and adjust the first and last day if they are partial.
+    - q: How do I count only Mondays, or only weekend days?
+      a: 'Use NETWORKDAYS.INTL with a 7-character weekend string where 1 means excluded: =NETWORKDAYS.INTL(B2, C2, "0111111") counts only Mondays, and "1111100" counts only Saturdays and Sundays.'
+  related: [days-between-dates, eomonth, datedif-age, sum-hours]
+
+- id: eomonth
+  category: date
+  launch: true
+  slugs: {excel: eomonth-excel, sheets: eomonth-google-sheets}
+  title: How to Use EOMONTH (End of Month)
+  summary: >-
+    EOMONTH returns the last day of a month a given number of months before or after a date. It
+    is the easiest way to get month-end dates, end-of-next-month due dates and the first day of
+    a month.
+  problem: >-
+    Invoices are due at the end of the month after they are issued, and a report needs the first
+    and last day of each invoice's month.
+  excel:
+    formula: '=EOMONTH(A2, 0)'
+    explain: >-
+      Syntax: `EOMONTH(start_date, months)`. 0 returns the last day of the same month, 1 the last
+      day of the next month, -1 the last day of the previous month.
+    notes: >-
+      EOMONTH returns a serial number, so format the cell as a date (Ctrl+1 > Date). The first day
+      of a month is the end of the previous month plus one: `=EOMONTH(A2, -1)+1`. To add calendar
+      months while keeping the day, use EDATE instead; EDATE(Jan 31, 1) returns Feb 28 because
+      February has no 31st. Both functions ignore any time part of the start date.
+    alternatives:
+      - label: Same day next month
+        formula: '=EDATE(A2, 1)'
+    diff: >-
+      Excel uses the same EOMONTH function; format the result as a date with Ctrl+1.
+  sheets:
+    formula: '=EOMONTH(A2, 0)'
+    explain: >-
+      Same function in Google Sheets.
+    diff: >-
+      Google Sheets uses the same EOMONTH and EDATE functions.
+  example:
+    intro: Month boundaries and due dates for three invoices.
+    grid:
+      - [Invoice date, End of month, Due (end of next month), First of month]
+      - [2026-01-15]
+      - [2026-02-10]
+      - [2026-11-30]
+    checks:
+      - cell: B2
+        excel: '=EOMONTH(A2, 0)'
+        fill: [B2, B3, B4]
+        results: [2026-01-31, 2026-02-28, 2026-11-30]
+      - cell: C2
+        excel: '=EOMONTH(A2, 1)'
+        fill: [C2, C3, C4]
+        results: [2026-02-28, 2026-03-31, 2026-12-31]
+      - cell: D2
+        excel: '=EOMONTH(A2, -1)+1'
+        fill: [D2, D3, D4]
+        results: [2026-01-01, 2026-02-01, 2026-11-01]
+  steps:
+    - EOMONTH moves the given number of months from the start date and returns the last day of that month.
+    - 'With 0 it stays in the same month: January 15 becomes January 31.'
+    - With 1 it moves to the next month and handles month lengths automatically, including February.
+    - Going back one month and adding one day gives the first day of the original month.
+  errors:
+    - error: Result shows a number like 46053
+      cause: The cell is not formatted as a date.
+      fix: Format it as a date.
+    - error: '#VALUE!'
+      cause: The start date is text.
+      fix: Convert it to a real date.
+    - error: Decimal months ignored
+      cause: EOMONTH truncates the months argument, so 1.9 is treated as 1.
+      fix: Pass whole numbers.
+  faq:
+    - q: How do I get the number of days in a month?
+      a: Use =DAY(EOMONTH(A2, 0)).
+    - q: What is the difference between EOMONTH and EDATE?
+      a: EOMONTH always returns a month-end date; EDATE keeps the same day number (or the last day if that day does not exist).
+    - q: How do I get the last working day of the month?
+      a: 'Combine EOMONTH with WORKDAY: =WORKDAY(EOMONTH(A2, 0)+1, -1) starts from the first day of the next month and steps back one working day, skipping weekends. Add a holiday range as the third argument if needed.'
+  related: [sum-by-month, days-between-dates, networkdays, sumifs-between-dates]
+
+- id: sum-hours
+  category: date
+  launch: true
+  slugs: {excel: sum-hours-excel, sheets: sum-hours-google-sheets}
+  title: How to Sum Hours Over 24
+  summary: >-
+    When you add up time values, the total resets after 24 hours unless the cell uses an elapsed
+    time format. This page shows the [h]:mm format, the duration format in Google Sheets, and
+    how to convert the total to decimal hours for pay calculations.
+  problem: >-
+    Your timesheet adds up a week of daily hours, but the total shows 18:00 instead of 42:00.
+  excel:
+    formula: '=SUM(B2:B6)'
+    explain: >-
+      The SUM is correct; the display is the problem. Format the total cell with the custom
+      format [h]:mm so hours above 24 are shown.
+    notes: >-
+      Excel stores time as a fraction of a day (12:00 is 0.5), so 42 hours is 1.75. The regular
+      h:mm format shows only the part after the full days, which is why 42 hours appears as 18:00.
+      Select the cell, press Ctrl+1, choose Custom and enter [h]:mm. To pay by the hour, convert
+      the total to a decimal number with *24 and format that cell as a number, not a time.
+    alternatives:
+      - label: Display total as text in [h]:mm form
+        formula: '=TEXT(SUM(B2:B6), "[h]:mm")'
+    diff: >-
+      Excel uses the same SUM; apply the custom format [h]:mm (Ctrl+1 > Custom) to the total.
+  sheets:
+    formula: '=SUM(B2:B6)'
+    explain: >-
+      In Google Sheets, format the total cell as Format > Number > Duration to show 42:00:00.
+    notes: >-
+      Google Sheets has a ready-made Duration format (Format > Number > Duration) that shows hours
+      beyond 24, so no custom code is needed. If you prefer hours and minutes only, use Format >
+      Number > Custom number format and enter [h]:mm. Typing 8:30 into a cell creates a time of
+      day, which works for summing; if you need entries above 24 hours, type them as 25:30:00 and
+      apply Duration first.
+    diff: >-
+      In Google Sheets use the same SUM and apply Format > Number > Duration to the total.
+  example:
+    intro: A week of daily hours. B7 uses the [h]:mm format; C7 converts to decimal hours.
+    grid:
+      - [Day, Hours, Decimal hours]
+      - [Mon, '8:30']
+      - [Tue, '9:15']
+      - [Wed, '7:45']
+      - [Thu, '10:00']
+      - [Fri, '6:30']
+      - [Total]
+    checks:
+      - cell: B7
+        label: formatted as [h]:mm (shows 18:00 with plain h:mm)
+        excel: '=SUM(B2:B6)'
+        result: '42:00'
+        expect: 1.75
+      - cell: C7
+        label: decimal hours for pay calculations
+        excel: '=SUM(B2:B6)*24'
+        result: 42
+  steps:
+    - Each time is a fraction of a day; 8:30 is 0.354166...
+    - 'SUM adds the fractions: 1.75 days, which is 42 hours.'
+    - The [h] in the format tells the spreadsheet to show total elapsed hours instead of the hour of the day.
+    - Multiplying by 24 converts days to hours, giving 42 for pay and overtime calculations.
+  errors:
+    - error: Total shows 18:00
+      cause: The total cell uses h:mm, which wraps every 24 hours.
+      fix: Use [h]:mm (Excel) or Duration (Google Sheets).
+    - error: Decimal result shows as a time
+      cause: The *24 cell inherited a time format.
+      fix: Format it as Number.
+    - error: Total is 0
+      cause: The hours were typed as text (e.g. "8.30" or "8h30").
+      fix: Re-enter them as h:mm, or convert with TIMEVALUE.
+  faq:
+    - q: How do I calculate pay from hours?
+      a: Multiply the decimal hours by the rate, e.g. =SUM(B2:B6)*24*C1.
+    - q: How do I show minutes only?
+      a: Use the custom format [m] to display the total in minutes.
+    - q: How do I calculate hours for a shift that passes midnight?
+      a: 'If the end time is smaller than the start time, add 1 day: =MOD(C2-B2, 1) returns the correct duration for both normal and overnight shifts, for example 22:00 to 06:00 gives 8:00.'
+  related: [networkdays, days-between-dates, percentage-change]

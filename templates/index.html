@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 {% block main %}
+{% if is_home %}
+<section class="hero"><h1>{{ site.tagline or site.title }}</h1><p class="desc">{{ description }}</p></section>
+{% for label, items in groups %}
+<section class="group"><h2>{{ label or "Guides" }}</h2>
+<ul class="toc">{% for p in items %}<li><a href="{{ p.url }}">{{ p.title }}</a></li>{% endfor %}</ul></section>
+{% else %}<p>{{ ui.no_posts }}</p>{% endfor %}
+{% else %}
 <h1>{{ page_title }}</h1>
 <p class="desc">{{ description }}</p>
 {% for p in posts %}
 <article class="card">
   <h2><a href="{{ p.url }}">{{ p.title }}</a></h2>
-  <time datetime="{{ p.date }}">{{ p.date }}</time>
   <p>{{ p.summary }}</p>
 </article>
-{% else %}<p>暂无文章。</p>{% endfor %}
+{% else %}<p>{{ ui.no_posts }}</p>{% endfor %}
+{% endif %}
 {% endblock %}
