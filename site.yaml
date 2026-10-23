@@ -28,17 +28,26 @@ ads:
 
 # Products shown in the CTA box on every formula page.
 # A product URL that still contains REPLACE_ME is shown as "Coming soon" without a link.
+# offer_code is appended as ?code= on every CTA. Delete offer_code and offer_note
+# after 2026-10-31 PDT to drop the launch link and the launch line; nothing else to edit.
 products:
   - name: "Formula Template Pack"
     description: "15 ready-to-use Excel & Google Sheets templates: lookups, SUMIFS reports, date calculators, loan & CAGR models and more. Sample data and plain-English notes on every sheet."
+    pitch: "15 ready-to-use Excel & Google Sheets templates, $12, instant download."
     url: "https://maggot5.gumroad.com/l/formula-template-pack"
     button_text: "Get the template pack"
     price: "$12"
+    offer_code: "LAUNCH25"
+    offer_note: "Launch price: $9 with code LAUNCH25 (auto-applied), through Oct 31."
     bullets:
       - "15 working templates, one per sheet"
       - "Works in Excel 365/2021 and Google Sheets"
       - "Every formula explained next to the data"
 affiliate_links: []
+
+# Public IndexNow key (hosted at the site root as <key>.txt). Not a secret.
+indexnow:
+  key: "fcb957986e08c55f582862eac6cbcdb0"
 
 analytics:
   head: ""

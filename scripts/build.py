@@ -7,10 +7,12 @@
 import argparse
 import datetime as dt
 import os
+import re
 import shutil
 import sys
+import xml.etree.ElementTree as ET
 from email.utils import format_datetime
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlsplit, urlunsplit
 from xml.sax.saxutils import escape
 
 import markdown
@@ -19,6 +21,64 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from common import (AD_PLACEHOLDER, CONTENT, DIST, PRODUCT_PLACEHOLDER, ROOT,
                     load_site, read_post, slugify)
 from structured import CATEGORY_LABELS, RELATED_PLACEHOLDER, SIBLING_PLACEHOLDER
+
+SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+INDEXNOW_KEY = re.compile(r"[A-Za-z0-9-]{8,128}")
+
+
+def indexnow_key(cfg):
+    key = str((cfg.get("indexnow") or {}).get("key") or "").strip()
+    if not INDEXNOW_KEY.fullmatch(key):
+        raise SystemExit("site.yaml indexnow.key must be 8-128 characters from [A-Za-z0-9-]")
+    return key
+
+
+def product_view(p):
+    """Copy a product and attach the public CTA href. offer_code is config-only."""
+    url = str(p.get("url") or "").strip()
+    code = str(p.get("offer_code") or "").strip()
+    note = str(p.get("offer_note") or "").strip()
+    href = url
+    if code and url and "REPLACE_ME" not in url:
+        parts = urlsplit(url)
+        query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k != "code"]
+        query.append(("code", code))
+        href = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+    return dict(p, url=url, offer_code=code, offer_note=note, href=href,
+                live="REPLACE_ME" not in url)
+
+
+def sitemap_locs(xml_text):
+    root = ET.fromstring(xml_text)
+    if root.tag != f"{SITEMAP_NS}urlset":
+        raise ValueError("sitemap root is not urlset")
+    locs = []
+    for node in root.findall(f"{SITEMAP_NS}url"):
+        loc = node.find(f"{SITEMAP_NS}loc")
+        text = (loc.text or "").strip() if loc is not None else ""
+        if not text:
+            raise ValueError("sitemap url missing loc")
+        locs.append(text)
+    return locs
+
+
+def check_published_files(root, base_url, key):
+    sitemap_url = f"{base_url}/sitemap.xml"
+    robots = (root / "robots.txt").read_text(encoding="utf-8")
+    if f"Sitemap: {sitemap_url}" not in robots:
+        raise SystemExit(f"robots.txt does not reference {sitemap_url}")
+    locs = sitemap_locs((root / "sitemap.xml").read_text(encoding="utf-8"))
+    if not locs:
+        raise SystemExit("sitemap.xml has no URLs")
+    prefix = base_url + "/"
+    outside = [u for u in locs if not u.startswith(prefix)]
+    if outside:
+        raise SystemExit(f"sitemap URL is outside the site: {outside[0]}")
+    key_file = root / f"{key}.txt"
+    if not key_file.is_file() or key_file.read_text(encoding="utf-8").strip() != key:
+        raise SystemExit("IndexNow key file is missing at the site root")
+    print(f"[build] sitemap OK: {len(locs)} urls; robots references {sitemap_url}")
+
 
 UI = {  # interface strings by site.language
     "en": {"no_posts": "No pages yet.", "tag_desc": "{t}: all formula guides", "not_found": "Page not found",
@@ -59,6 +119,7 @@ def resolve_links(m, by_slug, html, ui):
 
 def main():
     cfg = load_site()
+    key = indexnow_key(cfg)
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", default=os.environ.get("SITE_BASE_URL") or cfg["site"]["base_url"])
     a = ap.parse_args()
@@ -104,11 +165,12 @@ def main():
     tmp.mkdir(parents=True)
     shutil.copytree(ROOT / "static", tmp / "static")
 
-    products = [dict(p, live="REPLACE_ME" not in p.get("url", "")) for p in cfg.get("products", [])]
+    products = [product_view(p) for p in cfg.get("products", [])]
     g = dict(site=cfg["site"], ads=cfg.get("ads", {}), products=products, ui=ui,
              affiliate_links=cfg.get("affiliate_links", []), analytics=cfg.get("analytics", {}),
              base_path=base_path, base_url=base_url, year=dt.date.today().year)
     product_html = env.get_template("_products.html").render(**g)
+    g["product_top_html"] = env.get_template("_products.html").render(**g, compact=True)
     ad_html = env.get_template("_ad.html").render(**g)
 
     def write(rel, tpl, **kw):
@@ -145,6 +207,8 @@ def main():
     (tmp / "sitemap.xml").write_text("\n".join(sm) + "\n", encoding="utf-8")
 
     (tmp / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {base_url}/sitemap.xml\n", encoding="utf-8")
+    (tmp / f"{key}.txt").write_text(key, encoding="utf-8")
+    check_published_files(tmp, base_url, key)
 
     # RSS 2.0
     def rfc822(d):

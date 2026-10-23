@@ -20,6 +20,8 @@ td strong{color:var(--accent)}
 .hero h1{font-size:1.7rem}.desc{color:var(--muted)}
 .ad{margin:1.5rem 0;text-align:center}
 .product{border:2px solid var(--accent);border-radius:10px;padding:1rem 1.2rem;margin:2rem 0;background:#f3faf5}
+.product.cta-top{margin:.75rem 0 1.25rem}
+.offer-note{margin:.25rem 0 .8rem;font-weight:600}
 .cta-kicker{margin:0;color:var(--accent);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;font-weight:700}.cta-name{font-size:1.2rem}
 .buy{display:inline-block;background:var(--accent);color:#fff;padding:.55rem 1.1rem;border-radius:6px;text-decoration:none;font-weight:600}
 .buy.disabled{background:#8c959f;cursor:default}.price{color:var(--accent);font-weight:700}

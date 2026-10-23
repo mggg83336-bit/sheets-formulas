@@ -10,6 +10,7 @@
 <article>
   <h1>{{ post.title }}</h1>
   <p class="meta">{% if post.platform %}<span class="badge">{{ post.platform }}</span>{% endif %}<time datetime="{{ post.date }}">Updated {{ post.date }}</time></p>
+  {{ product_top_html | safe }}
   {{ body | safe }}
 </article>
 {% endblock %}
