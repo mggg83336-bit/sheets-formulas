@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """静态站构建：content/posts/*.md -> dist/
-生成：首页、文章页、标签页、404、sitemap.xml、robots.txt、feed.xml(RSS)。
+生成：首页、文章页、标签页、404、sitemap.xml、robots.txt、feed.xml(RSS)、pins/*.png。
 
 用法: python scripts/build.py [--base-url URL]   (也可用环境变量 SITE_BASE_URL 覆盖)
 """
@@ -20,6 +20,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from common import (AD_PLACEHOLDER, CONTENT, DIST, PRODUCT_PLACEHOLDER, ROOT,
                     load_site, read_post, slugify)
+from pins import PIN_H, PIN_W, assert_feed, benefit_line, render_feed, render_pin, save_pin
 from structured import CATEGORY_LABELS, RELATED_PLACEHOLDER, SIBLING_PLACEHOLDER
 
 SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
@@ -173,6 +174,20 @@ def main():
     g["product_top_html"] = env.get_template("_products.html").render(**g, compact=True)
     ad_html = env.get_template("_ad.html").render(**g)
 
+    # One vertical pin per formula page. The daily build picks up new posts automatically.
+    pins_dir = tmp / "pins"
+    site_name = cfg["site"]["title"]
+    tagline = cfg["site"].get("tagline") or ""
+    built_at = dt.datetime.now(dt.timezone.utc)
+    for m in posts:
+        if not re.fullmatch(r"[A-Za-z0-9-]+", m["slug"]):
+            raise SystemExit(f"pin slug is not URL-safe: {m['slug']}")
+        m["benefit"] = benefit_line(m.get("summary") or "")
+        m["pin_bytes"] = save_pin(render_pin(m["title"], m["benefit"], site_name, tagline),
+                                  pins_dir / f"{m['slug']}.png")
+        m["pin_url"] = f"{base_url}/pins/{m['slug']}.png"
+        m["pub_date"] = format_datetime(dt.datetime.fromisoformat(str(m["date"])).replace(tzinfo=dt.timezone.utc))
+
     def write(rel, tpl, **kw):
         out = tmp / rel
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -185,7 +200,8 @@ def main():
         body = m["html"].replace(AD_PLACEHOLDER, ad_html).replace(PRODUCT_PLACEHOLDER, product_html)
         write(f"posts/{m['slug']}/index.html", "post.html", post=m, body=body,
               page_title=f"{m['title']} | {cfg['site']['title']}",
-              description=m.get("summary") or cfg["site"]["description"], canonical=m["abs_url"])
+              description=m.get("summary") or cfg["site"]["description"], canonical=m["abs_url"],
+              og_image=m["pin_url"])
     tags = {}
     for m in posts:
         for t in m.get("tags", []):
@@ -210,19 +226,11 @@ def main():
     (tmp / f"{key}.txt").write_text(key, encoding="utf-8")
     check_published_files(tmp, base_url, key)
 
-    # RSS 2.0
-    def rfc822(d):
-        return format_datetime(dt.datetime.fromisoformat(d).replace(tzinfo=dt.timezone.utc))
-    items = "".join(
-        f"<item><title>{escape(m['title'])}</title><link>{escape(m['abs_url'])}</link>"
-        f"<guid>{escape(m['abs_url'])}</guid><pubDate>{rfc822(m['date'])}</pubDate>"
-        f"<description>{escape(m.get('summary', ''))}</description></item>" for m in posts[:50])
-    s = cfg["site"]
-    (tmp / "feed.xml").write_text(
-        f'<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
-        f"<title>{escape(s['title'])}</title><link>{escape(base_url)}/</link>"
-        f"<description>{escape(s['description'])}</description><language>{s['language']}</language>"
-        f"{items}</channel></rss>\n", encoding="utf-8")
+    # RSS 2.0, one item per formula page, pin image as enclosure + media:content.
+    feed = render_feed(cfg["site"], base_url, posts, built_at)
+    (tmp / "feed.xml").write_text(feed, encoding="utf-8")
+    assert_feed(feed, posts)
+    print(f"[build] feed OK: {len(posts)} items, pins {PIN_W}x{PIN_H}")
     (tmp / ".nojekyll").write_text("")
 
     # 原子替换：只有完整构建成功才覆盖 dist/

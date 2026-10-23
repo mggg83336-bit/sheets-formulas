@@ -118,6 +118,10 @@ jobs:
         env:
           LIVE_URL: ${{ needs.build.outputs.base_url }}
         run: python scripts/healthcheck.py --live-only
+      - name: Feed and pin images return 200
+        env:
+          LIVE_URL: ${{ needs.build.outputs.base_url }}
+        run: python scripts/check_feed.py
       - name: Self-heal - redeploy once
         if: failure() && inputs.redeploy != 'true'
         env:
