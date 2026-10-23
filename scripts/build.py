@@ -46,7 +46,24 @@ def product_view(p):
         query.append(("code", code))
         href = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
     return dict(p, url=url, offer_code=code, offer_note=note, href=href,
-                live="REPLACE_ME" not in url)
+                live=bool(url) and "REPLACE_ME" not in url)
+
+
+def load_product_cards(cfg):
+    """Normalize products.starter_url plus the pack items for the CTA buttons."""
+    raw = cfg.get("products") or {}
+    if isinstance(raw, list):
+        raw = {"items": raw}
+    starter_url = str(raw.get("starter_url") or "").strip()
+    starter_text = str(raw.get("starter_text") or "").strip() or "Get the Starter Pack: $5"
+    cards = []
+    for p in raw.get("items") or []:
+        view = product_view(p)
+        view["starter_url"] = starter_url
+        view["starter_text"] = starter_text
+        view["starter_live"] = bool(starter_url) and "REPLACE_ME" not in starter_url
+        cards.append(view)
+    return cards
 
 
 def sitemap_locs(xml_text):
@@ -166,7 +183,7 @@ def main():
     tmp.mkdir(parents=True)
     shutil.copytree(ROOT / "static", tmp / "static")
 
-    products = [product_view(p) for p in cfg.get("products", [])]
+    products = load_product_cards(cfg)
     g = dict(site=cfg["site"], ads=cfg.get("ads", {}), products=products, ui=ui,
              affiliate_links=cfg.get("affiliate_links", []), analytics=cfg.get("analytics", {}),
              pinterest_verify=str(cfg.get("pinterest_verify") or "").strip(),

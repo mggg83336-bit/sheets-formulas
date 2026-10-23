@@ -5,8 +5,10 @@
     {% if compact %}<p>{{ p.pitch or p.description }}</p>
     {% else %}<p>{{ p.description }}</p>
     {% if p.bullets %}<ul>{% for b in p.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}{% endif %}
-    {% if p.offer_note %}<p class="offer-note">{{ p.offer_note }}</p>{% endif %}
-    {% if p.live %}<a class="buy" href="{{ p.href }}" rel="sponsored noopener" target="_blank">{{ p.button_text | default('Buy now') }}</a>
-    {% else %}<span class="buy disabled">Coming soon</span>{% endif %}
+    <div class="cta-actions">
+      {% if p.starter_live %}<a class="buy" href="{{ p.starter_url }}" rel="sponsored noopener" target="_blank">{{ p.starter_text }}</a>{% endif %}
+      {% if p.live %}<a class="buy secondary" href="{{ p.href }}" rel="sponsored noopener" target="_blank">{{ p.offer_note or p.button_text or 'Buy now' }}</a>
+      {% else %}<span class="buy disabled">Coming soon</span>{% endif %}
+    </div>
   </div>{% endfor %}
 </div>{% endif %}
