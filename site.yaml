@@ -52,6 +52,10 @@ indexnow:
 analytics:
   head: ""
 
+# Pinterest domain verification code. Homepage emits
+# <meta name="p:domain_verify" content="..."> only when this is non-empty.
+pinterest_verify: ""
+
 health:
   check_external_links: false
   live_url_retries: 3

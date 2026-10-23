@@ -5,6 +5,7 @@ New formula pages pick up a pin on the next build. No network calls.
 """
 import re
 from email.utils import format_datetime
+from io import BytesIO
 from urllib.parse import urlparse
 from xml.sax.saxutils import escape
 
@@ -12,7 +13,6 @@ from common import ROOT
 
 PIN_W, PIN_H = 1000, 1500
 MEDIA_NS = "http://search.yahoo.com/mrss/"
-ATOM_NS = "http://www.w3.org/2005/Atom"
 FONT_DIR = ROOT / "assets" / "fonts"
 REGULAR = FONT_DIR / "DejaVuSans.ttf"
 BOLD = FONT_DIR / "DejaVuSans-Bold.ttf"
@@ -165,12 +165,16 @@ def render_pin(title, benefit, site_name, tagline=""):
 
 
 def save_pin(image, path):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    image.save(path, "PNG", optimize=True)
-    data = path.read_bytes()
+    """Write a 1000x1500 PNG. Skip the write when the bytes are already current."""
+    buf = BytesIO()
+    image.save(buf, "PNG", optimize=True)
+    data = buf.getvalue()
     width, height = png_size(data)
     if (width, height) != (PIN_W, PIN_H):
         raise SystemExit(f"{path.name} is {width}x{height}, expected {PIN_W}x{PIN_H}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.is_file() or path.read_bytes() != data:
+        path.write_bytes(data)
     return len(data)
 
 
@@ -206,11 +210,10 @@ def render_feed(site, base_url, posts, now):
     title = site["title"]
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        f'<rss version="2.0" xmlns:media="{MEDIA_NS}" xmlns:atom="{ATOM_NS}">'
+        f'<rss version="2.0" xmlns:media="{MEDIA_NS}">'
         "<channel>"
         f"<title>{escape(title)}</title>"
         f"<link>{_attr(base)}/</link>"
-        f'<atom:link href="{_attr(base)}/feed.xml" rel="self" type="application/rss+xml"/>'
         f"<description>{escape(site.get('description') or title)}</description>"
         f"<language>{escape(site.get('language') or 'en')}</language>"
         f"<lastBuildDate>{escape(format_datetime(now))}</lastBuildDate>"

@@ -169,24 +169,35 @@ def main():
     products = [product_view(p) for p in cfg.get("products", [])]
     g = dict(site=cfg["site"], ads=cfg.get("ads", {}), products=products, ui=ui,
              affiliate_links=cfg.get("affiliate_links", []), analytics=cfg.get("analytics", {}),
+             pinterest_verify=str(cfg.get("pinterest_verify") or "").strip(),
              base_path=base_path, base_url=base_url, year=dt.date.today().year)
     product_html = env.get_template("_products.html").render(**g)
     g["product_top_html"] = env.get_template("_products.html").render(**g, compact=True)
     ad_html = env.get_template("_ad.html").render(**g)
 
-    # One vertical pin per formula page. The daily build picks up new posts automatically.
+    # One vertical pin per formula page, stored in the repo at pins/ and copied into dist.
+    repo_pins = ROOT / "pins"
+    repo_pins.mkdir(exist_ok=True)
     pins_dir = tmp / "pins"
+    pins_dir.mkdir(parents=True, exist_ok=True)
     site_name = cfg["site"]["title"]
     tagline = cfg["site"].get("tagline") or ""
     built_at = dt.datetime.now(dt.timezone.utc)
+    keep = set()
     for m in posts:
         if not re.fullmatch(r"[A-Za-z0-9-]+", m["slug"]):
             raise SystemExit(f"pin slug is not URL-safe: {m['slug']}")
+        name = f"{m['slug']}.png"
+        keep.add(name)
         m["benefit"] = benefit_line(m.get("summary") or "")
-        m["pin_bytes"] = save_pin(render_pin(m["title"], m["benefit"], site_name, tagline),
-                                  pins_dir / f"{m['slug']}.png")
-        m["pin_url"] = f"{base_url}/pins/{m['slug']}.png"
+        repo_path = repo_pins / name
+        m["pin_bytes"] = save_pin(render_pin(m["title"], m["benefit"], site_name, tagline), repo_path)
+        shutil.copyfile(repo_path, pins_dir / name)
+        m["pin_url"] = f"{base_url}/pins/{name}"
         m["pub_date"] = format_datetime(dt.datetime.fromisoformat(str(m["date"])).replace(tzinfo=dt.timezone.utc))
+    for old in repo_pins.glob("*.png"):
+        if old.name not in keep:
+            old.unlink()
 
     def write(rel, tpl, **kw):
         out = tmp / rel
