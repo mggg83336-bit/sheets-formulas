@@ -710,3 +710,107 @@
     - q: How do I list the unique values instead of counting them?
       a: Use =UNIQUE(A2:A8) in Excel 365 or Google Sheets; it spills the distinct values down the column. Wrap it in SORT for an alphabetical list, e.g. =SORT(UNIQUE(A2:A8)).
   related: [countif, countifs, lookup-multiple-values, textjoin]
+
+- id: averageif
+  category: conditional
+  slugs: {excel: averageif-excel, sheets: averageif-google-sheets}
+  title: How to Use AVERAGEIF
+  summary: >-
+    AVERAGEIF returns the average of the numbers that meet one condition, such as the average
+    sale in one region or the average of all values above a threshold. This page walks through
+    four worked examples, explains how blanks and zeros are treated, and shows how to stop the
+    #DIV/0! error when nothing matches.
+  problem: >-
+    Your sales list has a Region and an amount for every deal. You want the average deal size per
+    region, the average of large deals only, and a safe result for regions that have no deals yet,
+    without filtering the list or building a helper column.
+  excel:
+    formula: '=AVERAGEIF(A2:A7, E2, C2:C7)'
+    explain: >-
+      Syntax: `AVERAGEIF(range, criteria, [average_range])`. Check A2:A7 against the value in E2
+      and average the matching amounts in C2:C7.
+    notes: >-
+      Criteria follow the same rules as SUMIF and COUNTIF: operators go in quotes (`">500"`),
+      cell references are joined with & (`">"&G1`), and wildcards work (`"E*"`). Empty cells in
+      the average range are ignored, but zeros are included, so a 0 entered for "no sale" pulls
+      the average down. When no cell matches, AVERAGEIF divides by zero and returns #DIV/0!; wrap
+      it in IFERROR to show 0 or a dash instead. For two or more conditions use AVERAGEIFS, which,
+      like SUMIFS, puts the average range first.
+    alternatives:
+      - label: Two conditions with AVERAGEIFS
+        formula: '=AVERAGEIFS(C2:C7, A2:A7, "East", C2:C7, ">500")'
+      - label: Hide #DIV/0! when nothing matches
+        formula: '=IFERROR(AVERAGEIF(A2:A7, "South", C2:C7), 0)'
+    diff: >-
+      Excel uses the identical syntax and the same handling of blanks, zeros and #DIV/0!.
+  sheets:
+    formula: '=AVERAGEIF(A2:A7, E2, C2:C7)'
+    explain: >-
+      Same syntax in Google Sheets: `AVERAGEIF(criteria_range, criterion, [average_range])`.
+    notes: >-
+      AVERAGEIF works the same way in Google Sheets, including wildcards and the #DIV/0! result
+      when nothing matches. If you need the average for every region at once, a single QUERY
+      builds the whole summary table and adds new regions automatically:
+      `=QUERY(A2:C7, "select A, avg(C) group by A label avg(C) 'Average'", 0)`. For conditions
+      that criteria strings cannot express, average a FILTER result instead, for example
+      `=AVERAGE(FILTER(C2:C7, REGEXMATCH(A2:A7, "^(East|West)$")))`.
+    alternatives:
+      - label: Average for every region in one formula
+        formula: '=QUERY(A2:C7, "select A, avg(C) group by A label avg(C) ''Average''", 0)'
+      - label: Average with a regular-expression condition
+        formula: '=AVERAGE(FILTER(C2:C7, REGEXMATCH(A2:A7, "^(East|West)$")))'
+    diff: >-
+      Google Sheets uses the same syntax. QUERY can also return the average for every category in
+      one formula.
+  example:
+    intro: Six deals in three regions; there are no deals in South yet.
+    grid:
+      - [Region, Rep, Sales, null, Criteria, Average]
+      - [East, Kim, 1200, null, East]
+      - [West, Ruiz, 950, null, '>500']
+      - [East, Patel, 300, null, '<>East']
+      - [North, Lee, 870, null, South]
+      - [West, Diaz, 410]
+      - [East, Cho, 600]
+    checks:
+      - cell: F2
+        label: average for the region in E2
+        excel: '=AVERAGEIF(A2:A7, E2, C2:C7)'
+        result: 700
+      - cell: F3
+        label: average of deals over 500 (no average_range needed)
+        excel: '=AVERAGEIF(C2:C7, ">500")'
+        result: 905
+      - cell: F4
+        label: every region except East, rounded to 2 decimals
+        excel: '=ROUND(AVERAGEIF(A2:A7, "<>East", C2:C7), 2)'
+        result: 743.33
+      - cell: F5
+        label: no matching rows, so IFERROR returns 0
+        excel: '=IFERROR(AVERAGEIF(A2:A7, E5, C2:C7), 0)'
+        result: 0
+  steps:
+    - '`A2:A7` is the range tested against the condition; here, the Region column.'
+    - '`E2` holds the condition, East. It could also be typed directly as `"East"`, or be an operator such as `">500"`.'
+    - '`C2:C7` is the range to average. Only rows where the region is East are used: (1200 + 300 + 600) / 3 = 700.'
+    - 'When the tested range and the numbers are the same column, leave the third argument out: `=AVERAGEIF(C2:C7, ">500")` averages 1200, 950, 870 and 600 to get 905.'
+    - '`"<>East"` averages every other region: (950 + 870 + 410) / 3 = 743.333…, which ROUND turns into 743.33.'
+    - 'South has no deals, so AVERAGEIF would return #DIV/0!. IFERROR replaces it with 0.'
+  errors:
+    - error: '#DIV/0!'
+      cause: No cell meets the condition, or every matching cell in the average range is blank or text.
+      fix: Check the criterion for typos and extra spaces, then wrap the formula in IFERROR, e.g. =IFERROR(AVERAGEIF(...), 0).
+    - error: Average is too low
+      cause: Zeros were entered for missing values, and zeros are included in the average while blanks are not.
+      fix: Leave missing values blank, or exclude zeros with AVERAGEIFS, e.g. =AVERAGEIFS(C2:C7, A2:A7, "East", C2:C7, "<>0").
+    - error: Wrong average
+      cause: The average range has a different size or starts on a different row than the criteria range.
+      fix: Make both ranges cover the same rows, such as A2:A7 and C2:C7.
+  faq:
+    - q: What is the difference between AVERAGEIF and AVERAGEIFS?
+      a: AVERAGEIF takes one condition and puts the average range last; AVERAGEIFS takes one or more conditions and puts the average range first.
+    - q: Does AVERAGEIF ignore blank cells?
+      a: Yes, blank cells in the average range are skipped, but cells containing 0 are counted.
+    - q: How do I average values between two numbers?
+      a: Use AVERAGEIFS with the same column twice, e.g. =AVERAGEIFS(C2:C7, C2:C7, ">=400", C2:C7, "<=1000").
+  related: [sumif, countif, sumifs, weighted-average, div0-error]

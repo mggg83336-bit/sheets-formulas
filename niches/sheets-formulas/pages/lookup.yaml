@@ -720,3 +720,119 @@
     - q: How do I return the matches across columns instead of down?
       a: Wrap the result in TRANSPOSE, e.g. =TRANSPOSE(FILTER(A2:A7, B2:B7=E2)).
   related: [vlookup-multiple-criteria, textjoin, xlookup, count-unique]
+
+- id: hlookup
+  category: lookup
+  slugs: {excel: hlookup-excel, sheets: hlookup-google-sheets}
+  title: How to Use HLOOKUP
+  summary: >-
+    HLOOKUP finds a value in the top row of a table and returns the value from a row below it.
+    It is the horizontal twin of VLOOKUP and is the natural choice when your months, products or
+    years run across the columns. Below are the syntax, a worked monthly report with four
+    lookups, and fixes for the errors people hit most often.
+  problem: >-
+    Your monthly report has the months across row 1 and metrics such as Sales, Costs and Units
+    down column A. You want to type a month and a metric and get the matching figure, without
+    scrolling across the sheet or rebuilding the table vertically.
+  excel:
+    formula: '=HLOOKUP(A7, $A$1:$E$4, 2, FALSE)'
+    explain: >-
+      Syntax: `HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])`. Look for the
+      month in A7 in the first row of A1:E4 and return the value from row 2 of that table (Sales).
+      `FALSE` means exact match.
+    notes: >-
+      HLOOKUP only searches the first row of the table and can only return values from rows below
+      it. The row number is counted inside the table, not on the sheet, so row 2 of A1:E4 is sheet
+      row 2 only because the table starts in row 1. Always pass FALSE (or 0) as the last argument
+      unless the first row is sorted ascending and you really want an approximate match; leaving
+      it out means TRUE. In Microsoft 365 and Excel 2021, XLOOKUP is the more flexible
+      replacement: `=XLOOKUP(A7, $B$1:$E$1, $B$2:$E$2)` does not need a row number and returns
+      a clear "not found" value through its fourth argument.
+    alternatives:
+      - label: XLOOKUP instead of HLOOKUP (Microsoft 365 / Excel 2021)
+        formula: '=XLOOKUP(A7, $B$1:$E$1, $B$2:$E$2, "Not found")'
+      - label: INDEX and MATCH in both directions
+        formula: '=INDEX($A$1:$E$4, MATCH(B7, $A$1:$A$4, 0), MATCH(A7, $A$1:$E$1, 0))'
+    diff: >-
+      Excel uses the same HLOOKUP syntax. In Microsoft 365, XLOOKUP is the modern replacement and
+      returns a whole column at once without any wrapper.
+  sheets:
+    formula: '=HLOOKUP(A7, $A$1:$E$4, 2, FALSE)'
+    explain: >-
+      Same syntax in Google Sheets: `HLOOKUP(search_key, range, index, [is_sorted])`. The last
+      argument is called is_sorted; FALSE means exact match.
+    notes: >-
+      Google Sheets names the arguments differently (search_key, index, is_sorted) but they work
+      exactly like Excel's. To look up several months in one go, wrap HLOOKUP in ARRAYFORMULA and
+      pass a range as the search key: `=ARRAYFORMULA(HLOOKUP(A7:A9, $A$1:$E$4, 2, FALSE))` fills
+      three rows from a single cell. You can also return several rows for one month by passing an
+      array of row numbers, `=ARRAYFORMULA(HLOOKUP(A7, $A$1:$E$4, {2;3;4}, FALSE))`. XLOOKUP is
+      available in Google Sheets too if you prefer not to count rows.
+    alternatives:
+      - label: Look up several months at once
+        formula: '=ARRAYFORMULA(HLOOKUP(A7:A9, $A$1:$E$4, 2, FALSE))'
+      - label: Return Sales, Costs and Units for one month
+        formula: '=ARRAYFORMULA(HLOOKUP(A7, $A$1:$E$4, {2;3;4}, FALSE))'
+    diff: >-
+      Google Sheets uses the same HLOOKUP formula. To return results for several lookup values or
+      several rows at once, wrap it in ARRAYFORMULA.
+  example:
+    intro: A monthly report with months across the top. Rows 7 to 10 hold four lookups; May is not in the table.
+    grid:
+      - [Metric, Jan, Feb, Mar, Apr]
+      - [Sales, 1200, 1450, 980, 1610]
+      - [Costs, 700, 820, 650, 900]
+      - [Units, 48, 58, 39, 64]
+      - [null]
+      - [Month, Metric, Result]
+      - [Mar, Sales]
+      - [Feb, Costs]
+      - [Apr, Units]
+      - [May, Sales]
+    checks:
+      - cell: C7
+        label: Mar sales (row 2 of the table)
+        excel: '=HLOOKUP(A7, $A$1:$E$4, 2, FALSE)'
+        result: 980
+      - cell: C8
+        label: Feb costs (row 3 of the table)
+        excel: '=HLOOKUP(A8, $A$1:$E$4, 3, FALSE)'
+        result: 820
+      - cell: C9
+        label: row number found with MATCH
+        excel: '=HLOOKUP(A9, $A$1:$E$4, MATCH(B9, $A$1:$A$4, 0), FALSE)'
+        result: 64
+      - cell: C10
+        label: month that is not in the table
+        excel: '=IFERROR(HLOOKUP(A10, $A$1:$E$4, 2, FALSE), "Not found")'
+        result: Not found
+  steps:
+    - '`A7` is the value to find. HLOOKUP searches for it only in the first row of the table, A1:E1, and finds Mar in column D.'
+    - '`$A$1:$E$4` is the whole table, including the header row and every row you may want to return. The dollar signs keep it fixed when you copy the formula down.'
+    - '`2` is the row to return, counted from the top of the table: 1 is the month row, 2 is Sales, 3 is Costs, 4 is Units. Mar sales is 980.'
+    - '`FALSE` forces an exact match, so "Mar" must appear exactly (case does not matter).'
+    - 'Instead of typing the row number, `MATCH(B9, $A$1:$A$4, 0)` finds which row holds "Units" (row 4), so the formula keeps working if you insert a new metric row.'
+    - 'Wrapping the formula in IFERROR replaces the #N/A for May with a friendly "Not found".'
+  errors:
+    - error: '#N/A'
+      cause: The lookup value is not in the first row of the table, or it differs slightly (extra space, number stored as text, "March" vs "Mar").
+      fix: Check the header with =LEN(D1) or =EXACT(A7, D1), clean the data with TRIM, and wrap the formula in IFERROR for genuinely missing values.
+    - error: '#REF!'
+      cause: The row index is larger than the number of rows in the table, e.g. 5 for A1:E4.
+      fix: Count rows inside the table, or let MATCH calculate the row number.
+    - error: Wrong value returned
+      cause: The last argument was left out, so HLOOKUP used an approximate match on an unsorted header row.
+      fix: Always add FALSE (or 0) as the fourth argument for exact matches.
+    - error: Results shift when the formula is copied
+      cause: The table range is relative (A1:E4) and moves down as you fill.
+      fix: Lock it with dollar signs, $A$1:$E$4, or press F4 on the reference.
+  faq:
+    - q: What is the difference between HLOOKUP and VLOOKUP?
+      a: VLOOKUP searches the first column and returns a value from a column to the right; HLOOKUP searches the first row and returns a value from a row below. Use the one that matches how your headers are laid out.
+    - q: Can HLOOKUP return a value from a row above the lookup row?
+      a: No, it only looks down. Use INDEX with MATCH, or XLOOKUP, which can return from any row.
+    - q: Is HLOOKUP case-sensitive?
+      a: No. "mar" and "Mar" match. For a case-sensitive lookup use INDEX and MATCH with EXACT.
+    - q: Should I use XLOOKUP instead of HLOOKUP?
+      a: If everyone who opens the file has Microsoft 365, Excel 2021 or Google Sheets, XLOOKUP is easier because it does not need a row number and does not break when rows are inserted. HLOOKUP is still the most compatible choice for older Excel versions.
+  related: [vlookup, xlookup, index-match, iferror, na-error]
