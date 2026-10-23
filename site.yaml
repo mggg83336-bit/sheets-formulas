@@ -27,12 +27,11 @@ ads:
   sidebar: ""
 
 # Products shown in the CTA box on every formula page.
-# Replace REPLACE_ME with the real Gumroad product URL after the store is set up.
-# While the URL still contains REPLACE_ME the box shows "Coming soon" without a link.
+# A product URL that still contains REPLACE_ME is shown as "Coming soon" without a link.
 products:
   - name: "Formula Template Pack"
     description: "15 ready-to-use Excel & Google Sheets templates: lookups, SUMIFS reports, date calculators, loan & CAGR models and more. Sample data and plain-English notes on every sheet."
-    url: "https://REPLACE_ME.gumroad.com/l/formula-template-pack"
+    url: "https://maggot5.gumroad.com/l/formula-template-pack"
     button_text: "Get the template pack"
     price: "$12"
     bullets:
