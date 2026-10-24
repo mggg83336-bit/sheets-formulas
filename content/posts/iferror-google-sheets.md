@@ -21,17 +21,22 @@ faq:
 - q: Can IFERROR return a blank cell?
   a: It can return an empty string with "" (both apps). In Google Sheets you can also
     omit the second argument.
+- q: Should a lookup use IFERROR or XLOOKUP if_not_found?
+  a: 'Prefer XLOOKUP''s if_not_found argument, or IFNA, for a missing key. Both replace
+    only the not-found result. IFERROR also hides #REF! and #NAME?, so a broken range
+    can look like a blank cell. if_not_found does not turn a found-but-empty cell
+    into a blank; that cell still comes back as 0.'
 related:
 - - na-error-google-sheets
   - na-error-excel
+- - xlookup-google-sheets
+  - xlookup-excel
+- - vlookup-google-sheets
+  - vlookup-excel
 - - div0-error-google-sheets
   - div0-error-excel
 - - value-error-google-sheets
   - value-error-excel
-- - vlookup-google-sheets
-  - vlookup-excel
-- - xlookup-google-sheets
-  - xlookup-excel
 sibling: iferror-excel
 ---
 IFERROR replaces any error result (#DIV/0!, #N/A, #VALUE! and so on) with a value you choose. IFNA only catches #N/A, which makes it safer for lookups. This page shows when to use each and why wrapping everything in IFERROR can hide real problems.
@@ -45,6 +50,26 @@ Use this formula in Google Sheets:
 ```
 
 Identical in Google Sheets. In Sheets the second argument is optional: =IFERROR(B2/C2) returns an empty cell on error.
+
+<!--CTA_PROMINENT-->
+
+## XLOOKUP if_not_found instead of IFERROR
+
+For a lookup, the modern replacement for IFERROR is XLOOKUP's `if_not_found` argument. It substitutes a value only when the key is missing. Every other error still shows:
+
+```excel
+=XLOOKUP(F2, $A$2:$A$6, $C$2:$C$6, "")
+```
+
+`""` returns a blank cell for a missing key. `"Not found"` returns words. This does not turn a found-but-empty cell into a blank. That cell still comes back as 0. To blank empty cells and keep a real 0, blank the return range, as shown on the [XLOOKUP](../xlookup-excel/) page.
+
+IFNA around VLOOKUP is the same idea when you cannot use XLOOKUP:
+
+```excel
+=IFNA(VLOOKUP(F2, $A$2:$D$6, 3, FALSE), "")
+```
+
+IFERROR around that VLOOKUP would also hide #REF! and #NAME?. Prefer IFNA or `if_not_found` so a broken range stays visible. The usual reasons for the #N/A you are replacing are listed under [the #N/A error](../na-error-excel/), including a lookup aimed at [another sheet](../vlookup-another-sheet-google-sheets/).
 
 ## The problem
 
@@ -119,6 +144,8 @@ Excel uses the identical IFERROR and IFNA functions (IFNA from Excel 2013).
 - **Totals ignore hidden problems** — Returning 0 or "" from IFERROR makes rows silently drop out of sums and averages. **Fix:** Return a visible marker such as "check" during development, and only switch to "" once the data is clean.
 - **#NAME? on IFNA** — Excel 2010 or older does not have IFNA. **Fix:** Use IF(ISNA(formula), "Not listed", formula), or upgrade.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### What is the difference between IFERROR and IFNA?
@@ -129,8 +156,10 @@ IFERROR catches all error types. IFNA catches only
 
 It can return an empty string with "" (both apps). In Google Sheets you can also omit the second argument.
 
+### Should a lookup use IFERROR or XLOOKUP if_not_found?
+
+Prefer XLOOKUP's if_not_found argument, or IFNA, for a missing key. Both replace only the not-found result. IFERROR also hides #REF! and #NAME?, so a broken range can look like a blank cell. if_not_found does not turn a found-but-empty cell into a blank; that cell still comes back as 0.
+
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

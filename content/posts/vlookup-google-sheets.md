@@ -69,7 +69,7 @@ Syntax: `VLOOKUP(search_key, range, index, [is_sorted])`. Google Sheets names th
 
 ## VLOOKUP returns 0 or blank cell
 
-A match and a missing key are different problems. If the ID is not in the first column, VLOOKUP returns [#N/A](../na-error-excel/). If the ID is found but the cell you return is empty, VLOOKUP returns 0. [IFERROR](../iferror-excel/) and IFNA only replace errors, so they leave that 0 on the sheet.
+A match and a missing key are different problems. If the ID is not in the first column, VLOOKUP returns [#N/A](../na-error-excel/). If the ID is found but the cell you return is empty, VLOOKUP returns 0. [IFERROR](../iferror-google-sheets/) and IFNA only replace errors, so they leave that 0 on the sheet.
 
 An empty cell and a stored 0 are not the same. In the worked example further down, the Laptop Stand has stock 0, and that 0 should stay. Test the source cell with INDEX, which can tell an empty cell from a real zero. LET calculates it once (Microsoft 365, Excel 2021, and Google Sheets):
 
