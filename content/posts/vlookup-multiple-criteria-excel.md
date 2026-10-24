@@ -31,6 +31,8 @@ related:
   - index-match-google-sheets
 - - vlookup-excel
   - vlookup-google-sheets
+- - na-error-excel
+  - na-error-google-sheets
 - - lookup-multiple-values-excel
   - lookup-multiple-values-google-sheets
 - - sumifs-excel
@@ -129,7 +131,7 @@ FILTER is simpler in Google Sheets: one argument per condition, and it returns e
 
 ## Common errors and how to fix them
 
-- **#N/A** — No row meets all conditions, or a criterion has a trailing space. **Fix:** Check each condition separately (e.g. `=COUNTIFS(A2:A7,E2,B2:B7,F2)` should be at least 1) and use an if_not_found argument.
+- **#N/A** — No row meets all conditions, or a criterion has a trailing space. **Fix:** Check each condition separately (e.g. `=COUNTIFS(A2:A7,E2,B2:B7,F2)` should be at least 1) and use an if_not_found argument. When each value exists on its own but the pair still fails, see [how to fix #N/A](../na-error-excel/).
 - **#VALUE!** — The ranges in the conditions have different sizes. **Fix:** Make every range cover the same rows (A2:A7, B2:B7, C2:C7).
 - **Returns the wrong row in older Excel** — The INDEX MATCH array formula was entered with plain Enter in Excel 2019 or older. **Fix:** Re-enter it with Ctrl+Shift+Enter, or use the helper-column method.
 

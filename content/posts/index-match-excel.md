@@ -23,11 +23,22 @@ faq:
   a: The difference is negligible on normal-sized sheets. Choose XLOOKUP for readability
     in Microsoft 365 and Google Sheets, and INDEX MATCH for compatibility with older
     Excel.
+- q: When is INDEX MATCH better than VLOOKUP?
+  a: When the value you want is to the left of the column you search, or when you
+    do not want a hard-coded column number. The country example on this page looks
+    up the code CA in column C and returns Canada from column A. VLOOKUP cannot do
+    that. See the left-lookup section above.
 related:
 - - xlookup-excel
   - xlookup-google-sheets
 - - vlookup-excel
   - vlookup-google-sheets
+- - lookup-multiple-values-excel
+  - lookup-multiple-values-google-sheets
+- - iferror-excel
+  - iferror-google-sheets
+- - hlookup-excel
+  - hlookup-google-sheets
 - - vlookup-multiple-criteria-excel
   - vlookup-multiple-criteria-google-sheets
 - - na-error-excel
@@ -45,6 +56,22 @@ Use this formula in Excel:
 ```
 
 MATCH(E2, C2:C6, 0) returns the position of the code in C2:C6. INDEX(A2:A6, position) returns the country in that position.
+
+<!--CTA_PROMINENT-->
+
+## INDEX MATCH vs VLOOKUP (left lookup)
+
+[VLOOKUP](../vlookup-excel/) searches the first column of its range and can only return a column to the right. INDEX and MATCH split the job, so the column you return can sit to the left of the column you search.
+
+In the worked example further down, the code is in column C and the country name is in column A. The code typed in E2 is CA. MATCH finds CA in the 4th row of C2:C6, and INDEX returns Canada from A2:A6:
+
+```excel
+=INDEX(A2:A6, MATCH(E2, C2:C6, 0))
+```
+
+Result: Canada. That is the left lookup. The same idea with [XLOOKUP](../xlookup-excel/) is `=XLOOKUP(E2, C2:C6, A2:A6)`. Keep INDEX MATCH when the workbook has to open in older Excel.
+
+A missing code is [#N/A](../na-error-excel/). [IFERROR](../iferror-excel/) will hide it, but IFNA is safer, so a wrong range still shows. To return every matching row instead of the first one, use [lookup multiple values](../lookup-multiple-values-excel/). For a horizontal table, headers across a row and the values underneath, [HLOOKUP](../hlookup-excel/) is the one-direction equivalent of VLOOKUP.
 
 ## The problem
 
@@ -120,6 +147,8 @@ Google Sheets uses the identical formula.
 - **Wrong row returned** — The INDEX range and the MATCH range start on different rows, e.g. A1:A6 vs C2:C6. **Fix:** Make both ranges start and end on the same rows.
 - **#REF!** — The row or column number from MATCH is larger than the INDEX range. **Fix:** Make the INDEX range at least as large as the ranges searched by MATCH.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Why use INDEX MATCH instead of VLOOKUP?
@@ -130,8 +159,10 @@ It can return a column to the left, it does not depend on a hard-coded column nu
 
 The difference is negligible on normal-sized sheets. Choose XLOOKUP for readability in Microsoft 365 and Google Sheets, and INDEX MATCH for compatibility with older Excel.
 
+### When is INDEX MATCH better than VLOOKUP?
+
+When the value you want is to the left of the column you search, or when you do not want a hard-coded column number. The country example on this page looks up the code CA in column C and returns Canada from column A. VLOOKUP cannot do that. See the left-lookup section above.
+
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

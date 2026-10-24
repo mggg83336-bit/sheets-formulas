@@ -19,20 +19,25 @@ faq:
 - q: Why does the operator go in quotes?
   a: SUMIFS criteria are text. The & joins the operator with the date's serial number
     to form a condition such as ">=46054".
+- q: Why does ">=L1" return 0 when the dates are right?
+  a: '">=L1" is the characters >=L1. SUMIFS looks for that text and does not read
+    the date in L1, so the total is 0. ">="&L1 joins the operator to the date serial
+    in L1, which is what SUMIFS compares. The same join is how you write any threshold
+    on SUMIFS, and how you count the rows with COUNTIFS.'
 - q: How do I count rows between two dates instead?
-  a: Use COUNTIFS with the same two conditions, e.g. =COUNTIFS(A2:A7, ">="&D2, A2:A7,
-    "<="&E2).
+  a: 'Use COUNTIFS with the same two conditions: =COUNTIFS(A2:A7, ">="&D2, A2:A7,
+    "<="&E2).'
 related:
 - - sumifs-excel
   - sumifs-google-sheets
+- - countifs-excel
+  - countifs-google-sheets
 - - sum-by-month-excel
   - sum-by-month-google-sheets
 - - days-between-dates-excel
   - days-between-dates-google-sheets
 - - eomonth-excel
   - eomonth-google-sheets
-- - countifs-excel
-  - countifs-google-sheets
 sibling: sumifs-between-dates-google-sheets
 ---
 To add values that fall within a date range, use SUMIFS with the date column twice: once with ">=" the start date and once with "<=" the end date. This page shows the cell-based version, the hard-coded version and how to avoid losing rows that contain a time.
@@ -46,6 +51,8 @@ Use this formula in Excel:
 ```
 
 The date column A2:A7 is tested twice: on or after the start date in D2 and on or before the end date in E2. Only rows meeting both are added.
+
+<!--CTA_PROMINENT-->
 
 ## The problem
 
@@ -128,18 +135,22 @@ The same formula works in Google Sheets; QUERY with ISO date literals is an alte
 - **Last day missing** — The dates contain times, so 2026-02-28 15:30 is greater than 2026-02-28. **Fix:** Use "<"&E2+1 as the upper bound.
 - **#VALUE!** — The sum range and the date ranges have different sizes. **Fix:** Use ranges covering the same rows.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Why does the operator go in quotes?
 
 SUMIFS criteria are text. The & joins the operator with the date's serial number to form a condition such as ">=46054".
 
+### Why does ">=L1" return 0 when the dates are right?
+
+`">=L1"` is the characters >=L1. SUMIFS looks for that text and does not read the date in L1, so the total is 0. `">="&L1` joins the operator to the date serial in L1, which is what SUMIFS compares. The same join is how you write any threshold on [SUMIFS](../sumifs-excel/), and how you count the rows with [COUNTIFS](../countifs-excel/).
+
 ### How do I count rows between two dates instead?
 
-Use COUNTIFS with the same two conditions, e.g. =COUNTIFS(A2:A7, ">="&D2, A2:A7, "<="&E2).
+Use [COUNTIFS](../countifs-excel/) with the same two conditions: `=COUNTIFS(A2:A7, ">="&D2, A2:A7, "<="&E2)`.
 
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

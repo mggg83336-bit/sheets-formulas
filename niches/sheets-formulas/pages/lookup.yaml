@@ -100,7 +100,47 @@
       a: No. "p-104" and "P-104" are treated as the same value. For a case-sensitive lookup, use INDEX and MATCH with EXACT inside an array formula.
     - q: What is the difference between TRUE and FALSE in VLOOKUP?
       a: FALSE returns only exact matches. TRUE (or leaving the argument out) does an approximate match and requires the first column to be sorted in ascending order; it returns the largest value less than or equal to the lookup value.
-  related: [xlookup, index-match, vlookup-multiple-criteria, vlookup-another-sheet, na-error, iferror]
+    - q: Why does VLOOKUP return 0?
+      a: |
+        The lookup found a row, and the cell it returned was empty. Excel and Google Sheets turn that empty cell into 0. A missing key is a different result, #N/A. IFERROR and IFNA only replace errors, so they leave the 0 in place. Use the INDEX test or XLOOKUP with a blanked return range, in the section above, when you need a blank cell instead.
+  cta: hub
+  sections:
+    - after: quick
+      title: VLOOKUP returns 0 or blank cell
+      body: |
+        A match and a missing key are different problems. If the ID is not in the first column, VLOOKUP returns [#N/A](../{na-error}/). If the ID is found but the cell you return is empty, VLOOKUP returns 0. [IFERROR](../{iferror}/) and IFNA only replace errors, so they leave that 0 on the sheet.
+
+        An empty cell and a stored 0 are not the same. In the worked example further down, the Laptop Stand has stock 0, and that 0 should stay. Test the source cell with INDEX, which can tell an empty cell from a real zero. LET calculates it once (Microsoft 365, Excel 2021, and Google Sheets):
+
+        ```excel
+        =LET(
+          src, INDEX($C$2:$C$6, MATCH(F2, $A$2:$A$6, 0)),
+          IF(src="", "", src)
+        )
+        ```
+
+        Without LET, write the test twice:
+
+        ```excel
+        =IF(INDEX($C$2:$C$6, MATCH(F2, $A$2:$A$6, 0))="", "", INDEX($C$2:$C$6, MATCH(F2, $A$2:$A$6, 0)))
+        ```
+
+        A shorter IF blanks every zero, including a real stock of 0. Use it only when 0 and blank mean the same thing in your sheet:
+
+        ```excel
+        =IF(VLOOKUP(F2, $A$2:$D$6, 3, FALSE)=0, "", VLOOKUP(F2, $A$2:$D$6, 3, FALSE))
+        ```
+
+        `&""` is a last resort, not a blank. Appending `""` turns the result into text, so a price of 54.9 becomes the text "54.9" and an empty cell becomes the text "0". You still see a zero, and you can no longer sum the column. It is useful only when the next step is text, for example forcing a code to match text with `F2&""`.
+
+        Prefer [XLOOKUP](../{xlookup}/) when the file opens in Microsoft 365, Excel 2021 or later, or Google Sheets. The `if_not_found` argument covers a missing key only. To also keep an empty price blank, and still return a real 0, blank the return range first:
+
+        ```excel
+        =XLOOKUP(F2, $A$2:$A$6, IF($C$2:$C$6="", "", $C$2:$C$6), "")
+        ```
+
+        The fourth argument `""` is what you show when F2 is not in the list. Use `"Not found"` if you would rather see words than a blank cell.
+  related: [xlookup, iferror, na-error, index-match, vlookup-multiple-criteria, vlookup-another-sheet, lookup-multiple-values, xlookup-return-multiple-columns, last-value]
 
 - id: xlookup
   category: lookup
@@ -190,7 +230,36 @@
       a: Yes. Give it a multi-column return range such as C2:D6 and the result spills into adjacent cells.
     - q: Does Google Sheets have XLOOKUP?
       a: Yes. Google Sheets has had XLOOKUP since 2022 with the same arguments as Excel.
-  related: [vlookup, xlookup-return-multiple-columns, index-match, vlookup-multiple-criteria, last-value]
+  cta: hub
+  sections:
+    - after: quick
+      title: XLOOKUP return blank instead of 0
+      body: |
+        XLOOKUP returns 0 when it finds the lookup value and the return cell is empty. The `if_not_found` argument does not change that. It only runs when the value is missing, which is the [#N/A](../{na-error}/) case.
+
+        Blank those empty cells and still show a real zero. `IF` on the return range turns blanks into an empty string before XLOOKUP reads them:
+
+        ```excel
+        =XLOOKUP(F2, B2:B6, IF(D2:D6="", "", D2:D6), "")
+        ```
+
+        A salary of 0 stays 0. The `""` at the end is the missing-name result; use `"Not found"` if you would rather see words. Wrapping the whole formula in [IFERROR](../{iferror}/) also hides #VALUE! and #NAME?, so prefer `if_not_found` or IFNA unless you mean to hide every error.
+
+        To look up on another tab, use the same sheet syntax as [VLOOKUP from another sheet](../{vlookup-another-sheet}/): `'Price List'!B2:B100` as the lookup array and the matching rows of the return column. Several matching rows belong on [lookup multiple values](../{lookup-multiple-values}/). Several columns from one match belong on [return multiple columns](../{xlookup-return-multiple-columns}/).
+    - after: quick
+      title: XLOOKUP vs VLOOKUP
+      body: |
+        | | VLOOKUP | XLOOKUP |
+        | --- | --- | --- |
+        | Direction | First column only, return a column to the right | Any column, including a column to the left |
+        | Default match | Approximate if you omit the 4th argument | Exact |
+        | Not found | #N/A, unless you wrap IFNA or IFERROR | 4th argument, if_not_found |
+        | Empty return cell | 0 | 0, unless the return range replaces blanks with "" |
+        | Insert a column | The column index goes stale | The return range still points at the right cells |
+        | Where it runs | Every Excel version and Google Sheets | Microsoft 365, Excel 2021 and later, Excel for the web, Google Sheets (since 2022) |
+
+        Use [VLOOKUP](../{vlookup}/) when the file must open in Excel 2019 or older. Otherwise XLOOKUP is the shorter formula. The employee-ID example on this page is a left lookup: the ID sits to the left of the name, which VLOOKUP cannot return without moving the ID column.
+  related: [vlookup, iferror, na-error, vlookup-another-sheet, xlookup-return-multiple-columns, lookup-multiple-values, index-match, vlookup-multiple-criteria, last-value]
 
 - id: xlookup-return-multiple-columns
   category: lookup
@@ -351,7 +420,26 @@
       a: It can return a column to the left, it does not depend on a hard-coded column number, and it only reads the two columns it needs.
     - q: Is INDEX MATCH faster than XLOOKUP?
       a: The difference is negligible on normal-sized sheets. Choose XLOOKUP for readability in Microsoft 365 and Google Sheets, and INDEX MATCH for compatibility with older Excel.
-  related: [xlookup, vlookup, vlookup-multiple-criteria, na-error]
+    - q: When is INDEX MATCH better than VLOOKUP?
+      a: |
+        When the value you want is to the left of the column you search, or when you do not want a hard-coded column number. The country example on this page looks up the code CA in column C and returns Canada from column A. VLOOKUP cannot do that. See the left-lookup section above.
+  cta: hub
+  sections:
+    - after: quick
+      title: INDEX MATCH vs VLOOKUP (left lookup)
+      body: |
+        [VLOOKUP](../{vlookup}/) searches the first column of its range and can only return a column to the right. INDEX and MATCH split the job, so the column you return can sit to the left of the column you search.
+
+        In the worked example further down, the code is in column C and the country name is in column A. The code typed in E2 is CA. MATCH finds CA in the 4th row of C2:C6, and INDEX returns Canada from A2:A6:
+
+        ```excel
+        =INDEX(A2:A6, MATCH(E2, C2:C6, 0))
+        ```
+
+        Result: Canada. That is the left lookup. The same idea with [XLOOKUP](../{xlookup}/) is `=XLOOKUP(E2, C2:C6, A2:A6)`. Keep INDEX MATCH when the workbook has to open in older Excel.
+
+        A missing code is [#N/A](../{na-error}/). [IFERROR](../{iferror}/) will hide it, but IFNA is safer, so a wrong range still shows. To return every matching row instead of the first one, use [lookup multiple values](../{lookup-multiple-values}/). For a horizontal table, headers across a row and the values underneath, [HLOOKUP](../{hlookup}/) is the one-direction equivalent of VLOOKUP.
+  related: [xlookup, vlookup, lookup-multiple-values, iferror, hlookup, vlookup-multiple-criteria, na-error]
 
 - id: vlookup-multiple-criteria
   category: lookup
@@ -434,7 +522,7 @@
   errors:
     - error: '#N/A'
       cause: No row meets all conditions, or a criterion has a trailing space.
-      fix: 'Check each condition separately (e.g. `=COUNTIFS(A2:A7,E2,B2:B7,F2)` should be at least 1) and use an if_not_found argument.'
+      fix: 'Check each condition separately (e.g. `=COUNTIFS(A2:A7,E2,B2:B7,F2)` should be at least 1) and use an if_not_found argument. When each value exists on its own but the pair still fails, see [how to fix #N/A](../{na-error}/).'
     - error: '#VALUE!'
       cause: The ranges in the conditions have different sizes.
       fix: Make every range cover the same rows (A2:A7, B2:B7, C2:C7).
@@ -448,7 +536,7 @@
       a: Use SUMIFS, e.g. =SUMIFS(C2:C7, A2:A7, E2, B2:B7, F2). It adds all matching rows instead of returning one.
     - q: How do I use OR instead of AND between the criteria?
       a: Add the conditions instead of multiplying them, e.g. ((A2:A7="East")+(A2:A7="West"))>0.
-  related: [xlookup, index-match, vlookup, lookup-multiple-values, sumifs, countifs]
+  related: [xlookup, index-match, vlookup, na-error, lookup-multiple-values, sumifs, countifs]
 
 - id: vlookup-another-sheet
   category: lookup
@@ -537,7 +625,55 @@
       a: Only when the name contains spaces or special characters, but quotes never hurt, so 'Prices'!A2:C5 also works.
     - q: Can VLOOKUP search several sheets at once?
       a: Not by itself. Nest lookups with IFNA, e.g. =IFNA(VLOOKUP(B2,Sheet1!A:C,3,FALSE), VLOOKUP(B2,Sheet2!A:C,3,FALSE)), or combine the sheets first (VSTACK in Excel 365 and Google Sheets).
-  related: [vlookup, xlookup, index-match, ref-error, na-error]
+  cta: hub
+  sections:
+    - after: quick
+      title: VLOOKUP from another workbook
+      excel: |
+        A different file uses the workbook name in square brackets, then the sheet:
+
+        ```excel
+        =VLOOKUP(B2, '[Prices.xlsx]Price List'!$A$2:$C$100, 3, FALSE)
+        ```
+
+        Quote the whole `[workbook]sheet` name when the sheet name has a space. Lock the table with `$` so filling the formula down does not walk off the price list.
+
+        - **Closed workbook.** Desktop Excel keeps the last saved values for an external link. If the link is broken, the sheet was renamed, or Excel asks you to update values, the lookup returns #N/A or #REF! until you open Prices.xlsx or repair the path. Use Data > Edit Links > Update Values. A formula that names a sheet which is not in any open workbook makes Excel ask you to pick a file.
+        - **The path is part of the formula.** After you close the source file, Excel rewrites the reference to include the drive and folder. Moving either file breaks that path. Edit Links is where you point it at the new location.
+        - **Excel for the web and Google Sheets** do not calculate a closed .xlsx on your computer. For another Google Sheets file, use IMPORTRANGE, shown on the Sheets version of this guide.
+
+        The same brackets work with [XLOOKUP](../{xlookup}/): one range for the lookup column and one for the prices, both starting with `'[Prices.xlsx]Price List'!`. A #N/A that survives opening the file is usually text versus numbers or stray spaces, covered under [the #N/A error](../{na-error}/).
+      sheets: |
+        Another Google Sheets file is not a tab name. Wrap the imported range in IMPORTRANGE, then look up inside it:
+
+        ```excel
+        =VLOOKUP(B2, IMPORTRANGE("https://docs.google.com/spreadsheets/d/FILE_ID", "Price List!A2:C100"), 3, FALSE)
+        ```
+
+        The first time you connect a file, the cell shows #REF! until you click Allow access. Quote `Price List` inside the text because the name has a space. IMPORTRANGE does not read a closed Excel file on your computer.
+
+        [XLOOKUP](../{xlookup}/) can use the same imported range if you wrap IMPORTRANGE once (a named range or a helper sheet keeps the file URL out of every formula). A #N/A after access is allowed is usually text versus numbers or stray spaces: [how to fix #N/A](../{na-error}/).
+    - after: quick
+      title: VLOOKUP not working between sheets
+      excel: |
+        Work down this list when the formula was fine on one tab and fails as soon as the range points at another.
+
+        1. **Sheet name with spaces or punctuation.** `Price List` must be quoted: `'Price List'!$A$2:$C$100`. A hyphen, or a name that starts with a number, needs quotes too. A simple name (`Prices!A2:C100`) does not. If Excel opens an Update values dialog, the name in the formula does not match any tab in an open workbook.
+        2. **Absolute references.** Filling down without dollar signs shifts the table onto the wrong rows. Lock it: `$A$2:$C$100`. Leave the lookup cell (B2) relative so each order row looks up its own SKU.
+        3. **Closed workbook.** If the source file is closed and the result is #N/A, #REF!, or an Update values prompt, open the file or fix the link. Details are in the workbook section above.
+        4. **Exact match.** The last argument must be FALSE. Leaving it out runs an approximate match on the other sheet and can return the wrong price with no error.
+        5. **Text, spaces, and numbers.** A SKU that looks the same can still fail. [TRIM](../{trim}/) removes ordinary spaces. [How to fix #N/A](../{na-error}/) covers numbers stored as text.
+        6. **Column index.** 3 means the third column of the range on the other sheet, counting from the first column of that range, not from column A of the sheet.
+      sheets: |
+        Work down this list when the formula was fine on one tab and fails as soon as the range points at another.
+
+        1. **Sheet name with spaces or punctuation.** `Price List` must be quoted: `'Price List'!$A$2:$C$100`. A hyphen, or a name that starts with a number, needs quotes too. A simple name (`Prices!A2:C100`) does not.
+        2. **Absolute references.** Filling down without dollar signs shifts the table onto the wrong rows. Lock it: `$A$2:$C$100`. Leave the lookup cell (B2) relative so each order row looks up its own SKU.
+        3. **Another file.** IMPORTRANGE shows #REF! until you click Allow access. The range text uses the same quoting rules (`"Price List!A2:C100"`). A closed Excel workbook on a PC is not something Sheets can open.
+        4. **Exact match.** The last argument must be FALSE. Leaving it out runs an approximate match and can return the wrong price with no error.
+        5. **Text, spaces, and numbers.** A SKU that looks the same can still fail. [TRIM](../{trim}/) removes ordinary spaces. [How to fix #N/A](../{na-error}/) covers numbers stored as text.
+        6. **Column index.** 3 means the third column of the range on the other sheet, counting from the first column of that range, not from column A of the sheet.
+  related: [vlookup, xlookup, na-error, trim, index-match, ref-error]
 
 - id: last-value
   category: lookup

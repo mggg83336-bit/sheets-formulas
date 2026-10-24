@@ -18,7 +18,8 @@ from xml.sax.saxutils import escape
 import markdown
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from common import (AD_PLACEHOLDER, CONTENT, DIST, PRODUCT_PLACEHOLDER, ROOT,
+from common import (AD_PLACEHOLDER, CONTENT, CTA_AFTER_ERRORS_PLACEHOLDER,
+                    CTA_PROMINENT_PLACEHOLDER, DIST, PRODUCT_PLACEHOLDER, ROOT,
                     load_site, read_post, slugify)
 from pins import PIN_H, PIN_W, assert_feed, benefit_line, render_feed, render_pin, save_pin
 from structured import CATEGORY_LABELS, RELATED_PLACEHOLDER, SIBLING_PLACEHOLDER
@@ -190,6 +191,7 @@ def main():
              base_path=base_path, base_url=base_url, year=dt.date.today().year)
     product_html = env.get_template("_products.html").render(**g)
     g["product_top_html"] = env.get_template("_products.html").render(**g, compact=True)
+    prominent_html = env.get_template("_products.html").render(**g, compact=True, prominent=True)
     ad_html = env.get_template("_ad.html").render(**g)
 
     # One vertical pin per formula page, stored in the repo at pins/ and copied into dist.
@@ -219,17 +221,23 @@ def main():
     def write(rel, tpl, **kw):
         out = tmp / rel
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(env.get_template(tpl).render(**g, **kw), encoding="utf-8")
+        out.write_text(env.get_template(tpl).render(**{**g, **kw}), encoding="utf-8")
 
     write("index.html", "index.html", posts=posts, groups=groups, is_home=True,
           page_title=cfg["site"]["title"] + (f" | {cfg['site']['tagline']}" if cfg["site"].get("tagline") else ""),
           description=cfg["site"]["description"], canonical=f"{base_url}/")
     for m in posts:
         body = m["html"].replace(AD_PLACEHOLDER, ad_html).replace(PRODUCT_PLACEHOLDER, product_html)
+        top = g["product_top_html"]
+        if CTA_PROMINENT_PLACEHOLDER in body or CTA_AFTER_ERRORS_PLACEHOLDER in body:
+            # Hub pages carry the buttons in the article, under Quick answer and after Common errors.
+            body = body.replace(CTA_PROMINENT_PLACEHOLDER, prominent_html).replace(
+                CTA_AFTER_ERRORS_PLACEHOLDER, product_html)
+            top = ""
         write(f"posts/{m['slug']}/index.html", "post.html", post=m, body=body,
               page_title=f"{m['title']} | {cfg['site']['title']}",
               description=m.get("summary") or cfg["site"]["description"], canonical=m["abs_url"],
-              og_image=m["pin_url"])
+              og_image=m["pin_url"], product_top_html=top)
     tags = {}
     for m in posts:
         for t in m.get("tags", []):

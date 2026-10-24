@@ -30,8 +30,10 @@ Each platform version gets its own URL, taken from `slugs`.
 | `example.other_sheets` | – | extra sheets the formulas reference (e.g. `Prices!A:B`) |
 | `steps` | ≥3 | step-by-step explanation |
 | `errors` | ≥2 | `{error, cause, fix}` |
-| `faq` | ≥2 | `{q, a}`. Rendered as FAQ and as FAQPage JSON-LD |
+| `faq` | ≥2 | `{q, a}`. Rendered as FAQ and as FAQPage JSON-LD. In-body links may use `../{entry-id}/`, resolved to the same platform at publish time |
 | `related` | – | entry ids. Links are resolved at build time (only to published pages, same platform first) |
+| `sections` | – | extra H2s: `{after: quick\|errors, title, body}` or platform text under `excel` / `sheets` instead of `body` |
+| `cta` | – | `hub` places the two-button buy block under Quick answer and again after Common errors |
 
 ## Quality gate (niche.yaml → quality_gate)
 

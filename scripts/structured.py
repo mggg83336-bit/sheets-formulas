@@ -12,6 +12,8 @@ from pathlib import Path
 
 import yaml
 
+from common import CONTENT, CTA_AFTER_ERRORS_PLACEHOLDER, CTA_PROMINENT_PLACEHOLDER
+
 PLATFORMS = {"excel": "Excel", "sheets": "Google Sheets"}
 CATEGORY_LABELS = {
     "lookup": "Lookup & reference",
@@ -197,6 +199,60 @@ def code(f):
     return f"```excel\n{f.strip()}\n```"
 
 
+def section_body(sec, p):
+    """Platform text for an optional H2. A platform key wins; body is the shared fallback."""
+    specific = sec.get(p)
+    if specific:
+        return str(specific).strip()
+    if sec.get("body"):
+        return str(sec["body"]).strip()
+    return ""
+
+
+def render_sections(e, p, where):
+    parts = []
+    for sec in e.get("sections") or []:
+        if (sec.get("after") or "quick") != where:
+            continue
+        text = section_body(sec, p)
+        title = (sec.get("title") or "").strip()
+        if not text or not title:
+            continue
+        parts += ["", f"## {title}", "", text]
+    return parts
+
+
+_ENTRY_LINK = re.compile(r"\]\(\.\./\{([A-Za-z0-9-]+)\}/\)")
+
+
+def resolve_entry_links(text, plat, entries_by_id):
+    """Turn `](../{entry-id}/)` into a same-platform relative post link."""
+    if not text or "../{" not in text:
+        return text
+
+    def repl(m):
+        rid = m.group(1)
+        r = entries_by_id.get(rid)
+        if not r:
+            raise SystemExit(f"unknown entry link id: {rid}")
+        slugs = r.get("slugs") or {}
+        order = [plat, "excel" if plat == "sheets" else "sheets"]
+        slug = next((slugs[k] for k in order if slugs.get(k) and (CONTENT / f"{slugs[k]}.md").is_file()), None)
+        if not slug:
+            slug = slugs.get(plat) or slugs.get("excel") or slugs.get("sheets")
+        if not slug:
+            raise SystemExit(f"no slug for entry link id: {rid}")
+        return f"](../{slug}/)"
+
+    return _ENTRY_LINK.sub(repl, text)
+
+
+def plain_faq(answer):
+    """FAQ JSON-LD is plain text: drop code ticks and markdown links."""
+    text = re.sub(r"`([^`]*)`", r"\1", answer.strip())
+    return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+
+
 def page_title(e, p):
     t = e.get("titles", {}).get(p) or e["title"]
     return t if PLATFORMS[p].lower() in t.lower() else f"{t} in {PLATFORMS[p]}"
@@ -213,6 +269,9 @@ def render(e, p):
              f"Use this formula in {P}:", "", code(b["formula"])]
     if b.get("explain"):
         parts += ["", b["explain"].strip()]
+    if e.get("cta") == "hub":
+        parts += ["", CTA_PROMINENT_PLACEHOLDER]
+    parts += render_sections(e, p, "quick")
     parts += ["", "## The problem", "", e["problem"].strip(), "", "## Worked example", ""]
     if ex.get("intro"):
         parts += [ex["intro"].strip(), ""]
@@ -246,10 +305,15 @@ def render(e, p):
     parts += ["", "## Common errors and how to fix them", ""]
     for er in e["errors"]:
         parts += [f"- **{er['error']}** — {er['cause'].strip()} **Fix:** {er['fix'].strip()}"]
+    parts += render_sections(e, p, "errors")
+    if e.get("cta") == "hub":
+        parts += ["", CTA_AFTER_ERRORS_PLACEHOLDER]
     parts += ["", "## FAQ", ""]
     for q in e["faq"]:
         parts += [f"### {q['q'].strip()}", "", q["a"].strip(), ""]
-    parts += ["## Related formulas", "", RELATED_PLACEHOLDER, "", "<!--PRODUCT_BOX-->"]
+    # Hub pages already have two in-body CTAs, so they do not get a third box after Related.
+    tail = [RELATED_PLACEHOLDER] if e.get("cta") == "hub" else [RELATED_PLACEHOLDER, "", "<!--PRODUCT_BOX-->"]
+    parts += ["## Related formulas", "", *tail]
     body = "\n".join(parts)
     return {
         "title": page_title(e, p),

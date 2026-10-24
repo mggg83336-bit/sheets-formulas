@@ -24,6 +24,10 @@ faq:
 related:
 - - vlookup-excel
   - vlookup-google-sheets
+- - vlookup-another-sheet-excel
+  - vlookup-another-sheet-google-sheets
+- - vlookup-multiple-criteria-excel
+  - vlookup-multiple-criteria-google-sheets
 - - iferror-excel
   - iferror-google-sheets
 - - trim-excel
@@ -45,6 +49,16 @@ Use this formula in Excel:
 ```
 
 TRIM removes stray spaces and VALUE turns the text "102" into the number 102, so it matches the numeric codes in column A.
+
+<!--CTA_PROMINENT-->
+
+## #N/A from another sheet or two criteria
+
+The same #N/A appears when the table is on another tab. Check the sheet-name quotes, lock the range with `$`, and open the source workbook if the formula points at another file. The checklist is on [VLOOKUP from another sheet](../vlookup-another-sheet-excel/).
+
+Two conditions, such as a region and a product, are not two arguments of VLOOKUP. Build one key, or use XLOOKUP with multiplied conditions, on [VLOOKUP with multiple criteria](../vlookup-multiple-criteria-excel/). A helper key that does not match, including a missing separator, returns #N/A even though each value exists on its own.
+
+[IFERROR](../iferror-excel/) will hide the error, but only after you know the missing keys are really missing. IFNA is the narrower wrapper. [XLOOKUP](../xlookup-excel/) can return a blank or a short message with its `if_not_found` argument instead of wrapping the formula.
 
 ## The problem
 
@@ -121,6 +135,8 @@ Google Sheets needs the same fix. Hover over the error to read the exact message
 - **Approximate match on unsorted data** — The last argument of VLOOKUP / MATCH was omitted. **Fix:** Use FALSE (VLOOKUP) or 0 (MATCH) for exact matches.
 - **Lookup range does not include the value** — The table range stops before the last row, or the range shifted when copied because it was not locked. **Fix:** Lock the range with $ or use an Excel Table / open-ended range.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Should I just wrap the formula in IFERROR?
@@ -134,5 +150,3 @@ Any
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

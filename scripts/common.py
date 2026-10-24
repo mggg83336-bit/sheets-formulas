@@ -13,6 +13,9 @@ STATE = ROOT / "state"
 # 这样改配置后旧文章也会同步更新。
 AD_PLACEHOLDER = "<!--AD_IN_ARTICLE-->"
 PRODUCT_PLACEHOLDER = "<!--PRODUCT_BOX-->"
+# Hub pages: two-button CTA under Quick answer, and again after Common errors.
+CTA_PROMINENT_PLACEHOLDER = "<!--CTA_PROMINENT-->"
+CTA_AFTER_ERRORS_PLACEHOLDER = "<!--CTA_AFTER_ERRORS-->"
 
 
 def load_site():

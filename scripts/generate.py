@@ -34,6 +34,9 @@ def collect_topics(niche):
 def publish_structured(e, plat, niche_name, gate_cfg, entries_by_id, date, reason):
     import structured
     out = structured.render(e, plat)
+    out["body_md"] = structured.resolve_entry_links(out["body_md"], plat, entries_by_id)
+    out["faq"] = [{"q": q["q"], "a": structured.plain_faq(structured.resolve_entry_links(q["a"], plat, entries_by_id))}
+                  for q in out["faq"]]
     probs = structured.gate(e, plat, gate_cfg, body=out["body_md"])
     slug = e["slugs"][plat]
     if probs:

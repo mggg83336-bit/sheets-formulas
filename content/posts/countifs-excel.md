@@ -28,10 +28,14 @@ faq:
   a: Yes. =COUNTIFS(A2:A8, "K*", D2:D8, "Won") counts won deals for reps whose name
     starts with K. Use * for any number of characters and ? for exactly one character.
 related:
-- - countif-excel
-  - countif-google-sheets
+- - sumifs-between-dates-excel
+  - sumifs-between-dates-google-sheets
+- - days-between-dates-excel
+  - days-between-dates-google-sheets
 - - sumifs-excel
   - sumifs-google-sheets
+- - countif-excel
+  - countif-google-sheets
 - - count-unique-excel
   - count-unique-google-sheets
 - - maxifs-minifs-excel
@@ -49,6 +53,20 @@ Use this formula in Excel:
 ```
 
 Syntax: `COUNTIFS(criteria_range1, criteria1, [criteria_range2, criteria2], ...)`. A row is counted only if every condition is true.
+
+<!--CTA_PROMINENT-->
+
+## COUNTIFS between two dates
+
+Count rows whose date falls on or between two dates by testing the date column twice. Put the start date in L1 and the end date in L2, and join each operator with `&`:
+
+```excel
+=COUNTIFS($A$2:$A$100, ">="&L1, $A$2:$A$100, "<="&L2)
+```
+
+`">="&L1` becomes a criterion such as `>=46054` (the serial number of the date in L1). The quoted string `">=L1"` does not read L1, so the count stays 0. Both ranges must cover the same rows. If the dates include a time, use `"<"&L2+1` as the upper bound so the whole end day is included.
+
+Adding the amounts on those rows, instead of counting them, is [SUMIFS between two dates](../sumifs-between-dates-excel/). The number of days from one date to the other, ignoring which rows fall in between, is [days between two dates](../days-between-dates-excel/). The same AND logic for a total is [SUMIFS](../sumifs-excel/).
 
 ## The problem
 
@@ -128,6 +146,8 @@ Google Sheets uses the same syntax, but array constants for OR logic need ARRAYF
 - **Count too high with "<>"** — "<>Won" also counts blank cells. **Fix:** Add another condition that excludes blanks: D2:D8, "<>".
 - **Count is 0** — Numbers stored as text or trailing spaces. **Fix:** Clean and convert the data, then re-check each condition separately with COUNTIF.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Is there a limit to the number of conditions?
@@ -149,5 +169,3 @@ Yes. =COUNTIFS(A2:A8, "K*", D2:D8, "Won") counts won deals for reps whose name s
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

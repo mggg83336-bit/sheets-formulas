@@ -19,18 +19,19 @@ faq:
   a: Not directly; all conditions are AND. Use SUM(SUMIFS(...)) with an array constant,
     or add two SUMIFS together.
 - q: How do I sum between two dates with SUMIFS?
-  a: Use the date column twice, e.g. =SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2).
+  a: 'Use the date column twice: =SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2). The worked
+    version, including dates that contain a time, is on SUMIFS between two dates.'
 - q: Is SUMIFS case-sensitive?
   a: No. Use SUMPRODUCT with EXACT if you need a case-sensitive sum.
 related:
-- - sumif-excel
-  - sumif-google-sheets
 - - sumifs-between-dates-excel
   - sumifs-between-dates-google-sheets
 - - countifs-excel
   - countifs-google-sheets
 - - sum-by-month-excel
   - sum-by-month-google-sheets
+- - sumif-excel
+  - sumif-google-sheets
 - - vlookup-multiple-criteria-excel
   - vlookup-multiple-criteria-google-sheets
 sibling: sumifs-google-sheets
@@ -45,7 +46,21 @@ Use this formula in Excel:
 =SUMIFS(D2:D8, A2:A8, F2, C2:C8, G2)
 ```
 
-Syntax: `SUMIFS(sum_range, criteria_range1, criteria1, [criteria_range2, criteria2], ...)`. Add D2:D8 where A2:A8 equals F2 AND C2:C8 equals G2.
+Syntax: `SUMIFS(sum_range, criteria_range1, criteria1, [criteria_range2, criteria2], ...)`. Add D2:D8 where A2:A8 equals F2 AND C2:C8 equals G2. For a start and end date, use [SUMIFS between two dates](../sumifs-between-dates-excel/).
+
+<!--CTA_PROMINENT-->
+
+## SUMIFS not working / returns 0
+
+SUMIFS returns 0 when no row matches, and also when the rows you expect are stored in a way the criteria cannot see. Check these before you rewrite the formula.
+
+- **Text that looks like a date or a number.** A date typed as text is often left-aligned, and `=ISNUMBER(A2)` is FALSE. A date criterion then matches nothing and the total is 0. Convert with DATEVALUE or Text to Columns in Excel, or Format > Number in Google Sheets.
+- **The operator and the cell were not joined.** `">=A1"` looks for the text >=A1. It does not read the date in A1. Join them: `">="&A1`. The same pattern is `">="&start` and `"<="&end` when you test a date column twice.
+- **Sum range last.** SUMIFS wants the numbers first. SUMIF wants them last. Swapping the arguments often returns 0 with no error.
+- **Range lengths.** Every criteria range must cover the same rows as the sum range. A mismatch returns #VALUE! rather than a quiet 0.
+- **Spaces.** `"East "` does not equal East. TRIM the column or the criterion.
+
+The full date-window pattern, including a time on the last day, is on [SUMIFS between two dates](../sumifs-between-dates-excel/). Counting those rows is [COUNTIFS](../countifs-excel/). A calendar month is [sum by month](../sum-by-month-excel/).
 
 ## The problem
 
@@ -126,6 +141,8 @@ Google Sheets uses the same syntax, but OR logic with an array constant must be 
 - **Returns 0** — Numbers stored as text, a trailing space in a criterion, or the arguments are in SUMIF order (sum range last). **Fix:** Put the sum range first and clean the data.
 - **OR total is too low in Google Sheets** — The {"East","West"} array was used without ARRAYFORMULA, so only East was counted. **Fix:** Wrap the formula in ARRAYFORMULA.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Can SUMIFS use OR logic?
@@ -134,7 +151,7 @@ Not directly; all conditions are AND. Use SUM(SUMIFS(...)) with an array constan
 
 ### How do I sum between two dates with SUMIFS?
 
-Use the date column twice, e.g. =SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2).
+Use the date column twice: `=SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2)`. The worked version, including dates that contain a time, is on [SUMIFS between two dates](../sumifs-between-dates-excel/).
 
 ### Is SUMIFS case-sensitive?
 
@@ -143,5 +160,3 @@ No. Use SUMPRODUCT with EXACT if you need a case-sensitive sum.
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

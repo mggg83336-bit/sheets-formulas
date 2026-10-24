@@ -260,7 +260,30 @@
       a: IFERROR catches all error types. IFNA catches only #N/A, so other problems such as a wrong range still show up.
     - q: Can IFERROR return a blank cell?
       a: It can return an empty string with "" (both apps). In Google Sheets you can also omit the second argument.
-  related: [na-error, div0-error, value-error, vlookup, xlookup]
+    - q: Should a lookup use IFERROR or XLOOKUP if_not_found?
+      a: |
+        Prefer XLOOKUP's if_not_found argument, or IFNA, for a missing key. Both replace only the not-found result. IFERROR also hides #REF! and #NAME?, so a broken range can look like a blank cell. if_not_found does not turn a found-but-empty cell into a blank; that cell still comes back as 0.
+  cta: hub
+  sections:
+    - after: quick
+      title: XLOOKUP if_not_found instead of IFERROR
+      body: |
+        For a lookup, the modern replacement for IFERROR is XLOOKUP's `if_not_found` argument. It substitutes a value only when the key is missing. Every other error still shows:
+
+        ```excel
+        =XLOOKUP(F2, $A$2:$A$6, $C$2:$C$6, "")
+        ```
+
+        `""` returns a blank cell for a missing key. `"Not found"` returns words. This does not turn a found-but-empty cell into a blank. That cell still comes back as 0. To blank empty cells and keep a real 0, blank the return range, as shown on the [XLOOKUP](../{xlookup}/) page.
+
+        IFNA around VLOOKUP is the same idea when you cannot use XLOOKUP:
+
+        ```excel
+        =IFNA(VLOOKUP(F2, $A$2:$D$6, 3, FALSE), "")
+        ```
+
+        IFERROR around that VLOOKUP would also hide #REF! and #NAME?. Prefer IFNA or `if_not_found` so a broken range stays visible. The usual reasons for the #N/A you are replacing are listed under [the #N/A error](../{na-error}/), including a lookup aimed at [another sheet](../{vlookup-another-sheet}/).
+  related: [na-error, xlookup, vlookup, div0-error, value-error]
 
 - id: na-error
   category: errors
@@ -351,7 +374,17 @@
       a: Only after you have confirmed the missing values are genuinely missing. Use IFNA rather than IFERROR so other problems still show.
     - q: Why does #N/A appear in my SUM?
       a: Any #N/A inside the range makes SUM return #N/A. Fix the lookups, or use AGGREGATE(9, 6, range) in Excel to sum while ignoring errors.
-  related: [vlookup, iferror, trim, xlookup, index-match]
+  cta: hub
+  sections:
+    - after: quick
+      title: '#N/A from another sheet or two criteria'
+      body: |
+        The same #N/A appears when the table is on another tab. Check the sheet-name quotes, lock the range with `$`, and open the source workbook if the formula points at another file. The checklist is on [VLOOKUP from another sheet](../{vlookup-another-sheet}/).
+
+        Two conditions, such as a region and a product, are not two arguments of VLOOKUP. Build one key, or use XLOOKUP with multiplied conditions, on [VLOOKUP with multiple criteria](../{vlookup-multiple-criteria}/). A helper key that does not match, including a missing separator, returns #N/A even though each value exists on its own.
+
+        [IFERROR](../{iferror}/) will hide the error, but only after you know the missing keys are really missing. IFNA is the narrower wrapper. [XLOOKUP](../{xlookup}/) can return a blank or a short message with its `if_not_found` argument instead of wrapping the formula.
+  related: [vlookup, vlookup-another-sheet, vlookup-multiple-criteria, iferror, trim, xlookup, index-match]
 
 - id: value-error
   category: errors

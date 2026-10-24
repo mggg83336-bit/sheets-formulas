@@ -1,5 +1,5 @@
 {% if products %}<div class="products{% if compact %} products-top{% endif %}">{% for p in products %}
-  <div class="product cta{% if compact %} cta-top{% endif %}">
+  <div class="product cta{% if compact %} cta-top{% endif %}{% if prominent %} cta-prominent{% endif %}">
     <p class="cta-kicker">Save time with ready-made templates</p>
     <strong class="cta-name">{{ p.name }}</strong>{% if p.price %} <span class="price">{{ p.price }}</span>{% endif %}
     {% if compact %}<p>{{ p.pitch or p.description }}</p>

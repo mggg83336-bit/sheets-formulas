@@ -28,8 +28,16 @@ faq:
 related:
 - - vlookup-excel
   - vlookup-google-sheets
+- - iferror-excel
+  - iferror-google-sheets
+- - na-error-excel
+  - na-error-google-sheets
+- - vlookup-another-sheet-excel
+  - vlookup-another-sheet-google-sheets
 - - xlookup-return-multiple-columns-excel
   - xlookup-return-multiple-columns-google-sheets
+- - lookup-multiple-values-excel
+  - lookup-multiple-values-google-sheets
 - - index-match-excel
   - index-match-google-sheets
 - - vlookup-multiple-criteria-excel
@@ -49,6 +57,35 @@ Use this formula in Excel:
 ```
 
 Syntax: `XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found], [match_mode], [search_mode])`. Find F2 in B2:B6 and return the item in the same position of A2:A6.
+
+<!--CTA_PROMINENT-->
+
+## XLOOKUP return blank instead of 0
+
+XLOOKUP returns 0 when it finds the lookup value and the return cell is empty. The `if_not_found` argument does not change that. It only runs when the value is missing, which is the [#N/A](../na-error-excel/) case.
+
+Blank those empty cells and still show a real zero. `IF` on the return range turns blanks into an empty string before XLOOKUP reads them:
+
+```excel
+=XLOOKUP(F2, B2:B6, IF(D2:D6="", "", D2:D6), "")
+```
+
+A salary of 0 stays 0. The `""` at the end is the missing-name result; use `"Not found"` if you would rather see words. Wrapping the whole formula in [IFERROR](../iferror-excel/) also hides #VALUE! and #NAME?, so prefer `if_not_found` or IFNA unless you mean to hide every error.
+
+To look up on another tab, use the same sheet syntax as [VLOOKUP from another sheet](../vlookup-another-sheet-excel/): `'Price List'!B2:B100` as the lookup array and the matching rows of the return column. Several matching rows belong on [lookup multiple values](../lookup-multiple-values-excel/). Several columns from one match belong on [return multiple columns](../xlookup-return-multiple-columns-excel/).
+
+## XLOOKUP vs VLOOKUP
+
+| | VLOOKUP | XLOOKUP |
+| --- | --- | --- |
+| Direction | First column only, return a column to the right | Any column, including a column to the left |
+| Default match | Approximate if you omit the 4th argument | Exact |
+| Not found | #N/A, unless you wrap IFNA or IFERROR | 4th argument, if_not_found |
+| Empty return cell | 0 | 0, unless the return range replaces blanks with "" |
+| Insert a column | The column index goes stale | The return range still points at the right cells |
+| Where it runs | Every Excel version and Google Sheets | Microsoft 365, Excel 2021 and later, Excel for the web, Google Sheets (since 2022) |
+
+Use [VLOOKUP](../vlookup-excel/) when the file must open in Excel 2019 or older. Otherwise XLOOKUP is the shorter formula. The employee-ID example on this page is a left lookup: the ID sits to the left of the name, which VLOOKUP cannot return without moving the ID column.
 
 ## The problem
 
@@ -131,6 +168,8 @@ Google Sheets supports XLOOKUP with the same argument order, so this formula wor
 - **#VALUE!** — The lookup array and return array have different sizes, for example B2:B6 and A2:A7. **Fix:** Make both ranges cover exactly the same rows.
 - **#N/A** — No match and no if_not_found argument, often due to stray spaces or numbers stored as text. **Fix:** Add a fourth argument such as "Not found", and clean the data with TRIM or VALUE.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Is XLOOKUP better than VLOOKUP?
@@ -148,5 +187,3 @@ Yes. Google Sheets has had XLOOKUP since 2022 with the same arguments as Excel.
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

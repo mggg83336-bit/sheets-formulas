@@ -102,7 +102,8 @@
     formula: '=SUMIFS(D2:D8, A2:A8, F2, C2:C8, G2)'
     explain: >-
       Syntax: `SUMIFS(sum_range, criteria_range1, criteria1, [criteria_range2, criteria2], ...)`.
-      Add D2:D8 where A2:A8 equals F2 AND C2:C8 equals G2.
+      Add D2:D8 where A2:A8 equals F2 AND C2:C8 equals G2. For a start and end date, use
+      [SUMIFS between two dates](../{sumifs-between-dates}/).
     notes: >-
       All conditions in SUMIFS are combined with AND. For OR logic on one column, pass an array
       constant and wrap the result in SUM: `=SUM(SUMIFS(D2:D8, A2:A8, {"East","West"}, C2:C8,
@@ -116,6 +117,7 @@
     formula: '=SUMIFS(D2:D8, A2:A8, F2, C2:C8, G2)'
     explain: >-
       Same syntax in Google Sheets: `SUMIFS(sum_range, criteria_range1, criterion1, ...)`.
+      For a start and end date, use [SUMIFS between two dates](../{sumifs-between-dates}/).
     notes: >-
       In Google Sheets the OR trick with an array constant needs ARRAYFORMULA, otherwise SUMIFS
       only uses the first value in the braces and the total is too low:
@@ -175,10 +177,25 @@
     - q: Can SUMIFS use OR logic?
       a: Not directly; all conditions are AND. Use SUM(SUMIFS(...)) with an array constant, or add two SUMIFS together.
     - q: How do I sum between two dates with SUMIFS?
-      a: Use the date column twice, e.g. =SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2).
+      a: |
+        Use the date column twice: `=SUMIFS(B:B, A:A, ">="&D2, A:A, "<="&E2)`. The worked version, including dates that contain a time, is on [SUMIFS between two dates](../{sumifs-between-dates}/).
     - q: Is SUMIFS case-sensitive?
       a: No. Use SUMPRODUCT with EXACT if you need a case-sensitive sum.
-  related: [sumif, sumifs-between-dates, countifs, sum-by-month, vlookup-multiple-criteria]
+  cta: hub
+  sections:
+    - after: quick
+      title: SUMIFS not working / returns 0
+      body: |
+        SUMIFS returns 0 when no row matches, and also when the rows you expect are stored in a way the criteria cannot see. Check these before you rewrite the formula.
+
+        - **Text that looks like a date or a number.** A date typed as text is often left-aligned, and `=ISNUMBER(A2)` is FALSE. A date criterion then matches nothing and the total is 0. Convert with DATEVALUE or Text to Columns in Excel, or Format > Number in Google Sheets.
+        - **The operator and the cell were not joined.** `">=A1"` looks for the text >=A1. It does not read the date in A1. Join them: `">="&A1`. The same pattern is `">="&start` and `"<="&end` when you test a date column twice.
+        - **Sum range last.** SUMIFS wants the numbers first. SUMIF wants them last. Swapping the arguments often returns 0 with no error.
+        - **Range lengths.** Every criteria range must cover the same rows as the sum range. A mismatch returns #VALUE! rather than a quiet 0.
+        - **Spaces.** `"East "` does not equal East. TRIM the column or the criterion.
+
+        The full date-window pattern, including a time on the last day, is on [SUMIFS between two dates](../{sumifs-between-dates}/). Counting those rows is [COUNTIFS](../{countifs}/). A calendar month is [sum by month](../{sum-by-month}/).
+  related: [sumifs-between-dates, countifs, sum-by-month, sumif, vlookup-multiple-criteria]
 
 - id: sumifs-between-dates
   category: conditional
@@ -262,9 +279,14 @@
   faq:
     - q: Why does the operator go in quotes?
       a: SUMIFS criteria are text. The & joins the operator with the date's serial number to form a condition such as ">=46054".
+    - q: Why does ">=L1" return 0 when the dates are right?
+      a: |
+        `">=L1"` is the characters >=L1. SUMIFS looks for that text and does not read the date in L1, so the total is 0. `">="&L1` joins the operator to the date serial in L1, which is what SUMIFS compares. The same join is how you write any threshold on [SUMIFS](../{sumifs}/), and how you count the rows with [COUNTIFS](../{countifs}/).
     - q: How do I count rows between two dates instead?
-      a: Use COUNTIFS with the same two conditions, e.g. =COUNTIFS(A2:A7, ">="&D2, A2:A7, "<="&E2).
-  related: [sumifs, sum-by-month, days-between-dates, eomonth, countifs]
+      a: |
+        Use [COUNTIFS](../{countifs}/) with the same two conditions: `=COUNTIFS(A2:A7, ">="&D2, A2:A7, "<="&E2)`.
+  cta: hub
+  related: [sumifs, countifs, sum-by-month, days-between-dates, eomonth]
 
 - id: countif
   category: conditional
@@ -440,7 +462,21 @@
       a: 'Use the date column twice: =COUNTIFS(A2:A100, ">="&E1, A2:A100, "<="&E2), where E1 and E2 hold the start and end dates. Join the operator and the cell with &, exactly as with numbers.'
     - q: Can COUNTIFS use wildcards?
       a: Yes. =COUNTIFS(A2:A8, "K*", D2:D8, "Won") counts won deals for reps whose name starts with K. Use * for any number of characters and ? for exactly one character.
-  related: [countif, sumifs, count-unique, maxifs-minifs]
+  cta: hub
+  sections:
+    - after: quick
+      title: COUNTIFS between two dates
+      body: |
+        Count rows whose date falls on or between two dates by testing the date column twice. Put the start date in L1 and the end date in L2, and join each operator with `&`:
+
+        ```excel
+        =COUNTIFS($A$2:$A$100, ">="&L1, $A$2:$A$100, "<="&L2)
+        ```
+
+        `">="&L1` becomes a criterion such as `>=46054` (the serial number of the date in L1). The quoted string `">=L1"` does not read L1, so the count stays 0. Both ranges must cover the same rows. If the dates include a time, use `"<"&L2+1` as the upper bound so the whole end day is included.
+
+        Adding the amounts on those rows, instead of counting them, is [SUMIFS between two dates](../{sumifs-between-dates}/). The number of days from one date to the other, ignoring which rows fall in between, is [days between two dates](../{days-between-dates}/). The same AND logic for a total is [SUMIFS](../{sumifs}/).
+  related: [sumifs-between-dates, days-between-dates, sumifs, countif, count-unique, maxifs-minifs]
 
 - id: maxifs-minifs
   category: conditional

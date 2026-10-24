@@ -28,12 +28,14 @@ related:
   - vlookup-excel
 - - xlookup-google-sheets
   - xlookup-excel
+- - na-error-google-sheets
+  - na-error-excel
+- - trim-google-sheets
+  - trim-excel
 - - index-match-google-sheets
   - index-match-excel
 - - ref-error-google-sheets
   - ref-error-excel
-- - na-error-google-sheets
-  - na-error-excel
 sibling: vlookup-another-sheet-excel
 ---
 To look up a value on a different tab, put the sheet name and an exclamation mark in front of the range. This guide shows the exact quoting rules for sheet names with spaces, how to point at another file, and why the result sometimes turns into #REF!.
@@ -47,6 +49,31 @@ Use this formula in Google Sheets:
 ```
 
 Same syntax in Google Sheets: quote the tab name when it contains spaces or punctuation.
+
+<!--CTA_PROMINENT-->
+
+## VLOOKUP from another workbook
+
+Another Google Sheets file is not a tab name. Wrap the imported range in IMPORTRANGE, then look up inside it:
+
+```excel
+=VLOOKUP(B2, IMPORTRANGE("https://docs.google.com/spreadsheets/d/FILE_ID", "Price List!A2:C100"), 3, FALSE)
+```
+
+The first time you connect a file, the cell shows #REF! until you click Allow access. Quote `Price List` inside the text because the name has a space. IMPORTRANGE does not read a closed Excel file on your computer.
+
+[XLOOKUP](../xlookup-excel/) can use the same imported range if you wrap IMPORTRANGE once (a named range or a helper sheet keeps the file URL out of every formula). A #N/A after access is allowed is usually text versus numbers or stray spaces: [how to fix #N/A](../na-error-excel/).
+
+## VLOOKUP not working between sheets
+
+Work down this list when the formula was fine on one tab and fails as soon as the range points at another.
+
+1. **Sheet name with spaces or punctuation.** `Price List` must be quoted: `'Price List'!$A$2:$C$100`. A hyphen, or a name that starts with a number, needs quotes too. A simple name (`Prices!A2:C100`) does not.
+2. **Absolute references.** Filling down without dollar signs shifts the table onto the wrong rows. Lock it: `$A$2:$C$100`. Leave the lookup cell (B2) relative so each order row looks up its own SKU.
+3. **Another file.** IMPORTRANGE shows #REF! until you click Allow access. The range text uses the same quoting rules (`"Price List!A2:C100"`). A closed Excel workbook on a PC is not something Sheets can open.
+4. **Exact match.** The last argument must be FALSE. Leaving it out runs an approximate match and can return the wrong price with no error.
+5. **Text, spaces, and numbers.** A SKU that looks the same can still fail. [TRIM](../trim-excel/) removes ordinary spaces. [How to fix #N/A](../na-error-excel/) covers numbers stored as text.
+6. **Column index.** 3 means the third column of the range on the other sheet, counting from the first column of that range, not from column A of the sheet.
 
 ## The problem
 
@@ -122,6 +149,8 @@ Excel uses the same sheet reference syntax. Another workbook is referenced as '[
 - **Excel asks you to pick a file / "Update values" dialog** — The tab name in the formula does not exist, so Excel thinks it is an external file. **Fix:** Check the spelling of the tab name and the quotes, or build the reference by clicking.
 - **#N/A** — The SKU is not found on the other tab (spaces, different case of codes, number vs text). **Fix:** Compare the two values with =B2='Price List'!A2 and clean with TRIM or VALUE.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Do I need quotes around the sheet name?
@@ -135,5 +164,3 @@ Not by itself. Nest lookups with IFNA, e.g. =IFNA(VLOOKUP(B2,Sheet1!A:C,3,FALSE)
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->

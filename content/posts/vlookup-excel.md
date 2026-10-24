@@ -26,19 +26,31 @@ faq:
   a: FALSE returns only exact matches. TRUE (or leaving the argument out) does an
     approximate match and requires the first column to be sorted in ascending order;
     it returns the largest value less than or equal to the lookup value.
+- q: Why does VLOOKUP return 0?
+  a: 'The lookup found a row, and the cell it returned was empty. Excel and Google
+    Sheets turn that empty cell into 0. A missing key is a different result, #N/A.
+    IFERROR and IFNA only replace errors, so they leave the 0 in place. Use the INDEX
+    test or XLOOKUP with a blanked return range, in the section above, when you need
+    a blank cell instead.'
 related:
 - - xlookup-excel
   - xlookup-google-sheets
+- - iferror-excel
+  - iferror-google-sheets
+- - na-error-excel
+  - na-error-google-sheets
 - - index-match-excel
   - index-match-google-sheets
 - - vlookup-multiple-criteria-excel
   - vlookup-multiple-criteria-google-sheets
 - - vlookup-another-sheet-excel
   - vlookup-another-sheet-google-sheets
-- - na-error-excel
-  - na-error-google-sheets
-- - iferror-excel
-  - iferror-google-sheets
+- - lookup-multiple-values-excel
+  - lookup-multiple-values-google-sheets
+- - xlookup-return-multiple-columns-excel
+  - xlookup-return-multiple-columns-google-sheets
+- - last-value-excel
+  - last-value-google-sheets
 sibling: vlookup-google-sheets
 ---
 VLOOKUP finds a value in the first column of a table and returns a value from another column in the same row. This guide shows the exact syntax, a worked price-list example, why you should almost always use FALSE for an exact match, and how to fix the errors people hit most often.
@@ -52,6 +64,43 @@ Use this formula in Excel:
 ```
 
 Syntax: `VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])`. Look up F2 in the first column of A2:D6 and return the value from the 3rd column of that range (column C). FALSE means exact match only.
+
+<!--CTA_PROMINENT-->
+
+## VLOOKUP returns 0 or blank cell
+
+A match and a missing key are different problems. If the ID is not in the first column, VLOOKUP returns [#N/A](../na-error-excel/). If the ID is found but the cell you return is empty, VLOOKUP returns 0. [IFERROR](../iferror-excel/) and IFNA only replace errors, so they leave that 0 on the sheet.
+
+An empty cell and a stored 0 are not the same. In the worked example further down, the Laptop Stand has stock 0, and that 0 should stay. Test the source cell with INDEX, which can tell an empty cell from a real zero. LET calculates it once (Microsoft 365, Excel 2021, and Google Sheets):
+
+```excel
+=LET(
+  src, INDEX($C$2:$C$6, MATCH(F2, $A$2:$A$6, 0)),
+  IF(src="", "", src)
+)
+```
+
+Without LET, write the test twice:
+
+```excel
+=IF(INDEX($C$2:$C$6, MATCH(F2, $A$2:$A$6, 0))="", "", INDEX($C$2:$C$6, MATCH(F2, $A$2:$A$6, 0)))
+```
+
+A shorter IF blanks every zero, including a real stock of 0. Use it only when 0 and blank mean the same thing in your sheet:
+
+```excel
+=IF(VLOOKUP(F2, $A$2:$D$6, 3, FALSE)=0, "", VLOOKUP(F2, $A$2:$D$6, 3, FALSE))
+```
+
+`&""` is a last resort, not a blank. Appending `""` turns the result into text, so a price of 54.9 becomes the text "54.9" and an empty cell becomes the text "0". You still see a zero, and you can no longer sum the column. It is useful only when the next step is text, for example forcing a code to match text with `F2&""`.
+
+Prefer [XLOOKUP](../xlookup-excel/) when the file opens in Microsoft 365, Excel 2021 or later, or Google Sheets. The `if_not_found` argument covers a missing key only. To also keep an empty price blank, and still return a real 0, blank the return range first:
+
+```excel
+=XLOOKUP(F2, $A$2:$A$6, IF($C$2:$C$6="", "", $C$2:$C$6), "")
+```
+
+The fourth argument `""` is what you show when F2 is not in the list. Use `"Not found"` if you would rather see words than a blank cell.
 
 ## The problem
 
@@ -131,6 +180,8 @@ Google Sheets uses the same syntax (the last argument is called is_sorted). To r
 - **Wrong value returned, no error** — The fourth argument was omitted or set to TRUE, so an approximate match was used on unsorted data. **Fix:** Always end the formula with FALSE unless you deliberately want a range lookup on sorted data (for example tax brackets).
 - **Results break after inserting a column** — The column number is a hard-coded 3, so inserting a column inside the table shifts the data but not the number. **Fix:** Use `MATCH("Price", $A$1:$D$1, 0)` as the column number, or switch to XLOOKUP / INDEX MATCH.
 
+<!--CTA_AFTER_ERRORS-->
+
 ## FAQ
 
 ### Can VLOOKUP look to the left?
@@ -145,8 +196,10 @@ No. "p-104" and "P-104" are treated as the same value. For a case-sensitive look
 
 FALSE returns only exact matches. TRUE (or leaving the argument out) does an approximate match and requires the first column to be sorted in ascending order; it returns the largest value less than or equal to the lookup value.
 
+### Why does VLOOKUP return 0?
+
+The lookup found a row, and the cell it returned was empty. Excel and Google Sheets turn that empty cell into 0. A missing key is a different result, #N/A. IFERROR and IFNA only replace errors, so they leave the 0 in place. Use the INDEX test or XLOOKUP with a blanked return range, in the section above, when you need a blank cell instead.
+
 ## Related formulas
 
 <!--RELATED-->
-
-<!--PRODUCT_BOX-->
