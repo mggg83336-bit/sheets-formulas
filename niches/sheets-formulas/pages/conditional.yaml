@@ -850,3 +850,117 @@
     - q: How do I average values between two numbers?
       a: Use AVERAGEIFS with the same column twice, e.g. =AVERAGEIFS(C2:C7, C2:C7, ">=400", C2:C7, "<=1000").
   related: [sumif, countif, sumifs, weighted-average, div0-error]
+
+- id: remove-duplicates-formula
+  category: conditional
+  slugs: {excel: remove-duplicates-formula-excel, sheets: remove-duplicates-formula-google-sheets}
+  title: Remove Duplicates with a Formula
+  summary: >-
+    List each distinct value from a column without using the Remove Duplicates button, so the
+    unique list updates when the source data changes. This page covers UNIQUE in modern Excel,
+    the same function in Google Sheets, sorting the result, and pulling values that appear only
+    once.
+  problem: >-
+    A city column repeats names across many rows. You need a clean list of cities for a dropdown
+    or summary, and you want it to stay correct when new rows are added, without running Data >
+    Remove Duplicates by hand each time.
+  excel:
+    formula: '=UNIQUE(A2:A9)'
+    explain: >-
+      UNIQUE returns each distinct value from A2:A9 once, in the order first seen, and spills the
+      list down the column.
+    notes: >-
+      UNIQUE needs Microsoft 365 or Excel 2021. Blanks inside the range count as one unique value,
+      so filter them out when needed: `=UNIQUE(FILTER(A2:A100, A2:A100<>""))`. The second argument
+      `by_col` is rarely needed for a single column; the third, `exactly_once`, keeps only values
+      that appear one time. Wrap with SORT for an alphabetical list:
+      `=SORT(UNIQUE(A2:A9))`. Older Excel has no UNIQUE; use a helper column with COUNTIF, or the
+      Data > Remove Duplicates command for a one-off static list. UNIQUE of several columns returns
+      distinct row combinations, which is useful for unique city/region pairs.
+    alternatives:
+      - label: Alphabetical unique list
+        formula: '=SORT(UNIQUE(A2:A9))'
+      - label: Values that appear exactly once
+        formula: '=UNIQUE(A2:A9, FALSE, TRUE)'
+      - label: Skip blanks
+        formula: '=UNIQUE(FILTER(A2:A9, A2:A9<>""))'
+    diff: >-
+      In Excel, UNIQUE is available in Microsoft 365 and Excel 2021. Older versions need a helper
+      column or the Remove Duplicates command on the Data tab.
+  sheets:
+    formula: '=UNIQUE(FILTER(A2:A9, A2:A9<>""))'
+    explain: >-
+      FILTER drops blank cells first, then UNIQUE returns each remaining city once in first-seen
+      order.
+    notes: >-
+      Google Sheets has had UNIQUE for a long time and accepts open-ended ranges such as A2:A, so
+      new rows are included automatically when you use `=UNIQUE(FILTER(A2:A, A2:A<>""))`. The
+      arguments match Excel: `UNIQUE(range, [by_col], [exactly_once])`. For a sorted distinct list
+      you can also use QUERY: `=QUERY(A2:A9, "select A where A is not null group by A order by A", 0)`.
+      QUERY is handy when you want distinct values plus a count in one step. Data > Data cleanup >
+      Remove duplicates still exists for a one-time static cleanup, but a formula stays live.
+    alternatives:
+      - label: Open-ended range for growing lists
+        formula: '=UNIQUE(FILTER(A2:A, A2:A<>""))'
+      - label: Distinct cities sorted with QUERY
+        formula: '=QUERY(A2:A9, "select A where A is not null group by A order by A", 0)'
+      - label: Values that appear exactly once
+        formula: '=UNIQUE(A2:A9, FALSE, TRUE)'
+    diff: >-
+      Google Sheets uses UNIQUE the same way and also supports QUERY for distinct values. Open-ended
+      ranges inside FILTER keep the list up to date as rows are added.
+  example:
+    intro: Eight city rows with repeats; the unique list should keep first-seen order.
+    grid:
+      - [City, null, Unique, Sorted, Once only]
+      - [Seattle]
+      - [Portland]
+      - [Seattle]
+      - [Denver]
+      - [Portland]
+      - [Austin]
+      - [Seattle]
+      - [Denver]
+    checks:
+      - cell: C2
+        label: unique list in first-seen order
+        excel: '=UNIQUE(A2:A9)'
+        array: true
+        spill_cells: [C2, C3, C4, C5]
+        spill_results: [Seattle, Portland, Denver, Austin]
+      - cell: D2
+        label: alphabetical unique list
+        excel: '=SORT(UNIQUE(A2:A9))'
+        array: true
+        spill_cells: [D2, D3, D4, D5]
+        spill_results: [Austin, Denver, Portland, Seattle]
+      - cell: E2
+        label: cities that appear exactly once
+        excel: '=UNIQUE(A2:A9, FALSE, TRUE)'
+        array: true
+        spill_cells: [E2]
+        spill_results: [Austin]
+  steps:
+    - '`UNIQUE(A2:A9)` scans the city column and keeps the first occurrence of each name: Seattle, Portland, Denver, Austin.'
+    - 'Later repeats of Seattle, Portland and Denver are dropped. The result spills into C2:C5; only C2 holds the formula.'
+    - '`SORT(UNIQUE(A2:A9))` returns the same four cities in alphabetical order: Austin, Denver, Portland, Seattle.'
+    - 'The third argument TRUE means exactly_once. Only Austin appears once in the source, so E2 shows Austin alone.'
+    - 'When the source gains a new city, the spilled list grows automatically. Clear cells below the formula so the spill is not blocked.'
+  errors:
+    - error: '#SPILL!'
+      cause: A cell in the spill range already has a value, or the formula sits inside an Excel Table column that cannot spill.
+      fix: Clear the blocking cells, or move the formula outside the table.
+    - error: Extra blank in the unique list
+      cause: The source range includes empty cells, and UNIQUE treats blank as a value.
+      fix: Wrap the range in FILTER(..., range<>"") before UNIQUE.
+    - error: '#NAME?'
+      cause: Excel 2019 or older does not have UNIQUE.
+      fix: Use Microsoft 365 / Excel 2021, or build a static list with Data > Remove Duplicates.
+  faq:
+    - q: Does UNIQUE remove duplicate rows across several columns?
+      a: Yes. Give it a multi-column range such as A2:B20 and it returns distinct combinations of those columns.
+    - q: How is this different from Data > Remove Duplicates?
+      a: The button permanently deletes rows from the sheet. UNIQUE leaves the source alone and builds a live list elsewhere.
+    - q: How do I count duplicates instead of removing them?
+      a: Use COUNTIF, e.g. =COUNTIF(A:A, A2) in a helper column, or see the count-unique page for distinct counts.
+  related: [count-unique, textjoin, lookup-multiple-values, countif]
