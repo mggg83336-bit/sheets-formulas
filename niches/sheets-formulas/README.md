@@ -26,7 +26,7 @@ Each platform version gets its own URL, taken from `slugs`.
 | `summary`, `problem` | yes | intro paragraphs |
 | `excel`, `sheets` | yes | platform block: `formula`, `explain`, `notes`, `alternatives` [{label, formula}], `diff` (how the *other* platform differs). `same_as: excel` copies a block |
 | `example.grid` | yes | rows of cells (first row = headers; `null` = empty). Rendered like a spreadsheet with row/column labels |
-| `example.checks` | yes | `{cell, label, excel, sheets?, result | results, fill?, array?, spill_cells?, spill_results?, expect?, verify?, why_unverified?}`. These are the formulas typed into the grid and their exact results |
+| `example.checks` | yes | `{cell, label, excel, sheets?, result | results, fill?, array?, spill_cells?, spill_results?, expect?, verify?, sheets_verify?, why_unverified?}` (`sheets_verify: false` skips only the Sheets variant, e.g. Sheets-only argument syntax). These are the formulas typed into the grid and their exact results |
 | `example.other_sheets` | – | extra sheets the formulas reference (e.g. `Prices!A:B`) |
 | `steps` | ≥3 | step-by-step explanation |
 | `errors` | ≥2 | `{error, cause, fix}` |

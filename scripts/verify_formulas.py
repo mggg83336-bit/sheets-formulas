@@ -151,6 +151,9 @@ def plan_checks(e):
         for plat, f in variants:
             if not f:
                 continue
+            if plat == "sheets" and c.get("sheets_verify") is False:
+                UNVERIFIED.append(f"{e['id']} {c['cell']} (sheets): {c.get('why_unverified', 'Sheets-only argument syntax')}")
+                continue
             bad = funcs(f) & (LO_UNSUPPORTED | SHEETS_ONLY)
             if bad:
                 UNVERIFIED.append(f"{e['id']} {c['cell']} ({plat}): uses {', '.join(sorted(bad))}")
