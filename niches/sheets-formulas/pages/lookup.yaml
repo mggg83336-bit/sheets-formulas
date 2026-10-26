@@ -1351,3 +1351,363 @@
     - q: Does SORT change my original data?
       a: No. It returns a sorted copy in a new place. Use Data > Sort only when you want to rearrange the source rows permanently.
   related: [unique, filter, remove-duplicates-formula, xlookup]
+
+- id: sortby
+  category: lookup
+  slugs: {excel: sortby-excel}
+  title: How to Use the SORTBY Function
+  summary: >-
+    SORTBY returns a sorted copy of a range, ordered by one or more other ranges that do not have
+    to appear in the result. This guide shows how to list names by a sales column you do not want
+    to display, how to sort by two keys, how to apply a custom order such as West, East, North,
+    and what to use in Google Sheets, which has no SORTBY function.
+  problem: >-
+    A small sales table holds each rep's name, region, sales and units. Your manager wants a
+    plain list of names ranked by sales, without the numbers next to them. You also need a list
+    ranked by units with sales as the tie-breaker, and a report grouped by region in a fixed
+    business order rather than alphabetically. SORT can only sort by a column that is part of
+    its own result, so it cannot do the first and last jobs cleanly. SORTBY can.
+  excel:
+    formula: '=SORTBY(A2:A7, C2:C7, -1)'
+    explain: >-
+      Syntax: `SORTBY(array, by_array1, [sort_order1], [by_array2, sort_order2], ...)`. Return
+      the names in A2:A7, ordered by the sales figures in C2:C7; -1 means largest first. The
+      sales column is used as the key but is not part of the output.
+    notes: >-
+      SORTBY is available in Microsoft 365 and Excel 2021 or later. Each by_array must be a
+      single row or single column with the same number of rows as the array, otherwise the
+      result is #VALUE!. Sort orders are 1 (ascending, the default) and -1 (descending). Add
+      more key and order pairs for tie-breakers; Excel applies them left to right. The sort is
+      stable, so rows with equal keys keep their original order. The key can also be a
+      calculated array, which is how you build a custom sort order with MATCH or sort by text
+      length with LEN.
+    alternatives:
+      - label: Units high to low, then sales high to low
+        formula: '=SORTBY(A2:A7, D2:D7, -1, C2:C7, -1)'
+      - label: Whole table by region A to Z, then sales high to low
+        formula: '=SORTBY(A2:C7, B2:B7, 1, C2:C7, -1)'
+      - label: Custom region order (West, East, North)
+        formula: '=SORTBY(A2:A7, MATCH(B2:B7, {"West","East","North"}, 0), 1)'
+      - label: Shortest names first
+        formula: '=SORTBY(A2:A7, LEN(A2:A7), 1)'
+    diff: >-
+      Excel needs SORTBY whenever the sort key is not inside the returned range. In older Excel
+      versions without dynamic arrays there is no SORTBY; use Data > Sort or a helper column with
+      RANK and INDEX/MATCH instead.
+  sheets:
+    formula: '=SORT(A2:A7, C2:C7, FALSE)'
+    explain: >-
+      Google Sheets has no SORTBY. Its SORT function accepts a range outside the result as the
+      sort column, so `SORT(A2:A7, C2:C7, FALSE)` returns the names ordered by sales, largest
+      first.
+    notes: >-
+      In Google Sheets each sort key is written as a pair: a column (a number inside the range or
+      a separate range of the same height) followed by TRUE for ascending or FALSE for
+      descending. Add more pairs for tie-breakers, for example `=SORT(A2:A7, D2:D7, FALSE,
+      C2:C7, FALSE)`. A custom order works the same way with MATCH as the key range, wrapped in
+      ARRAYFORMULA if needed.
+    alternatives:
+      - label: Two keys (units, then sales)
+        formula: '=SORT(A2:A7, D2:D7, FALSE, C2:C7, FALSE)'
+      - label: Custom region order
+        formula: '=SORT(A2:A7, MATCH(B2:B7, {"West";"East";"North"}, 0), TRUE)'
+    diff: >-
+      Google Sheets uses SORT with an outside range instead of SORTBY, and TRUE/FALSE instead of
+      1/-1 for the order.
+  example:
+    intro: Six sales reps with region, sales and units sold. The source rows stay in their original order.
+    grid:
+      - [Name, Region, Sales, Units, null, By sales, By units, Name, Region, null, null, Custom order]
+      - [Mia, East, 820, 14]
+      - [Leo, West, 950, 9]
+      - [Zoe, East, 770, 21]
+      - [Ivan, North, 880, 12]
+      - [Ana, West, 910, 17]
+      - [Raj, North, 700, 9]
+    checks:
+      - cell: F2
+        label: names ordered by sales, highest first
+        excel: '=SORTBY(A2:A7, C2:C7, -1)'
+        sheets: '=SORT(A2:A7, C2:C7, FALSE)'
+        sheets_verify: false
+        why_unverified: Google Sheets SORT with an outside range and TRUE/FALSE order; LibreOffice follows Excel, and the Excel form of this check is verified
+        spill_cells: [F2, F3, F4, F5, F6, F7]
+        spill_results: [Leo, Ana, Ivan, Mia, Zoe, Raj]
+      - cell: G2
+        label: names by units (high to low), ties broken by sales
+        excel: '=SORTBY(A2:A7, D2:D7, -1, C2:C7, -1)'
+        sheets: '=SORT(A2:A7, D2:D7, FALSE, C2:C7, FALSE)'
+        sheets_verify: false
+        why_unverified: Google Sheets SORT with outside ranges and TRUE/FALSE order; the Excel form of this check is verified
+        spill_cells: [G2, G3, G4, G5, G6, G7]
+        spill_results: [Zoe, Ana, Mia, Ivan, Leo, Raj]
+      - cell: H2
+        label: name and region, regions A to Z, sales high to low inside each region
+        excel: '=SORTBY(A2:B7, B2:B7, 1, C2:C7, -1)'
+        sheets: '=SORT(A2:B7, B2:B7, TRUE, C2:C7, FALSE)'
+        sheets_verify: false
+        why_unverified: Google Sheets SORT with outside ranges and TRUE/FALSE order; the Excel form of this check is verified
+        spill_cells: [H2, I2, H3, I3, H4, I4, H5, I5, H6, I6, H7, I7]
+        spill_results: [Mia, East, Zoe, East, Ivan, North, Raj, North, Leo, West, Ana, West]
+      - cell: L2
+        label: names in a custom region order (West, East, North)
+        excel: '=SORTBY(A2:A7, MATCH(B2:B7, {"West","East","North"}, 0), 1)'
+        spill_cells: [L2, L3, L4, L5, L6, L7]
+        spill_results: [Leo, Ana, Mia, Zoe, Ivan, Raj]
+  steps:
+    - '`SORTBY(A2:A7, C2:C7, -1)` takes the names as the array and the sales column as the key. Sales from highest to lowest are 950, 910, 880, 820, 770 and 700, so the names come back as Leo, Ana, Ivan, Mia, Zoe, Raj. The sales numbers themselves are not shown.'
+    - 'For two keys add a second pair. `SORTBY(A2:A7, D2:D7, -1, C2:C7, -1)` sorts by units first: Zoe 21, Ana 17, Mia 14, Ivan 12. Leo and Raj both sold 9 units, so the second key, sales, decides: Leo (950) comes before Raj (700).'
+    - 'The array can have several columns. In H2 the formula returns name and region side by side, ordered by region A to Z and, inside each region, by sales from high to low: East (Mia, Zoe), North (Ivan, Raj), West (Leo, Ana).'
+    - 'For an order that is neither alphabetical nor numeric, turn each value into a position with MATCH. `MATCH(B2:B7, {"West","East","North"}, 0)` gives West 1, East 2 and North 3, and SORTBY sorts by those numbers ascending.'
+    - 'Every by_array must be exactly as tall as the array (here 6 rows). The source table is never changed, so when a figure changes all four lists reorder immediately.'
+  errors:
+    - error: '#VALUE!'
+      cause: A by_array has a different number of rows than the array, or it is more than one column wide.
+      fix: Make every key range the same height as the array, e.g. A2:A7 with C2:C7, and use one column per key.
+    - error: '#NAME?'
+      cause: The workbook is opened in Excel 2019 or older, which has no SORTBY, or the function is used in Google Sheets.
+      fix: Use Microsoft 365 or Excel 2021+. In Google Sheets use SORT with an outside range, e.g. =SORT(A2:A7, C2:C7, FALSE).
+    - error: '#SPILL!'
+      cause: Cells in the area the result needs already contain data.
+      fix: Clear the cells below (and to the right of) the formula.
+    - error: '#N/A rows at the top or bottom of a custom order'
+      cause: A value in the key range is missing from the MATCH list, so MATCH returns #N/A for that row.
+      fix: Add the missing value to the list, or wrap MATCH in IFERROR with a large number to push unknown values to the end.
+  faq:
+    - q: What is the difference between SORT and SORTBY in Excel?
+      a: SORT sorts by a column index inside its own result, e.g. =SORT(A2:C7, 3, -1). SORTBY sorts by separate ranges, so the key does not have to be returned. Use SORTBY to show names only, to sort by a calculated key, or to apply a custom order.
+    - q: Is there a SORTBY function in Google Sheets?
+      a: No. Google Sheets' SORT already accepts outside ranges as sort columns, so =SORT(A2:A7, C2:C7, FALSE) does the same job as =SORTBY(A2:A7, C2:C7, -1).
+    - q: How do I get only the top 3 with SORTBY?
+      a: In Microsoft 365 wrap it in TAKE, e.g. =TAKE(SORTBY(A2:A7, C2:C7, -1), 3). In Excel 2021, use =INDEX(SORTBY(A2:A7, C2:C7, -1), SEQUENCE(3)).
+  related: [sort, filter, unique, sequence, xlookup]
+
+- id: sequence
+  category: lookup
+  slugs: {excel: sequence-excel, sheets: sequence-google-sheets}
+  title: How to Use the SEQUENCE Function
+  summary: >-
+    SEQUENCE generates a list or grid of numbers with one formula: row numbers, steps of 10, a
+    numbered grid, or a series of dates. This guide covers the four arguments, numbering a list
+    that grows, step and start values, two-dimensional grids, and how Excel and Google Sheets
+    differ.
+  problem: >-
+    You keep a task list and want a number column next to it that stays correct when tasks are
+    added, without dragging the fill handle every time. You also need a column of round numbers
+    (10, 20, 30...), a small numbered grid for a seating plan, and a quick way to add up a
+    series without typing it out. SEQUENCE does all of these from one cell.
+  excel:
+    formula: '=SEQUENCE(COUNTA(A2:A6))'
+    explain: >-
+      Syntax: `SEQUENCE(rows, [columns], [start], [step])`. COUNTA counts the 5 tasks, so
+      SEQUENCE spills 1 to 5 down the column. Columns, start and step all default to 1.
+    notes: >-
+      SEQUENCE needs Microsoft 365 or Excel 2021 or later. The result spills, so the cells it
+      needs must be empty or you get #SPILL!. To keep numbering a list that grows, point COUNTA
+      at a whole column (minus the header) or at an Excel Table column, e.g.
+      `=SEQUENCE(COUNTA(Tasks[Task]))`. Combine SEQUENCE with dates by adding it to a start date:
+      `=DATE(2026,11,2)+SEQUENCE(5,1,0,7)` gives five Mondays a week apart (format the cells as
+      dates). SEQUENCE also works inside other functions, for example `=INDEX(list, SEQUENCE(3))`
+      returns the first three items.
+    alternatives:
+      - label: 10, 20, 30, 40, 50 (start 10, step 10)
+        formula: '=SEQUENCE(5, 1, 10, 10)'
+      - label: Grid of 2 rows by 3 columns
+        formula: '=SEQUENCE(2, 3)'
+      - label: Five dates one week apart
+        formula: '=DATE(2026,11,2)+SEQUENCE(5,1,0,7)'
+      - label: Number a list with room to grow
+        formula: '=SEQUENCE(COUNTA(A2:A1000))'
+    diff: >-
+      Excel spills the result and shows #SPILL! when the target cells are not empty. It is not
+      available in Excel 2019 or older, where the usual workaround is =ROW()-1 filled down.
+  sheets:
+    formula: '=SEQUENCE(COUNTA(A2:A))'
+    explain: >-
+      Same arguments in Google Sheets: `SEQUENCE(rows, [columns], [start], [step])`. The
+      open-ended range A2:A counts every task in the column, so the numbering grows as you add
+      rows.
+    notes: >-
+      Google Sheets supports SEQUENCE in every version and accepts open-ended ranges such as
+      A2:A, which makes self-extending numbering very easy. If the result would overwrite data,
+      Sheets shows #REF! ("Array result was not expanded") instead of #SPILL!. Before SEQUENCE
+      existed, the common Sheets pattern was `=ARRAYFORMULA(ROW(A2:A6)-1)`, which you will still
+      see in older templates. To number only rows that are filled in a column with gaps, use
+      `=ARRAYFORMULA(IF(A2:A="", "", COUNTIFS(A2:A, "<>", ROW(A2:A), "<="&ROW(A2:A))))`.
+    alternatives:
+      - label: Older ARRAYFORMULA pattern
+        formula: '=ARRAYFORMULA(ROW(A2:A6)-1)'
+      - label: Five dates one week apart
+        formula: '=ARRAYFORMULA(DATE(2026,11,2)+SEQUENCE(5,1,0,7))'
+      - label: Number only filled rows (gaps allowed)
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", COUNTIFS(A2:A, "<>", ROW(A2:A), "<="&ROW(A2:A))))'
+    diff: >-
+      Google Sheets has the same SEQUENCE arguments, accepts open-ended ranges such as A2:A, and
+      reports blocked output as #REF! rather than #SPILL!.
+  example:
+    intro: A five-task list in column A. Each formula is typed once in row 2 and spills.
+    grid:
+      - [Task, No., null, Step 10, null, Grid, null, null, null, Sum 1..10]
+      - [Write]
+      - [Review]
+      - [Test]
+      - [Ship]
+      - [Docs]
+    checks:
+      - cell: B2
+        label: number the tasks 1 to 5
+        excel: '=SEQUENCE(COUNTA(A2:A6))'
+        spill_cells: [B2, B3, B4, B5, B6]
+        spill_results: [1, 2, 3, 4, 5]
+      - cell: D2
+        label: start at 10, step by 10
+        excel: '=SEQUENCE(5, 1, 10, 10)'
+        spill_cells: [D2, D3, D4, D5, D6]
+        spill_results: [10, 20, 30, 40, 50]
+      - cell: F2
+        label: a 2-row by 3-column grid (fills across, then down)
+        excel: '=SEQUENCE(2, 3)'
+        spill_cells: [F2, G2, H2, F3, G3, H3]
+        spill_results: [1, 2, 3, 4, 5, 6]
+      - cell: J2
+        label: add up 1 to 10 without typing the numbers
+        excel: '=SUM(SEQUENCE(10))'
+        result: 55
+  steps:
+    - '`COUNTA(A2:A6)` counts the non-empty task cells, which is 5. `SEQUENCE(5)` then returns 1, 2, 3, 4, 5 into B2:B6.'
+    - 'The third and fourth arguments set the first value and the step. `SEQUENCE(5, 1, 10, 10)` returns 5 rows and 1 column starting at 10 and adding 10 each time: 10, 20, 30, 40, 50.'
+    - 'With two dimensions SEQUENCE fills across the row first and then moves down. `SEQUENCE(2, 3)` puts 1, 2, 3 in F2:H2 and 4, 5, 6 in F3:H3.'
+    - 'SEQUENCE can feed other functions without spilling at all. `SUM(SEQUENCE(10))` adds 1 to 10 and returns 55 in a single cell.'
+    - 'Add a task in A7 and widen the COUNTA range (or use A2:A in Google Sheets): the numbering updates by itself, with no fill handle.'
+  errors:
+    - error: '#SPILL! (Excel) / #REF! (Google Sheets)'
+      cause: Something is already typed in the cells the sequence needs.
+      fix: Clear the cells below or to the right of the formula, or move the formula.
+    - error: '#VALUE!'
+      cause: rows or columns is 0, negative or text, for example when COUNTA counts an empty range.
+      fix: Make sure the count is at least 1, e.g. =IF(COUNTA(A2:A6)=0, "", SEQUENCE(COUNTA(A2:A6))).
+    - error: '#NAME?'
+      cause: The file is opened in Excel 2019 or older, which has no SEQUENCE.
+      fix: Use =ROW()-1 filled down, or open the file in Microsoft 365, Excel 2021+ or Google Sheets.
+    - error: Numbering counts too many rows
+      cause: In Google Sheets, A2:A also counts cells that only contain spaces or formulas returning "".
+      fix: Count real values only, e.g. =SEQUENCE(COUNTIF(A2:A, "?*")) for text entries.
+  faq:
+    - q: How do I make a list of dates with SEQUENCE?
+      a: Add SEQUENCE to a start date, e.g. =DATE(2026,11,2)+SEQUENCE(7,1,0,1) for seven consecutive days, or use step 7 for weekly dates. Format the cells as dates. In Google Sheets wrap it in ARRAYFORMULA if it does not spill.
+    - q: Can SEQUENCE count down?
+      a: Yes, use a negative step. =SEQUENCE(5, 1, 5, -1) returns 5, 4, 3, 2, 1 in both Excel and Google Sheets.
+    - q: What is the difference between SEQUENCE and ROW?
+      a: ROW returns the row number of a cell, so =ROW()-1 must be filled down and breaks when rows move. SEQUENCE builds the whole list from one cell and can set any start, step and number of columns.
+  related: [sortby, sort, unique, filter, transpose]
+
+- id: transpose
+  category: lookup
+  slugs: {excel: transpose-excel, sheets: transpose-google-sheets}
+  title: How to Use the TRANSPOSE Formula
+  summary: >-
+    TRANSPOSE flips a range so rows become columns and columns become rows, and the result stays
+    linked to the source. This guide shows the formula in Microsoft 365 and older Excel, how it
+    works in Google Sheets, how to transpose only part of a table, and when Paste Special is the
+    better choice.
+  problem: >-
+    Your monthly report has months down the rows and measures (Sales, Cost) across the columns,
+    but the dashboard needs the months across the top. Copying and pasting with Paste Special >
+    Transpose works once, but it does not update when the numbers change. You want a flipped copy
+    that always matches the source table.
+  excel:
+    formula: '=TRANSPOSE(A1:C4)'
+    explain: >-
+      Syntax: `TRANSPOSE(array)`. A1:C4 is 4 rows by 3 columns, so the result is 3 rows by 4
+      columns. In Microsoft 365 and Excel 2021 it spills automatically from the cell you type it
+      in.
+    notes: >-
+      In Excel 2019 and older, TRANSPOSE is an array formula: first select a range of the
+      flipped size (here 3 rows by 4 columns), type `=TRANSPOSE(A1:C4)` and press
+      Ctrl+Shift+Enter. If you only press Enter you get just the first value or #VALUE!. Empty
+      source cells show as 0 in the result; use `=TRANSPOSE(IF(A1:C4="", "", A1:C4))` to keep
+      them blank. Formatting is not copied, so format dates and currency in the result range.
+      For a static copy without formulas, use Copy and then Paste Special > Transpose.
+    alternatives:
+      - label: Keep blank cells blank
+        formula: '=TRANSPOSE(IF(A1:C4="", "", A1:C4))'
+      - label: Transpose only the months that sold over 100
+        formula: '=TRANSPOSE(FILTER(A2:A4, B2:B4>100))'
+      - label: Single row from a column (Microsoft 365)
+        formula: '=TOROW(A2:A4)'
+    diff: >-
+      Microsoft 365 spills TRANSPOSE automatically; Excel 2019 and older need a pre-selected
+      range and Ctrl+Shift+Enter.
+  sheets:
+    formula: '=TRANSPOSE(A1:C4)'
+    explain: >-
+      Google Sheets uses the same `TRANSPOSE(range)` and expands the result automatically from
+      the cell you type it in; no special keys are needed.
+    notes: >-
+      Google Sheets has always expanded TRANSPOSE without Ctrl+Shift+Enter. If cells in the
+      target area are not empty, it shows #REF! ("Array result was not expanded because it would
+      overwrite data"). Empty source cells stay empty instead of turning into 0. TRANSPOSE is
+      often combined with Sheets-only functions: `=TRANSPOSE(SPLIT("Jan,Feb,Mar", ","))` turns a
+      comma list into a column, and `=TRANSPOSE(UNIQUE(A2:A))` turns a column of names into a
+      header row. To link a transposed range from another file, wrap IMPORTRANGE in TRANSPOSE.
+    alternatives:
+      - label: Comma list into a column
+        formula: '=TRANSPOSE(SPLIT("Jan,Feb,Mar", ","))'
+      - label: Unique names as a header row
+        formula: '=TRANSPOSE(UNIQUE(A2:A))'
+      - label: Transpose a filtered list
+        formula: '=TRANSPOSE(FILTER(A2:A4, B2:B4>100))'
+    diff: >-
+      Google Sheets expands TRANSPOSE automatically in every version and leaves empty source
+      cells blank; overlapping data gives #REF! rather than #SPILL!.
+  example:
+    intro: A 4-row by 3-column report (A1:C4). The formula in E1 returns it flipped to 3 rows by 4 columns.
+    grid:
+      - [Month, Sales, Cost]
+      - [Jan, 120, 80]
+      - [Feb, 150, 95]
+      - [Mar, 90, 70]
+      - []
+      - [null, null, null, null, Months over 100]
+    checks:
+      - cell: E1
+        label: whole table flipped (fills E1:H3)
+        excel: '=TRANSPOSE(A1:C4)'
+        spill_cells: [E1, F1, G1, H1, E2, F2, G2, H2, E3, F3, G3, H3]
+        spill_results: [Month, Jan, Feb, Mar, Sales, 120, 150, 90, Cost, 80, 95, 70]
+      - cell: F6
+        label: only the months with sales over 100, as a row
+        excel: '=TRANSPOSE(FILTER(A2:A4, B2:B4>100))'
+        spill_cells: [F6, G6]
+        spill_results: [Jan, Feb]
+      - cell: E8
+        label: total sales from the transposed row
+        excel: '=SUM(F2:H2)'
+        result: 360
+  steps:
+    - 'Count the source size first: A1:C4 is 4 rows by 3 columns, so the transposed result needs 3 rows by 4 columns (E1:H3).'
+    - 'Type `=TRANSPOSE(A1:C4)` in E1. In Microsoft 365, Excel 2021 and Google Sheets it fills E1:H3 on its own. In Excel 2019 or older, select E1:H3 first, type the formula and press Ctrl+Shift+Enter.'
+    - 'Row 1 of the source (Month, Sales, Cost) becomes column E, and column A (Month, Jan, Feb, Mar) becomes row 1: Month, Jan, Feb, Mar.'
+    - 'The result is linked. Change Feb sales in B3 from 150 to 160 and G2 updates; `=SUM(F2:H2)` in E8 then changes from 360 to 370.'
+    - 'To flip only part of the data, filter first: `TRANSPOSE(FILTER(A2:A4, B2:B4>100))` keeps Jan (120) and Feb (150) and returns them across F6:G6.'
+  errors:
+    - error: '#SPILL! (Excel) / #REF! (Google Sheets)'
+      cause: The cells the flipped range needs already contain values.
+      fix: Clear the area to the right of and below the formula cell.
+    - error: '#VALUE! or only one value appears (Excel 2019 and older)'
+      cause: The formula was confirmed with Enter instead of entered as an array formula.
+      fix: Select the full output range, type the formula and press Ctrl+Shift+Enter.
+    - error: Blank cells show 0
+      cause: In Excel TRANSPOSE returns 0 for empty source cells.
+      fix: Use =TRANSPOSE(IF(A1:C4="", "", A1:C4)).
+    - error: Dates show as numbers
+      cause: TRANSPOSE copies values, not number formats.
+      fix: Apply a date format to the result range.
+  faq:
+    - q: How do I transpose without a formula?
+      a: Copy the range, right-click the destination and choose Paste Special > Transpose (Excel) or Paste special > Transposed (Google Sheets). The result is static and will not update.
+    - q: Can I edit one cell of a TRANSPOSE result?
+      a: No. The output belongs to one formula, so editing a single cell gives an error or breaks the spill. Edit the source range instead, or convert the result to values first.
+    - q: Does TRANSPOSE work with another sheet?
+      a: Yes, e.g. =TRANSPOSE(Report!A1:C4). In Google Sheets you can also transpose data from another file with =TRANSPOSE(IMPORTRANGE(url, "Report!A1:C4")).
+  related: [sequence, sortby, filter, unique, sort]
