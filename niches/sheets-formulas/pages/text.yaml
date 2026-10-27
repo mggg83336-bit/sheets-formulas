@@ -645,3 +645,331 @@
     - q: How do I highlight cells that contain a word?
       a: 'Use conditional formatting with a formula rule: =ISNUMBER(SEARCH("mouse", $A2)).'
   related: [countif, text-before-character, sumif, trim]
+
+- id: concatenate
+  category: text
+  slugs: {excel: concatenate-excel, sheets: concatenate-google-sheets}
+  title: How to CONCATENATE Text
+  summary: >-
+    CONCATENATE (and its modern cousins CONCAT, the & operator, and TEXTJOIN) sticks pieces of
+    text into one cell. This page shows the classic CONCATENATE syntax, when to prefer & or
+    TEXTJOIN, and how Excel and Google Sheets differ on ranges and empty cells.
+  problem: >-
+    You have first names in one column and last names in another, and you need a full-name
+    column that updates when either part changes — or a label that mixes text with a number
+    and a separator.
+  excel:
+    formula: '=CONCATENATE(A2, " ", B2)'
+    explain: >-
+      Syntax: `CONCATENATE(text1, [text2], ...)`. Join A2, a space, and B2 into one string.
+      Each argument is a single value; CONCATENATE does not accept a multi-cell range.
+    notes: >-
+      CONCATENATE works in every Excel version still in use, but Microsoft marks it as
+      compatibility-only. Prefer `A2 & " " & B2` for two or three pieces, `CONCAT(A2:B2)` when
+      you want to join a range without a delimiter (Excel 2019+ / Microsoft 365), and
+      `TEXTJOIN(", ", TRUE, A2:A7)` when you need a delimiter and want to skip blanks.
+      CONCATENATE turns numbers into their raw values, so format with TEXT first if you need
+      currency or dates in the result. A cell can hold at most 32,767 characters.
+    alternatives:
+      - label: Ampersand (any Excel version)
+        formula: '=A2 & " " & B2'
+      - label: CONCAT over a range (Excel 2019+ / Microsoft 365)
+        formula: '=CONCAT(A2:B2)'
+      - label: TEXTJOIN with a delimiter, skipping blanks
+        formula: '=TEXTJOIN(" ", TRUE, A2:B2)'
+    diff: >-
+      Excel's CONCATENATE and CONCAT match Google Sheets. Excel has no JOIN function; use
+      TEXTJOIN when you need a delimiter.
+  sheets:
+    formula: '=CONCATENATE(A2, " ", B2)'
+    explain: >-
+      Same CONCATENATE syntax in Google Sheets: pass each piece as its own argument.
+    notes: >-
+      Google Sheets also keeps CONCATENATE for compatibility and prefers CONCAT or & for new
+      work. `=CONCAT(A2, B2)` joins two values with no delimiter; for a whole column use
+      `=ARRAYFORMULA(A2:A & " " & B2:B)` so every row fills at once. Sheets also has JOIN
+      (`=JOIN(", ", A2:A7)`), which inserts a delimiter but does not skip blanks — use
+      TEXTJOIN when empty cells would create double commas. Like Excel, CONCATENATE will not
+      accept a multi-cell range as one argument; pass cells one by one or switch to CONCAT / &.
+    alternatives:
+      - label: Ampersand, filled down a column with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", A2:A & " " & B2:B))'
+      - label: JOIN with a delimiter (keeps blanks)
+        formula: '=JOIN(", ", A2:A4)'
+      - label: TEXTJOIN skipping blanks
+        formula: '=TEXTJOIN(", ", TRUE, A2:A4)'
+    diff: >-
+      Sheets adds JOIN and ARRAYFORMULA for whole-column joins. CONCATENATE still cannot take
+      a range as a single argument — use CONCAT, &, JOIN, or TEXTJOIN instead.
+  example:
+    intro: Build full names, then a mixed label with a product code.
+    grid:
+      - [First, Last, Full name, Label]
+      - [Ana, Lopez]
+      - [Ben, Carter]
+      - [Chloe, Wong]
+      - [1042, RED]
+    checks:
+      - cell: C2
+        label: full name, filled down
+        excel: '=CONCATENATE(A2, " ", B2)'
+        fill: [C2, C3, C4]
+        results: [Ana Lopez, Ben Carter, Chloe Wong]
+      - cell: C5
+        label: ampersand alternative on the same row
+        excel: '=A5 & "-" & B5'
+        result: 1042-RED
+      - cell: D2
+        label: label with fixed text and a name
+        excel: '=CONCATENATE("Hello, ", A2, " ", B2, "!")'
+        result: 'Hello, Ana Lopez!'
+      - cell: D5
+        label: CONCAT joins a range with no delimiter
+        excel: '=CONCAT(A5:B5)'
+        result: 1042RED
+  steps:
+    - 'Type `=CONCATENATE(` and click the first cell (A2), then type a comma.'
+    - 'Add any literal text in quotes — here `" "` for a space — then another comma and the next cell (B2).'
+    - Close the parenthesis and press Enter. Fill the formula down the column for the other rows.
+    - 'For two or three pieces, `A2 & " " & B2` is shorter and works in every Excel and Sheets version.'
+    - When you need a delimiter between many cells and want to skip blanks, switch to TEXTJOIN instead of CONCATENATE.
+  errors:
+    - error: Numbers or dates look wrong in the result
+      cause: CONCATENATE uses the raw value (0.5, a serial date), not the cell's display format.
+      fix: 'Wrap with TEXT, e.g. `CONCATENATE(TEXT(C2,"0%"), " complete")` or `TEXT(D2,"yyyy-mm-dd")`.'
+    - error: '#VALUE! or a truncated string'
+      cause: The joined result is longer than 32,767 characters (Excel cell limit).
+      fix: Join fewer pieces, or split the output across several cells.
+    - error: Unexpected commas or double spaces
+      cause: An argument was blank, or you added a delimiter by hand next to an empty cell.
+      fix: Use TEXTJOIN with ignore_empty TRUE, or wrap optional pieces in IF so blanks contribute nothing.
+  faq:
+    - q: Should I use CONCATENATE, CONCAT, & or TEXTJOIN?
+      a: Use & for two or three pieces, CONCAT to join a range with no delimiter, and TEXTJOIN when you need a delimiter and want to skip blanks. Keep CONCATENATE only for older-file compatibility.
+    - q: Can CONCATENATE join a whole range like A2:A10?
+      a: No. Pass each cell separately, or switch to CONCAT (no delimiter) or TEXTJOIN (with a delimiter). In Google Sheets you can also use JOIN or an ARRAYFORMULA with &.
+    - q: How do I add a line break between joined pieces?
+      a: 'Use CHAR(10) as the separator, e.g. `=A2 & CHAR(10) & B2`, and turn on Wrap Text for the cell.'
+  related: [textjoin, split-text, trim, leading-zeros]
+
+- id: textsplit
+  category: text
+  slugs: {excel: textsplit-excel}
+  title: How to Use the TEXTSPLIT Function
+  summary: >-
+    TEXTSPLIT is Excel 365 / 2024's formula for splitting one cell into many columns or rows.
+    This page covers the full argument list (column and row delimiters, ignore_empty, pad_with),
+    a classic formula for older Excel, and the Google Sheets SPLIT equivalent with its
+    split-by-each quirk.
+  problem: >-
+    A column holds values like "Ana Lopez,Sales,Madrid" or multi-line blocks, and you want
+    each piece in its own cell — updating automatically when the source changes, which Data >
+    Text to Columns does not do.
+  excel:
+    formula: '=TEXTSPLIT(A2, ",")'
+    explain: >-
+      Syntax: `TEXTSPLIT(text, col_delimiter, [row_delimiter], [ignore_empty], [match_mode],
+      [pad_with])`. Split A2 at each comma; the parts spill across the row.
+    notes: >-
+      TEXTSPLIT needs Microsoft 365, Excel 2024 or Excel for the web. Pass a row delimiter as
+      the third argument to spill down instead of (or as well as) across — e.g.
+      `TEXTSPLIT(A2, , CHAR(10))` for line breaks. `ignore_empty` TRUE drops blank pieces from
+      double commas. `match_mode` 1 makes the delimiter case-insensitive. `pad_with` fills
+      missing pieces when you split into a 2D grid so every row has the same width. For several
+      delimiters at once use an array: `TEXTSPLIT(A2, {",",";","|"})`. In Excel 2021 and older,
+      use the SUBSTITUTE/REPT formula below, or Data > Text to Columns for a one-off split.
+    alternatives:
+      - label: Any Excel version (copy across; n-th part from the column number)
+        formula: '=TRIM(MID(SUBSTITUTE($A2, ",", REPT(" ", 100)), (COLUMN(A1)-1)*100+1, 100))'
+      - label: Split into rows on commas
+        formula: '=TEXTSPLIT(A2, , ",")'
+    diff: >-
+      TEXTSPLIT is Excel-only. Google Sheets uses SPLIT, which by default treats every character
+      of the delimiter as a separate split point.
+  sheets:
+    formula: '=SPLIT(A2, ",")'
+    explain: >-
+      Syntax: `SPLIT(text, delimiter, [split_by_each], [remove_empty_text])`. Parts spill to
+      the right.
+    notes: >-
+      Google Sheets has no TEXTSPLIT function. Use SPLIT instead, and set the third argument to
+      FALSE when the delimiter is more than one character — otherwise `SPLIT(A2, ", ")` also
+      splits on spaces and breaks names apart. The fourth argument controls whether empty
+      pieces are dropped (default TRUE). SPLIT coerces numeric-looking parts into numbers, so
+      leading zeros in ZIP codes disappear unless you format the output as plain text first.
+      To split a whole column at once wrap SPLIT in ARRAYFORMULA. For a vertical spill use
+      `=TRANSPOSE(SPLIT(A2, ","))`. REGEXEXTRACT / REGEXREPLACE cover patterns SPLIT cannot.
+    alternatives:
+      - label: Split on the exact text ", " (not each character)
+        formula: '=SPLIT(A2, ", ", FALSE)'
+      - label: Split into a column instead of a row
+        formula: '=TRANSPOSE(SPLIT(A2, ","))'
+      - label: Split a whole column at once
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", SPLIT(A2:A, ",")))'
+    diff: >-
+      Sheets uses SPLIT, not TEXTSPLIT. Pass FALSE as the third argument for multi-character
+      delimiters, and use TRANSPOSE when you want rows instead of columns.
+  example:
+    intro: Split comma-separated records; also show the classic formula that works in every Excel.
+    grid:
+      - [Record, Name, Department, City]
+      - ['Ana Lopez,Sales,Madrid']
+      - ['Ben Carter,IT,Boston']
+      - ['Chloe Wong,Finance,Singapore']
+    checks:
+      - cell: B2
+        label: TEXTSPLIT spills into B2:D2
+        excel: '=TEXTSPLIT(A2, ",")'
+        sheets: '=SPLIT(A2, ",")'
+        spill_cells: [B2, C2, D2]
+        spill_results: [Ana Lopez, Sales, Madrid]
+        verify: false
+        why_unverified: LibreOffice does not implement TEXTSPLIT; Excel 365 / 2024 result shown. Sheets uses SPLIT (also not recalculated here).
+      - cell: B3
+        label: classic formula, filled across to D3
+        excel: '=TRIM(MID(SUBSTITUTE($A3, ",", REPT(" ", 100)), (COLUMN(A1)-1)*100+1, 100))'
+        fill: [B3, C3, D3]
+        results: [Ben Carter, IT, Boston]
+      - cell: B4
+        label: classic formula, filled across to D4
+        excel: '=TRIM(MID(SUBSTITUTE($A4, ",", REPT(" ", 100)), (COLUMN(A2)-1)*100+1, 100))'
+        fill: [B4, C4, D4]
+        results: [Chloe Wong, Finance, Singapore]
+  steps:
+    - 'In Excel 365 type `=TEXTSPLIT(A2, ",")` and press Enter; the parts spill into the cells to the right.'
+    - Leave enough empty columns (or rows, if you use a row delimiter) so the spill is not blocked.
+    - 'Optional arguments: set ignore_empty to TRUE to drop blank pieces, or pass CHAR(10) as the row delimiter for line breaks.'
+    - In older Excel, enter the SUBSTITUTE/REPT formula in B3 and copy it across as many columns as you have parts.
+    - 'In Google Sheets use `=SPLIT(A2, ",")`, and add FALSE as the third argument when the delimiter is more than one character.'
+  errors:
+    - error: '#NAME?'
+      cause: TEXTSPLIT is not available in Excel 2021 or older.
+      fix: Use the SUBSTITUTE/REPT formula on this page, upgrade to Microsoft 365 / Excel 2024, or use Data > Text to Columns for a static split.
+    - error: '#SPILL!'
+      cause: A non-empty cell sits inside the spill range.
+      fix: Clear the cells to the right (or below) of the formula, then press Enter again.
+    - error: Names split on spaces (Google Sheets)
+      cause: 'SPLIT with a delimiter like ", " treats every character as a delimiter by default.'
+      fix: 'Pass FALSE as the third argument: `=SPLIT(A2, ", ", FALSE)`.'
+  faq:
+    - q: How is TEXTSPLIT different from Text to Columns?
+      a: 'TEXTSPLIT is a live formula: when the source cell changes, the split updates. Text to Columns pastes static values once.'
+    - q: How do I get only the second part?
+      a: 'Excel 365: `=INDEX(TEXTSPLIT(A2, ","), 2)`. Google Sheets: `=INDEX(SPLIT(A2, ","), 2)`. Older Excel: put the classic formula in column C (the second copy-across cell).'
+    - q: Can TEXTSPLIT split on more than one delimiter?
+      a: 'Yes — pass an array constant as the column delimiter, e.g. `=TEXTSPLIT(A2, {",",";","|"})`.'
+  related: [split-text, text-before-character, text-after-character, textjoin]
+
+- id: left_right_mid
+  category: text
+  slugs: {excel: left-right-mid-excel, sheets: left-right-mid-google-sheets}
+  title: How to Use LEFT, RIGHT and MID
+  summary: >-
+    LEFT, RIGHT and MID pull a fixed number of characters from the start, end or middle of a
+    text string. Combined with FIND or LEN they also extract variable pieces such as everything
+    before a dash. The same three functions work in Excel and Google Sheets; Sheets users also
+    have REGEXEXTRACT for pattern-based pulls.
+  problem: >-
+    Codes, phone numbers or full names sit in one column, and you need a prefix, a suffix or
+    the middle segment in its own cell — for example the first three letters of a name, the
+    last four digits of a phone number, or the characters between two dashes.
+  excel:
+    formula: '=LEFT(A2, 3)'
+    explain: >-
+      Syntax: `LEFT(text, [num_chars])`, `RIGHT(text, [num_chars])`,
+      `MID(text, start_num, num_chars)`. LEFT returns the first 3 characters of A2.
+    notes: >-
+      LEFT / RIGHT / MID are available in every Excel version. `num_chars` is optional for LEFT
+      and RIGHT (default 1). MID always needs a start position (1 = first character) and a
+      length. To take everything before a marker use `LEFT(A2, FIND("-", A2)-1)`; everything
+      after the first marker is `MID(A2, FIND("-", A2)+1, LEN(A2))` or, in Microsoft 365,
+      TEXTAFTER. LEN counts characters so you can compute dynamic lengths. These functions
+      treat numbers as text automatically; if you need a real number wrap the result in VALUE.
+      For pattern-based extracts in Microsoft 365, TEXTBEFORE / TEXTAFTER / TEXTSPLIT are often
+      clearer.
+    alternatives:
+      - label: Last 4 characters
+        formula: '=RIGHT(A2, 4)'
+      - label: Characters 5 to 9 (start at 5, length 5)
+        formula: '=MID(A2, 5, 5)'
+      - label: Everything before the first dash
+        formula: '=LEFT(A2, FIND("-", A2)-1)'
+    diff: >-
+      Excel and Sheets share the same LEFT / RIGHT / MID syntax. Excel 365 also offers
+      TEXTBEFORE / TEXTAFTER; Sheets leans on REGEXEXTRACT for the same jobs.
+  sheets:
+    formula: '=LEFT(A2, 3)'
+    explain: >-
+      Same LEFT / RIGHT / MID syntax in Google Sheets as in Excel.
+    notes: >-
+      LEFT, RIGHT and MID behave the same way in Google Sheets. To fill a whole column at once
+      wrap them in ARRAYFORMULA, e.g. `=ARRAYFORMULA(IF(A2:A="", "", LEFT(A2:A, 3)))`. For
+      pattern-based extracts Sheets users usually prefer REGEXEXTRACT —
+      `=REGEXEXTRACT(A2, "^([^-]+)")` takes everything before the first dash, and
+      `=REGEXEXTRACT(A2, "(\d{4})$")` takes the last four digits. FIND and SEARCH work inside
+      LEFT/MID exactly as in Excel; SEARCH is case-insensitive. LEN, VALUE and TRIM combine
+      with these functions the same way. There is no TEXTBEFORE / TEXTAFTER in Sheets.
+    alternatives:
+      - label: Whole column of prefixes with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", LEFT(A2:A, 3)))'
+      - label: Everything before the first dash with REGEXEXTRACT
+        formula: '=REGEXEXTRACT(A2, "^([^-]+)")'
+      - label: Last four digits with REGEXEXTRACT
+        formula: '=REGEXEXTRACT(A2, "(\d{4})$")'
+    diff: >-
+      Sheets matches Excel on LEFT / RIGHT / MID, adds ARRAYFORMULA for whole-column fills, and
+      uses REGEXEXTRACT where Excel 365 would use TEXTBEFORE / TEXTAFTER.
+  example:
+    intro: Pull a prefix, a suffix and a middle segment; then everything before a dash.
+    grid:
+      - [Value, Left 3, Right 4, Mid 5, Before dash]
+      - ['Ana Lopez']
+      - [SKU-1042-RED]
+      - ['(555) 123-4567']
+    checks:
+      - cell: B2
+        label: first 3 characters, filled down
+        excel: '=LEFT(A2, 3)'
+        fill: [B2, B3, B4]
+        results: [Ana, SKU, '(55']
+      - cell: C2
+        label: last 4 characters, filled down
+        excel: '=RIGHT(A2, 4)'
+        fill: [C2, C3, C4]
+        results: [opez, '-RED', '4567']
+      - cell: D2
+        label: 5 characters starting at position 5
+        excel: '=MID(A2, 5, 5)'
+        result: Lopez
+      - cell: E3
+        label: everything before the first dash
+        excel: '=LEFT(A3, FIND("-", A3)-1)'
+        result: SKU
+      - cell: E4
+        label: last 4 digits via RIGHT (phone)
+        excel: '=RIGHT(A4, 4)'
+        result: '4567'
+  steps:
+    - Decide whether you need characters from the start (LEFT), the end (RIGHT) or a position in the middle (MID).
+    - 'For LEFT / RIGHT, pass the cell and the number of characters, e.g. `=LEFT(A2, 3)` or `=RIGHT(A2, 4)`.'
+    - 'For MID, pass start position and length: `=MID(A2, 5, 5)` returns five characters beginning at character 5.'
+    - 'When the cut point depends on a marker, nest FIND: `=LEFT(A2, FIND("-", A2)-1)` stops just before the first dash.'
+    - Fill the formula down the column, or in Google Sheets wrap it in ARRAYFORMULA to fill every row at once.
+  errors:
+    - error: '#VALUE!'
+      cause: FIND did not find the marker, so `FIND(...)-1` became invalid, or num_chars was negative.
+      fix: 'Wrap with IFERROR, or check the marker exists first: `=IF(ISNUMBER(FIND("-",A2)), LEFT(A2, FIND("-",A2)-1), A2)`.'
+    - error: Result looks truncated or includes an extra character
+      cause: Off-by-one in the length or start position (forgetting that FIND returns the marker's position).
+      fix: Subtract 1 from FIND when using LEFT; add 1 when using MID/RIGHT to start after the marker. Test on one row first.
+    - error: Leading zeros disappear
+      cause: The extracted piece looks like a number and the cell is formatted as General.
+      fix: 'Format the result column as Text, or keep it as text with `="" & LEFT(A2, 3)`.'
+  faq:
+    - q: What is the difference between LEFT / RIGHT / MID and TEXTBEFORE / TEXTAFTER?
+      a: LEFT / RIGHT / MID cut by character count (or with FIND for a marker). TEXTBEFORE / TEXTAFTER (Excel 365) cut by a delimiter string directly and support instance numbers and case options.
+    - q: How do I extract text between two dashes?
+      a: 'Excel: `=MID(A2, FIND("-",A2)+1, FIND("-",A2, FIND("-",A2)+1)-FIND("-",A2)-1)`. Google Sheets can use `=REGEXEXTRACT(A2, "-([^-]+)-")`.'
+    - q: Do LEFT, RIGHT and MID work the same in Google Sheets?
+      a: Yes — same argument order and results. Use ARRAYFORMULA to apply them to a whole column, and REGEXEXTRACT when a regular expression is clearer than FIND + MID.
+  related: [text-before-character, text-after-character, split-text, trim]
