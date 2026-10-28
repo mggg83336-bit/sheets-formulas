@@ -973,3 +973,335 @@
     - q: Do LEFT, RIGHT and MID work the same in Google Sheets?
       a: Yes — same argument order and results. Use ARRAYFORMULA to apply them to a whole column, and REGEXEXTRACT when a regular expression is clearer than FIND + MID.
   related: [text-before-character, text-after-character, split-text, trim]
+
+- id: substitute
+  category: text
+  slugs: {excel: substitute-excel, sheets: substitute-google-sheets}
+  title: How to Use the SUBSTITUTE Function
+  summary: >-
+    SUBSTITUTE replaces every occurrence of a text string with another, or only the N-th
+    occurrence when you pass an instance number. It is the right tool when you know the text
+    to find (a dash, a word, a typo) rather than a character position. Excel and Google Sheets
+    share the same SUBSTITUTE syntax; Sheets also offers REGEXREPLACE for pattern-based swaps.
+  problem: >-
+    A column holds codes, names or phrases where one piece of text must change everywhere —
+    turn dashes into slashes, fix a repeated typo, or swap only the first match — without
+    touching surrounding characters the way a position-based REPLACE would.
+  excel:
+    formula: '=SUBSTITUTE(A2, "-", "/")'
+    explain: >-
+      Syntax: `SUBSTITUTE(text, old_text, new_text, [instance_num])`. Replace every "-" in A2
+      with "/". Omit instance_num to change all matches; pass 1, 2, … to change only that match.
+    notes: >-
+      SUBSTITUTE is available in every Excel version. Matching is case-sensitive: "SS" will not
+      replace "ss". new_text may be empty (`""`) to delete old_text. Nest SUBSTITUTE calls to
+      swap several different strings in one formula. For a character-position edit (overwrite
+      4 characters starting at position 5) use REPLACE instead. In Microsoft 365, TEXTBEFORE /
+      TEXTAFTER / TEXTSPLIT often remove the need to strip delimiters by hand. After a mass
+      replace, Copy > Paste Special > Values if you want to freeze the results.
+    alternatives:
+      - label: Replace only the first match
+        formula: '=SUBSTITUTE(A2, "ss", "XX", 1)'
+      - label: Delete every dash
+        formula: '=SUBSTITUTE(A2, "-", "")'
+      - label: Nested — swap two different strings
+        formula: '=SUBSTITUTE(SUBSTITUTE(A2, "-", "/"), "_", "-")'
+    diff: >-
+      Excel and Sheets share SUBSTITUTE. Sheets adds REGEXREPLACE for regular-expression
+      replacements; Excel has no built-in regex function.
+  sheets:
+    formula: '=SUBSTITUTE(A2, "-", "/")'
+    explain: >-
+      Same SUBSTITUTE syntax in Google Sheets as in Excel.
+    notes: >-
+      SUBSTITUTE works the same way in Google Sheets, including the optional instance_num
+      argument and case-sensitive matching. To fill a whole column at once wrap it in
+      ARRAYFORMULA, e.g. `=ARRAYFORMULA(IF(A2:A="", "", SUBSTITUTE(A2:A, "-", "/")))`. For
+      pattern-based swaps — digits, optional spaces, word boundaries — use REGEXREPLACE
+      instead: `=REGEXREPLACE(A2, "\s+", " ")` collapses runs of whitespace, and
+      `=REGEXREPLACE(A2, "[^0-9]", "")` strips non-digits. REGEXREPLACE has no instance_num;
+      craft the pattern (or use SUBSTITUTE) when you need only the N-th match. Nested SUBSTITUTE
+      still works when you are swapping fixed literal strings.
+    alternatives:
+      - label: Whole column with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", SUBSTITUTE(A2:A, "-", "/")))'
+      - label: Collapse repeated spaces with REGEXREPLACE
+        formula: '=REGEXREPLACE(A2, "\s+", " ")'
+      - label: Strip every non-digit with REGEXREPLACE
+        formula: '=REGEXREPLACE(A2, "[^0-9]", "")'
+    diff: >-
+      Sheets matches Excel on SUBSTITUTE, adds ARRAYFORMULA for column fills, and uses
+      REGEXREPLACE where Excel has no regex equivalent.
+  example:
+    intro: Swap every dash for a slash, fix letters in a word, then change only the first match.
+    grid:
+      - [Text, Find, Replace with, All matches, First only]
+      - ['SKU-1042-RED', '-', '/']
+      - [banana, a, o]
+      - ['Miss Mississippi', ss, XX]
+    checks:
+      - cell: D2
+        label: every dash becomes a slash
+        excel: '=SUBSTITUTE(A2, B2, C2)'
+        result: SKU/1042/RED
+      - cell: D3
+        label: every "a" becomes "o"
+        excel: '=SUBSTITUTE(A3, B3, C3)'
+        result: bonono
+      - cell: D4
+        label: every "ss" becomes "XX"
+        excel: '=SUBSTITUTE(A4, B4, C4)'
+        result: 'MiXX MiXXiXXippi'
+      - cell: E4
+        label: only the first "ss"
+        excel: '=SUBSTITUTE(A4, B4, C4, 1)'
+        result: 'MiXX Mississippi'
+  steps:
+    - 'Type `=SUBSTITUTE(` and select the cell that holds the original text (A2).'
+    - 'Add the text to find in quotes (or a cell reference), a comma, then the replacement text.'
+    - Close the parenthesis and press Enter — every match is replaced.
+    - 'To change only the N-th match, pass a fourth argument: `=SUBSTITUTE(A2, "ss", "XX", 1)`.'
+    - Nest another SUBSTITUTE when you need to swap more than one different string in the same cell.
+  errors:
+    - error: Nothing changed
+      cause: old_text did not match exactly — wrong case, extra spaces, or a different dash character.
+      fix: 'Copy the exact characters from the source cell, or use TRIM / CLEAN first. Matching is case-sensitive.'
+    - error: Too many (or the wrong) matches changed
+      cause: instance_num was omitted, so every occurrence was replaced.
+      fix: Pass the occurrence number you want (1 = first, 2 = second, …), or nest SUBSTITUTE for a more specific swap.
+    - error: '#VALUE!'
+      cause: instance_num is less than 1, or the formula references an error cell.
+      fix: Use a positive integer for instance_num, and wrap with IFERROR if the source may be blank or invalid.
+  faq:
+    - q: When should I use SUBSTITUTE instead of REPLACE?
+      a: Use SUBSTITUTE when you know the text to find. Use REPLACE when you know the starting position and how many characters to overwrite.
+    - q: Is SUBSTITUTE case-sensitive?
+      a: Yes. "SS" will not replace "ss". In Google Sheets, REGEXREPLACE with a case-insensitive flag `(?i)` can ignore case; in Excel, normalize with UPPER/LOWER first.
+    - q: Can I replace several different strings at once?
+      a: Nest SUBSTITUTE calls, one per string. In Google Sheets, a single REGEXREPLACE with an alternation pattern can also cover several literals.
+  related: [replace_fn, left_right_mid, trim, textsplit]
+
+- id: replace_fn
+  category: text
+  slugs: {excel: replace-excel, sheets: replace-google-sheets}
+  title: How to Use the REPLACE Function
+  summary: >-
+    REPLACE overwrites a fixed number of characters starting at a known position. It is the
+    position-based counterpart to SUBSTITUTE (which finds text by content). The same REPLACE
+    function works in Excel and Google Sheets; Sheets users often reach for REGEXREPLACE when
+    the cut point is a pattern rather than a character index.
+  problem: >-
+    You need to overwrite part of a code, mask the middle of a phone number, or insert new
+    text at a character position — jobs where counting from the left is clearer than searching
+    for a substring.
+  excel:
+    formula: '=REPLACE(A2, 5, 4, "9999")'
+    explain: >-
+      Syntax: `REPLACE(old_text, start_num, num_chars, new_text)`. Starting at character 5 of
+      A2, overwrite 4 characters with "9999".
+    notes: >-
+      REPLACE is in every Excel version. start_num is 1-based (1 = first character). num_chars
+      may be 0, which inserts new_text without deleting anything. new_text may be longer or
+      shorter than num_chars — the rest of the string shifts accordingly. REPLACE is not the
+      same as Find & Replace on the ribbon (that searches by content). For content-based swaps
+      use SUBSTITUTE. To overwrite from the right, combine with LEN:
+      `=REPLACE(A2, LEN(A2)-3, 4, "XXXX")` masks the last four characters. Microsoft 365 also
+      has TEXTAFTER / TEXTBEFORE when a delimiter marks the cut instead of a position.
+    alternatives:
+      - label: Insert without deleting (num_chars = 0)
+        formula: '=REPLACE(A2, 5, 0, "-")'
+      - label: Mask the last 4 characters
+        formula: '=REPLACE(A2, LEN(A2)-3, 4, "XXXX")'
+      - label: Mask digits inside a phone number
+        formula: '=REPLACE(A2, 2, 3, "***")'
+    diff: >-
+      Excel and Sheets share REPLACE. Sheets adds REGEXREPLACE for pattern-based overwrites;
+      Excel relies on SUBSTITUTE or MID/LEFT/RIGHT assemblies for similar jobs.
+  sheets:
+    formula: '=REPLACE(A2, 5, 4, "9999")'
+    explain: >-
+      Same REPLACE syntax in Google Sheets as in Excel.
+    notes: >-
+      REPLACE behaves the same in Google Sheets: 1-based start_num, num_chars characters
+      overwritten, new_text may differ in length. Wrap with ARRAYFORMULA to edit a whole
+      column: `=ARRAYFORMULA(IF(A2:A="", "", REPLACE(A2:A, 5, 4, "9999")))`. When the cut
+      point is a pattern (e.g. "everything between the first and second dash"), REGEXREPLACE
+      is usually clearer than computing FIND positions —
+      `=REGEXREPLACE(A2, "^(.{4}).{4}", "$1XXXX")` keeps the first four characters and masks
+      the next four. SUBSTITUTE remains better when you know the exact text to swap. There is
+      no Excel-style instance_num on REPLACE; position alone decides what changes.
+    alternatives:
+      - label: Whole column with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", REPLACE(A2:A, 5, 4, "9999")))'
+      - label: Mask 4 characters after a 4-char prefix with REGEXREPLACE
+        formula: '=REGEXREPLACE(A2, "^(.{4}).{4}", "$1XXXX")'
+      - label: Insert a dash at position 5
+        formula: '=REPLACE(A2, 5, 0, "-")'
+    diff: >-
+      Sheets matches Excel on REPLACE, adds ARRAYFORMULA for column fills, and uses
+      REGEXREPLACE when a regular expression marks the edit better than a start index.
+  example:
+    intro: Overwrite a product code segment, shorten a string mid-way, then mask part of a phone number.
+    grid:
+      - [Value, Replaced]
+      - ['SKU-1042-RED']
+      - [ABCDE]
+      - ['(555) 123-4567']
+    checks:
+      - cell: B2
+        label: overwrite 4 characters starting at position 5
+        excel: '=REPLACE(A2, 5, 4, "9999")'
+        result: SKU-9999-RED
+      - cell: B3
+        label: overwrite 3 characters starting at position 2 with "XY"
+        excel: '=REPLACE(A3, 2, 3, "XY")'
+        result: AXYE
+      - cell: B4
+        label: mask the area code digits
+        excel: '=REPLACE(A4, 2, 3, "***")'
+        result: '(***) 123-4567'
+      - cell: C4
+        label: mask the local number after the area code
+        excel: '=REPLACE(A4, 7, 8, "***-****")'
+        result: '(555) ***-****'
+  steps:
+    - Decide the 1-based start position and how many characters to overwrite.
+    - 'Type `=REPLACE(A2, start, length, "new text")` — e.g. `=REPLACE(A2, 5, 4, "9999")`.'
+    - Press Enter and check that the characters before start_num stayed the same.
+    - Use num_chars 0 when you only want to insert text at that position.
+    - Fill down the column, or in Google Sheets wrap REPLACE in ARRAYFORMULA for every row at once.
+  errors:
+    - error: Wrong characters overwritten
+      cause: Off-by-one in start_num (forgetting it is 1-based), or counting visible punctuation differently from the real string.
+      fix: Test LEN and MID on the same cell first to confirm positions, then adjust start_num.
+    - error: '#VALUE!'
+      cause: start_num or num_chars is less than 0, or the source value is an error.
+      fix: Use start_num ≥ 1 and num_chars ≥ 0. Wrap with IFERROR when the source may be blank.
+    - error: Confused with Find & Replace or SUBSTITUTE
+      cause: REPLACE edits by position; ribbon Find & Replace and SUBSTITUTE edit by matching text.
+      fix: Switch to SUBSTITUTE when you know the text to find rather than its character index.
+  faq:
+    - q: What is the difference between REPLACE and SUBSTITUTE?
+      a: REPLACE overwrites by start position and length. SUBSTITUTE finds old_text by content and can limit the change to the N-th match.
+    - q: Can REPLACE insert text without deleting anything?
+      a: 'Yes — set num_chars to 0: `=REPLACE(A2, 5, 0, "-")` inserts a dash before the old 5th character.'
+    - q: Does REPLACE work the same in Google Sheets?
+      a: Yes for the four-argument form. Use ARRAYFORMULA for whole-column edits, and REGEXREPLACE when a pattern is clearer than a start index.
+  related: [substitute, left_right_mid, trim, text-before-character]
+
+- id: extract_numbers
+  category: text
+  slugs: {excel: extract-numbers-excel, sheets: extract-numbers-google-sheets}
+  title: How to Extract Numbers from Text
+  summary: >-
+    Pull digits out of mixed cells — order IDs, invoice codes, totals buried in phrases —
+    with MID / FIND when the layout is fixed, nested SUBSTITUTE when you can strip known
+    labels, or a general digits-only formula in Excel 365 and REGEXREPLACE / REGEXEXTRACT in
+    Google Sheets.
+  problem: >-
+    Values like "SKU-1042-RED", "Order #1042" or "Total: 35 units" sit in one column, and you
+    need only the numeric part in its own cell for sorting, matching or calculations.
+  excel:
+    formula: '=MID(A2, FIND("-", A2)+1, FIND("-", A2, FIND("-", A2)+1)-FIND("-", A2)-1)'
+    explain: >-
+      When the number sits between two dashes, FIND locates each dash and MID returns the
+      characters between them — here the `1042` inside `SKU-1042-RED`.
+    notes: >-
+      Prefer a structure-aware formula when codes follow a pattern: MID + FIND for between
+      delimiters, RIGHT/LEFT for a fixed-width suffix or prefix, or SUBSTITUTE to strip a known
+      label (`Order #`, `Inv-`). Wrap with VALUE when you need a real number rather than text
+      digits. In Microsoft 365 a general "keep every digit" approach is
+      `=TEXTJOIN("", TRUE, IF(ISNUMBER(--MID(A2, SEQUENCE(LEN(A2)), 1)), MID(A2, SEQUENCE(LEN(A2)), 1), ""))`
+      — it walks each character and joins the ones that are digits. Older Excel can use helper
+      columns or Power Query's "Split / Extract" instead. Flash Fill (Data > Flash Fill) also
+      works for one-off extractions when the pattern is consistent.
+    alternatives:
+      - label: Strip a known label with SUBSTITUTE
+        formula: '=SUBSTITUTE(SUBSTITUTE(A2, "Order ", ""), "#", "")'
+      - label: Excel 365 — keep every digit
+        formula: '=TEXTJOIN("", TRUE, IF(ISNUMBER(--MID(A2, SEQUENCE(LEN(A2)), 1)), MID(A2, SEQUENCE(LEN(A2)), 1), ""))'
+      - label: Number after a colon
+        formula: '=VALUE(TRIM(MID(A2, FIND(":", A2)+1, 3)))'
+    diff: >-
+      Excel leans on MID/FIND/SUBSTITUTE or Excel 365 dynamic arrays. Google Sheets usually
+      solves the same job with one REGEXEXTRACT or REGEXREPLACE call.
+  sheets:
+    formula: '=REGEXREPLACE(A2, "[^0-9]", "")'
+    explain: >-
+      REGEXREPLACE removes every character that is not a digit, leaving the number as text —
+      e.g. `SKU-1042-RED` becomes `1042`.
+    notes: >-
+      Google Sheets has no SEQUENCE-based digit walk like Excel 365; REGEXREPLACE and
+      REGEXEXTRACT are the native tools. `=REGEXREPLACE(A2, "[^0-9]", "")` keeps every digit
+      (and concatenates them if several groups exist). `=REGEXEXTRACT(A2, "\d+")` returns only
+      the first run of digits. To keep a decimal point use `[^0-9.]` carefully, or extract with
+      `=REGEXEXTRACT(A2, "\d+\.\d+")`. VALUE(...) turns the digit string into a number. MID,
+      FIND and SUBSTITUTE work exactly as in Excel when the layout is fixed, and ARRAYFORMULA
+      applies any of these across a column:
+      `=ARRAYFORMULA(IF(A2:A="", "", REGEXREPLACE(A2:A, "[^0-9]", "")))`.
+    alternatives:
+      - label: First digit group only
+        formula: '=REGEXEXTRACT(A2, "\d+")'
+      - label: Whole column of digits-only values
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", REGEXREPLACE(A2:A, "[^0-9]", "")))'
+      - label: Number between dashes (same as Excel)
+        formula: '=MID(A2, FIND("-", A2)+1, FIND("-", A2, FIND("-", A2)+1)-FIND("-", A2)-1)'
+    diff: >-
+      Sheets prefers REGEXREPLACE / REGEXEXTRACT for general digit extraction; Excel uses
+      MID/FIND/SUBSTITUTE or an Excel 365 TEXTJOIN+SEQUENCE formula for the same result.
+  example:
+    intro: Pull the middle code segment, strip a label, then read a total after a colon.
+    grid:
+      - [Text, Extracted]
+      - ['SKU-1042-RED']
+      - ['Order #1042']
+      - ['Inv-12-34']
+      - ['Total: 35 units']
+    checks:
+      - cell: B2
+        label: digits between the two dashes
+        excel: '=MID(A2, FIND("-", A2)+1, FIND("-", A2, FIND("-", A2)+1)-FIND("-", A2)-1)'
+        result: '1042'
+      - cell: B3
+        label: strip the Order label and hash
+        excel: '=SUBSTITUTE(SUBSTITUTE(A3, "Order ", ""), "#", "")'
+        result: '1042'
+      - cell: B4
+        label: strip Inv- and remaining dashes
+        excel: '=SUBSTITUTE(SUBSTITUTE(A4, "Inv-", ""), "-", "")'
+        result: '1234'
+      - cell: B5
+        label: number after the colon
+        excel: '=VALUE(TRIM(MID(A5, FIND(":", A5)+1, 3)))'
+        result: 35
+      - cell: C2
+        label: Sheets digits-only via REGEXREPLACE
+        excel: '=MID(A2, 5, 4)'
+        sheets: '=REGEXREPLACE(A2, "[^0-9]", "")'
+        result: '1042'
+        sheets_verify: false
+        why_unverified: REGEXREPLACE is Sheets-only; LibreOffice cannot recalculate it. Excel check uses MID for the same digits.
+  steps:
+    - Look at the source text and decide whether the number sits in a fixed place, between delimiters, or anywhere in the string.
+    - 'For between-delimiter codes use MID + FIND, e.g. `=MID(A2, FIND("-",A2)+1, FIND("-",A2,FIND("-",A2)+1)-FIND("-",A2)-1)`.'
+    - 'For a known label, strip it with SUBSTITUTE, then VALUE if you need a numeric result.'
+    - 'In Excel 365, use the TEXTJOIN + SEQUENCE formula on this page to keep every digit regardless of layout.'
+    - 'In Google Sheets, prefer `=REGEXREPLACE(A2, "[^0-9]", "")` or `=REGEXEXTRACT(A2, "\d+")`, and wrap with ARRAYFORMULA for a whole column.'
+  errors:
+    - error: '#VALUE!'
+      cause: FIND did not find the delimiter, or VALUE received a non-numeric string (letters still present).
+      fix: 'Wrap FIND with IFERROR, or clean remaining letters with SUBSTITUTE / REGEXREPLACE before VALUE.'
+    - error: Wrong digits or missing leading zeros
+      cause: VALUE dropped leading zeros, or several digit groups were concatenated when you only wanted the first.
+      fix: Keep the result as text (`="" & …`) when zeros matter. In Sheets use REGEXEXTRACT for the first group only.
+    - error: "#NAME? in older Excel"
+      cause: TEXTJOIN / SEQUENCE need Microsoft 365 or Excel 2021+.
+      fix: Use the MID/FIND or SUBSTITUTE patterns on this page, or extract with Power Query / Flash Fill.
+  faq:
+    - q: How do I extract only the first number when a cell has several?
+      a: 'Google Sheets: `=REGEXEXTRACT(A2, "\d+")`. Excel 365: take the first element of a digit-group split, or use TEXTBEFORE/TEXTAFTER around the first non-digit run. Structure-aware MID/FIND is safest when the layout is fixed.'
+    - q: How do I keep a decimal point?
+      a: 'Sheets: `=REGEXEXTRACT(A2, "\d+\.\d+")` or `=REGEXREPLACE(A2, "[^0-9.]", "")` then VALUE. Excel: strip currency symbols and thousands separators with SUBSTITUTE, then VALUE.'
+    - q: Can I convert the extracted digits to a real number?
+      a: 'Yes — wrap with VALUE, e.g. `=VALUE(B2)`. Format the cell as Number. Leave it as text when leading zeros must be preserved.'
+  related: [substitute, left_right_mid, text-before-character, replace_fn]
