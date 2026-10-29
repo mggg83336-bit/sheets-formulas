@@ -1305,3 +1305,335 @@
     - q: Can I convert the extracted digits to a real number?
       a: 'Yes — wrap with VALUE, e.g. `=VALUE(B2)`. Format the cell as Number. Leave it as text when leading zeros must be preserved.'
   related: [substitute, left_right_mid, text-before-character, replace_fn]
+
+- id: len
+  category: text
+  slugs: {excel: len-excel, sheets: len-google-sheets}
+  title: How to Count Characters with LEN
+  summary: >-
+    LEN returns the number of characters in a cell, including spaces and punctuation. Use it
+    to enforce length limits, spot padded IDs, or build formulas that depend on text width.
+    Excel and Google Sheets share the same LEN syntax; Sheets fills a whole column with
+    ARRAYFORMULA, while Excel 365 can spill LEN across a range.
+  problem: >-
+    You need to know how long each value is — character limits for imports, codes that must be
+    exactly N digits, or helper math that subtracts spaces — without counting by hand.
+  excel:
+    formula: '=LEN(A2)'
+    explain: >-
+      Syntax: `LEN(text)`. Returns the character count of A2, counting every letter, digit,
+      space and symbol. An empty cell returns 0.
+    notes: >-
+      LEN is available in every Excel version. It counts spaces, so `"  ab  "` is length 6, not
+      2 — wrap with TRIM first when you only want visible characters: `=LEN(TRIM(A2))`. LENB
+      counts bytes in double-byte character sets (mostly relevant for East Asian locales); for
+      ordinary English text LEN and LENB match. In Microsoft 365 you can spill lengths for a
+      column with `=LEN(A2:A10)`. Pair LEN with SUBSTITUTE to count specific characters, e.g.
+      `=LEN(A2)-LEN(SUBSTITUTE(A2,"a",""))` for how many times "a" appears. Empty strings and
+      blank cells both return 0.
+    alternatives:
+      - label: Length after trimming spaces
+        formula: '=LEN(TRIM(A2))'
+      - label: Count how many times a letter appears
+        formula: '=LEN(A2)-LEN(SUBSTITUTE(A2,"a",""))'
+      - label: Spill lengths for a range (Excel 365)
+        formula: '=LEN(A2:A10)'
+    diff: >-
+      LEN itself is identical in Excel and Sheets. Sheets typically wraps it in ARRAYFORMULA for
+      a whole column; Excel 365 can spill LEN over a range without ARRAYFORMULA.
+  sheets:
+    formula: '=LEN(A2)'
+    explain: >-
+      Same LEN syntax in Google Sheets as in Excel — character count of A2, spaces included.
+    notes: >-
+      LEN works the same way in Google Sheets, including spaces and punctuation. To fill an
+      entire column at once use ARRAYFORMULA: `=ARRAYFORMULA(IF(A2:A="", "", LEN(A2:A)))`.
+      Sheets has no separate LENB for everyday use; LEN already counts each Unicode character
+      as one. Combine with TRIM when leading or trailing spaces should not count, and with
+      SUBSTITUTE to count occurrences of a character. REGEXREPLACE can strip non-letters before
+      LEN when you only want letter counts: `=LEN(REGEXREPLACE(A2, "[^A-Za-z]", ""))`. Blank
+      cells return 0, same as Excel.
+    alternatives:
+      - label: Whole column of lengths
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", LEN(A2:A)))'
+      - label: Length after trimming spaces
+        formula: '=LEN(TRIM(A2))'
+      - label: Count letters only with REGEXREPLACE
+        formula: '=LEN(REGEXREPLACE(A2, "[^A-Za-z]", ""))'
+    diff: >-
+      Sheets matches Excel on LEN, adds ARRAYFORMULA for column fills, and can pair LEN with
+      REGEXREPLACE when you need letter-only or digit-only counts.
+  example:
+    intro: Measure raw length, trimmed length, and how many times a letter appears.
+    grid:
+      - [Text, Length, Trimmed length, Count of a]
+      - [Hello]
+      - ['  ab  ']
+      - [banana]
+      - ['']
+    checks:
+      - cell: B2
+        label: characters in Hello
+        excel: '=LEN(A2)'
+        result: 5
+      - cell: B3
+        label: spaces count too
+        excel: '=LEN(A3)'
+        result: 6
+      - cell: C3
+        label: length after TRIM
+        excel: '=LEN(TRIM(A3))'
+        result: 2
+      - cell: D4
+        label: how many times a appears
+        excel: '=LEN(A4)-LEN(SUBSTITUTE(A4,"a",""))'
+        result: 3
+      - cell: B5
+        label: empty cell is zero
+        excel: '=LEN(A5)'
+        result: 0
+  steps:
+    - 'Click the result cell and type `=LEN(`.'
+    - Select the cell whose characters you want to count (A2) and close the parenthesis.
+    - Press Enter — the number of characters, including spaces, appears.
+    - 'Wrap with TRIM when leading or trailing spaces should be ignored: `=LEN(TRIM(A2))`.'
+    - Fill or spill the formula down the column for every row you need to measure.
+  errors:
+    - error: Length looks too high
+      cause: Invisible leading or trailing spaces, or a non-breaking space from a paste, are being counted.
+      fix: 'Use `=LEN(TRIM(A2))`, or CLEAN + TRIM for paste junk. Check the cell with ISTEXT if a number was stored as text with padding.'
+    - error: 'Result is 0 for a cell that looks filled'
+      cause: The cell holds a formula that returned "" , or only spaces that TRIM would remove.
+      fix: Inspect the formula bar. Use `=LEN(A2)>0` to test for any characters, including spaces.
+    - error: Wrong count for accented or CJK characters
+      cause: Confusing LEN (characters) with LENB (bytes) in older double-byte Excel modes.
+      fix: Prefer LEN for character counts. LENB is only needed for byte-oriented legacy workflows.
+  faq:
+    - q: Does LEN count spaces?
+      a: Yes. Every space, tab-like character stored as a space, and punctuation mark counts as one character. Use TRIM first when you want the visible-word length only.
+    - q: How do I count characters across many rows at once?
+      a: 'In Excel 365 enter `=LEN(A2:A100)` and let it spill. In Google Sheets use `=ARRAYFORMULA(LEN(A2:A100))`. Older Excel — fill the formula down.'
+    - q: How do I count only digits or only letters?
+      a: 'Excel 365: walk characters with MID + SEQUENCE, or strip unwanted ones then LEN. Sheets: `=LEN(REGEXREPLACE(A2,"[^0-9]",""))` for digits, or `[^A-Za-z]` for letters.'
+  related: [trim, left_right_mid, substitute, concatenate]
+
+- id: count_words
+  category: text
+  slugs: {excel: count-words-excel, sheets: count-words-google-sheets}
+  title: How to Count Words in a Cell
+  summary: >-
+    Excel has no built-in WORDCOUNT. The classic approach subtracts the length without spaces
+    from the trimmed length, then adds one. Google Sheets can use the same math, or SPLIT the
+    cell on spaces and COUNTA the pieces. Both handle blank cells when you guard with TRIM.
+  problem: >-
+    A notes or title column needs a word count per cell — for limits, summaries or QA — and
+    counting manually does not scale.
+  excel:
+    formula: '=IF(TRIM(A2)="",0,LEN(TRIM(A2))-LEN(SUBSTITUTE(TRIM(A2)," ",""))+1)'
+    explain: >-
+      TRIM removes leading and trailing spaces. LEN of the trimmed text minus LEN after every
+      space is deleted leaves the number of spaces; adding 1 gives the word count. The IF
+      returns 0 for blank or all-space cells.
+    notes: >-
+      This pattern works in every Excel version. It assumes words are separated by single spaces
+      after TRIM — repeated internal spaces still inflate the count unless you collapse them
+      first (nested SUBSTITUTE, or Flash Fill / Power Query). Punctuation attached to a word
+      (`hello,`) still counts as one word, which is usually what you want. For a whole column in
+      Microsoft 365 you can spill the same formula, or use TEXTSPLIT and COUNTA:
+      `=IF(TRIM(A2)="",0,COUNTA(TEXTSPLIT(TRIM(A2)," ")))`. Helper columns keep the steps
+      readable when you audit results. Always TRIM before SUBSTITUTE so leading spaces do not
+      create a phantom empty word.
+    alternatives:
+      - label: Excel 365 — TEXTSPLIT then COUNTA
+        formula: '=IF(TRIM(A2)="",0,COUNTA(TEXTSPLIT(TRIM(A2)," ")))'
+      - label: Collapse double spaces first
+        formula: '=IF(TRIM(A2)="",0,LEN(TRIM(SUBSTITUTE(A2,"  "," ")))-LEN(SUBSTITUTE(TRIM(SUBSTITUTE(A2,"  "," "))," ",""))+1)'
+      - label: Characters only (not words)
+        formula: '=LEN(TRIM(A2))'
+    diff: >-
+      Excel typically uses the LEN − SUBSTITUTE pattern or Excel 365 TEXTSPLIT. Google Sheets
+      can use the same math, or SPLIT + COUNTA, which is often shorter.
+  sheets:
+    formula: '=IF(TRIM(A2)="",0,COUNTA(SPLIT(TRIM(A2)," ")))'
+    explain: >-
+      TRIM the cell, SPLIT on spaces into separate pieces, then COUNTA those pieces. Blank cells
+      return 0 via the IF guard.
+    notes: >-
+      SPLIT + COUNTA is the natural Google Sheets word count and matches the Excel LEN trick on
+      clean single-spaced text. SPLIT treats each delimiter break as a piece, so repeated spaces
+      can create empty pieces — TRIM the input, and consider `=COUNTA(SPLIT(REGEXREPLACE(TRIM(A2),
+      "\s+"," ")," "))` to collapse whitespace first. ARRAYFORMULA can drive a column:
+      `=ARRAYFORMULA(IF(TRIM(A2:A)="",0,COUNTA(SPLIT(TRIM(A2:A)," "))))` does not expand SPLIT
+      row-by-row the way you might expect, so many Sheets users fill the LEN − SUBSTITUTE formula
+      down instead, or use a per-row MAP/LAMBDA in newer Sheets. The LEN − SUBSTITUTE formula
+      from the Excel side works unchanged in Sheets when you want identical logic on both
+      platforms.
+    alternatives:
+      - label: Same LEN formula as Excel
+        formula: '=IF(TRIM(A2)="",0,LEN(TRIM(A2))-LEN(SUBSTITUTE(TRIM(A2)," ",""))+1)'
+      - label: Collapse whitespace then SPLIT
+        formula: '=IF(TRIM(A2)="",0,COUNTA(SPLIT(REGEXREPLACE(TRIM(A2),"\s+"," ")," ")))'
+      - label: Character count instead
+        formula: '=LEN(TRIM(A2))'
+    diff: >-
+      Sheets prefers SPLIT + COUNTA (or REGEXREPLACE to normalize spaces). Excel uses LEN −
+      SUBSTITUTE, or TEXTSPLIT in Microsoft 365. The LEN formula works on both platforms.
+  example:
+    intro: Count words in phrases, a single word, padded text, and a blank cell.
+    grid:
+      - [Text, Words]
+      - ['one two three']
+      - [single]
+      - ['  spaced out  ']
+      - ['']
+    checks:
+      - cell: B2
+        label: three words
+        excel: '=IF(TRIM(A2)="",0,LEN(TRIM(A2))-LEN(SUBSTITUTE(TRIM(A2)," ",""))+1)'
+        result: 3
+      - cell: B3
+        label: one word
+        excel: '=IF(TRIM(A3)="",0,LEN(TRIM(A3))-LEN(SUBSTITUTE(TRIM(A3)," ",""))+1)'
+        result: 1
+      - cell: B4
+        label: trimmed spaced out — two words
+        excel: '=IF(TRIM(A4)="",0,LEN(TRIM(A4))-LEN(SUBSTITUTE(TRIM(A4)," ",""))+1)'
+        result: 2
+      - cell: B5
+        label: blank is zero
+        excel: '=IF(TRIM(A5)="",0,LEN(TRIM(A5))-LEN(SUBSTITUTE(TRIM(A5)," ",""))+1)'
+        result: 0
+  steps:
+    - Prefer a clean source column — TRIM the text or paste values without odd spacing.
+    - 'Enter `=IF(TRIM(A2)="",0,LEN(TRIM(A2))-LEN(SUBSTITUTE(TRIM(A2)," ",""))+1)` in Excel (or Sheets).'
+    - 'In Google Sheets you can instead use `=IF(TRIM(A2)="",0,COUNTA(SPLIT(TRIM(A2)," ")))`.'
+    - Fill the formula down. Spot-check rows that had double spaces or punctuation.
+    - 'Optional: collapse repeated spaces with SUBSTITUTE or REGEXREPLACE before counting.'
+  errors:
+    - error: Count is higher than the words you see
+      cause: Repeated internal spaces create extra "gaps" in the LEN − SUBSTITUTE method, or SPLIT produced empty pieces.
+      fix: 'Collapse spaces first (`SUBSTITUTE` repeatedly, or `REGEXREPLACE` in Sheets), then recount.'
+    - error: Blank cell shows 1
+      cause: The IF(TRIM=…) guard was omitted, so LEN of "" − LEN of "" + 1 equals 1.
+      fix: 'Always wrap with `IF(TRIM(A2)="",0, …)` so empty and all-space cells return 0.'
+    - error: '#NAME? with TEXTSPLIT'
+      cause: TEXTSPLIT needs Microsoft 365 or Excel 2021+.
+      fix: Use the LEN − SUBSTITUTE formula on this page; it works in older Excel.
+  faq:
+    - q: Is there a WORDCOUNT function?
+      a: Not in Excel. Google Sheets has no dedicated WORDCOUNT either — use SPLIT + COUNTA or the LEN − SUBSTITUTE formula. Some add-ins expose word count, but the formulas here need nothing extra.
+    - q: Do hyphenated words count as one or two?
+      a: As one, because the separator is a space. `well-known` is a single word to these formulas. Split on `"-"` only if you intentionally want hyphen pieces.
+    - q: Can I count words in a whole range?
+      a: 'Sum per-row counts, e.g. fill the formula in B2:B100 then `=SUM(B2:B100)`. Joining the range into one cell first is usually harder to audit.'
+  related: [len, trim, textsplit, substitute]
+
+- id: change_case
+  category: text
+  slugs: {excel: change-case-excel, sheets: change-case-google-sheets}
+  title: How to Change Case with UPPER LOWER PROPER
+  summary: >-
+    UPPER converts text to all capitals, LOWER to all lowercase, and PROPER to title case
+    (first letter of each word capitalised). Excel and Google Sheets share these three
+    functions. Use them to normalise names, codes and labels before matching or display.
+  problem: >-
+    Imported names and codes arrive in mixed or inconsistent casing — `john SMITH`, `hola` —
+    and you need predictable UPPER, lower or Title Case without retyping.
+  excel:
+    formula: '=PROPER(A2)'
+    explain: >-
+      `PROPER(A2)` capitalises the first letter of each word and lowercases the rest. Swap in
+      `UPPER(A2)` for all caps or `LOWER(A2)` for all lowercase.
+    notes: >-
+      UPPER, LOWER and PROPER exist in every Excel version and take a single text argument.
+      PROPER treats any non-letter as a word break, so `o'brien` becomes `O'Brien`, but
+      `mcdonald` becomes `Mcdonald` — it will not preserve internal capitals in brand names.
+      For those, keep a correction list or edit manually after PROPER. Numbers and punctuation
+      pass through unchanged. In Microsoft 365 you can spill `=UPPER(A2:A100)`. After converting
+      a column, Copy > Paste Special > Values if you want to replace the originals. Combine with
+      TRIM to clean spaces in the same step: `=PROPER(TRIM(A2))`.
+    alternatives:
+      - label: All uppercase
+        formula: '=UPPER(A2)'
+      - label: All lowercase
+        formula: '=LOWER(A2)'
+      - label: Title case after trimming
+        formula: '=PROPER(TRIM(A2))'
+    diff: >-
+      The three functions match Google Sheets. Sheets often wraps them in ARRAYFORMULA for a
+      full column; Excel 365 can spill the same way without ARRAYFORMULA.
+  sheets:
+    formula: '=PROPER(A2)'
+    explain: >-
+      Same PROPER, UPPER and LOWER functions as Excel — title case, all caps, or all lowercase.
+    notes: >-
+      Google Sheets implements UPPER, LOWER and PROPER with the same single-argument behaviour
+      as Excel, including PROPER's habit of lowercasing the rest of each word. Fill a column
+      with ARRAYFORMULA: `=ARRAYFORMULA(IF(A2:A="", "", PROPER(A2:A)))`. For more control —
+      uppercase only the first character of the cell — use a LEFT/RIGHT mix:
+      `=UPPER(LEFT(A2,1)) & LOWER(RIGHT(A2, LEN(A2)-1))`. REGEXREPLACE can force custom patterns,
+      but PROPER remains the fast path for ordinary names. TRIM inside PROPER still helps when
+      imports carry extra spaces. After conversion, paste as values if downstream sheets should
+      not depend on live formulas.
+    alternatives:
+      - label: Whole column to title case
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", PROPER(A2:A)))'
+      - label: Sentence case (first character only)
+        formula: '=UPPER(LEFT(A2,1))&LOWER(RIGHT(A2,LEN(A2)-1))'
+      - label: All uppercase for a column
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", UPPER(A2:A)))'
+    diff: >-
+      Sheets matches Excel on UPPER / LOWER / PROPER and commonly uses ARRAYFORMULA for column
+      fills. Sentence-case patterns with LEFT/RIGHT/LEN work on both platforms.
+  example:
+    intro: Turn mixed text into UPPER, lower and Proper forms.
+    grid:
+      - [Text, UPPER, LOWER, PROPER]
+      - ['hello WORLD']
+      - ['john smith']
+      - ['  maria  ']
+    checks:
+      - cell: B2
+        label: all caps
+        excel: '=UPPER(A2)'
+        result: HELLO WORLD
+      - cell: C2
+        label: all lowercase
+        excel: '=LOWER(A2)'
+        result: hello world
+      - cell: D2
+        label: title case
+        excel: '=PROPER(A2)'
+        result: Hello World
+      - cell: D3
+        label: proper name
+        excel: '=PROPER(A3)'
+        result: John Smith
+      - cell: D4
+        label: proper after trim
+        excel: '=PROPER(TRIM(A4))'
+        result: Maria
+  steps:
+    - Pick the case you need — UPPER, LOWER or PROPER.
+    - 'In the result cell type `=PROPER(A2)` (or UPPER / LOWER) and press Enter.'
+    - Fill or spill down the column for every row to normalise.
+    - 'Optional: wrap with TRIM, e.g. `=PROPER(TRIM(A2))`, when spaces are messy.'
+    - Paste Special > Values over the source column if you want to keep only the converted text.
+  errors:
+    - error: Brand names lose internal capitals
+      cause: PROPER lowercases every letter after the first in each word (`iPhone` → `Iphone`).
+      fix: Keep an exceptions list, fix those rows manually, or avoid PROPER for product codes that need exact casing.
+    - error: Leading spaces remain after PROPER
+      cause: PROPER does not remove spaces; it only changes case.
+      fix: 'Use `=PROPER(TRIM(A2))` so spacing and case are fixed together.'
+    - error: Formula shows the function name as text
+      cause: The cell was formatted as Text before the formula was entered, or an extra space preceded the equals sign.
+      fix: Set the format to General, re-enter the formula starting with `=`.
+  faq:
+    - q: What is the difference between PROPER and UPPER?
+      a: UPPER makes every letter capital. PROPER capitalises the first letter of each word and forces the rest to lowercase. LOWER forces everything to lowercase.
+    - q: Does PROPER work with accented characters?
+      a: Yes in modern Excel and Google Sheets — accented letters are cased correctly in most locales. Always spot-check uncommon scripts.
+    - q: Can I change case without a formula?
+      a: 'In Excel, flash fill or Power Query can rewrite case. In Sheets, extensions exist, but UPPER/LOWER/PROPER remain the reliable built-in approach.'
+  related: [trim, len, substitute, concatenate]
