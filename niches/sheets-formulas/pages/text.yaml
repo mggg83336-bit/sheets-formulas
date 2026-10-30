@@ -1637,3 +1637,249 @@
     - q: Can I change case without a formula?
       a: 'In Excel, flash fill or Power Query can rewrite case. In Sheets, extensions exist, but UPPER/LOWER/PROPER remain the reliable built-in approach.'
   related: [trim, len, substitute, concatenate]
+
+- id: text-to-number
+  category: text
+  slugs: {excel: text-to-number-excel, sheets: text-to-number-google-sheets}
+  title: How to Convert Text to Numbers
+  summary: >-
+    Numbers stored as text look normal but are ignored by SUM, break lookups and sort in the
+    wrong order. VALUE, the double minus (--) and multiplying by 1 turn them back into real
+    numbers. The formulas are the same in Excel and Google Sheets; Excel also offers a one-click
+    Convert to Number fix, and Sheets adds REGEXREPLACE for messy values.
+  problem: >-
+    Data pasted from a website, CSV export or accounting system shows numbers aligned to the
+    left, a green triangle in the corner, or a SUM that returns 0. The values are text, and you
+    need real numbers you can add, compare and look up.
+  excel:
+    formula: '=VALUE(A2)'
+    explain: >-
+      Syntax: `VALUE(text)`. Converts the text in A2 to a number, so "00123" becomes 123 and
+      "1250.5" becomes 1250.5. If the text cannot be read as a number, VALUE returns #VALUE!.
+    notes: >-
+      Three formulas do the same job: `=VALUE(A2)`, `=--A2` and `=A2*1`. The double minus is
+      popular inside SUMPRODUCT because it is short. Wrap the text in TRIM when it has extra
+      spaces, and in SUBSTITUTE when it contains a non-breaking space or a currency sign.
+      Excel also has NUMBERVALUE, which lets you name the decimal and group separators:
+      `=NUMBERVALUE(A2, ",", ".")` reads European values such as 1.250,50. Without formulas,
+      select the cells, click the warning icon and choose Convert to Number, or use Data >
+      Text to Columns > Finish, which converts a whole column in place. Leading zeros are lost
+      after conversion, so keep the text version if the zeros matter, for example in product
+      codes or postal codes.
+    alternatives:
+      - label: Double minus
+        formula: '=--A2'
+      - label: Remove extra spaces first
+        formula: '=VALUE(TRIM(A2))'
+      - label: European separators
+        formula: '=NUMBERVALUE(A2, ",", ".")'
+    diff: >-
+      Google Sheets uses the same VALUE, -- and *1 formulas, and handles a whole column with
+      ARRAYFORMULA; for messy text it often uses REGEXREPLACE before VALUE.
+  sheets:
+    formula: '=VALUE(A2)'
+    explain: >-
+      VALUE works the same way in Google Sheets: it converts the text in A2 to a real number
+      and returns #VALUE! when the text is not a number.
+    notes: >-
+      In Google Sheets, numbers usually become text when they come in through IMPORTRANGE,
+      IMPORTHTML, a form or a CSV with a Plain text format. The fastest fix for one column is
+      Format > Number > Automatic, followed by re-entering the values, but a formula is more
+      reliable: `=ARRAYFORMULA(IF(A2:A="", "", VALUE(TRIM(A2:A))))` converts the whole column
+      at once. For values with units or currency signs, strip everything that is not a digit,
+      a dot or a minus sign: `=VALUE(REGEXREPLACE(A2, "[^0-9.\-]", ""))`. The decimal
+      separator follows the spreadsheet locale in File > Settings, so "1,5" is a number in a
+      German locale but text in a US locale.
+    alternatives:
+      - label: Whole column at once
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", VALUE(TRIM(A2:A))))'
+      - label: Strip currency signs and units
+        formula: '=VALUE(REGEXREPLACE(A2, "[^0-9.\-]", ""))'
+      - label: Double minus
+        formula: '=--A2'
+    diff: >-
+      Excel adds NUMBERVALUE for custom separators, the Convert to Number warning button and
+      Text to Columns; Sheets relies on ARRAYFORMULA and REGEXREPLACE.
+  example:
+    intro: Column A holds numbers stored as text. SUM ignores them until they are converted.
+    grid:
+      - [Text value, VALUE, Double minus, Times 1, Totals]
+      - ['00123']
+      - ['1250.5']
+      - [' 42 ']
+      - ['3.5']
+    checks:
+      - cell: B2
+        label: leading zeros dropped
+        excel: '=VALUE(A2)'
+        result: 123
+      - cell: B3
+        label: decimal text
+        excel: '=VALUE(A3)'
+        result: 1250.5
+      - cell: B4
+        label: trim spaces first
+        excel: '=VALUE(TRIM(A4))'
+        result: 42
+      - cell: C5
+        label: double minus
+        excel: '=--A5'
+        result: 3.5
+      - cell: D3
+        label: multiply by 1
+        excel: '=A3*1'
+        result: 1250.5
+      - cell: E2
+        label: SUM ignores text numbers
+        excel: '=SUM(A2:A5)'
+        result: 0
+      - cell: E3
+        label: convert inside SUMPRODUCT
+        excel: '=SUMPRODUCT(--TRIM(A2:A5))'
+        result: 1419
+  steps:
+    - Check that the values really are text. =ISTEXT(A2) returns TRUE, and the numbers are usually left-aligned.
+    - 'In a helper column type `=VALUE(A2)` (or `=--A2`) and press Enter.'
+    - 'If some values have extra spaces, use `=VALUE(TRIM(A2))` instead.'
+    - Fill the formula down, then copy the helper column and use Paste special > Values over the original data if you want to replace it.
+    - 'To total text numbers without a helper column, convert them inside the sum: `=SUMPRODUCT(--TRIM(A2:A5))`.'
+  errors:
+    - error: '#VALUE!'
+      cause: The text contains characters that are not part of a number, such as a currency sign, a unit or a non-breaking space.
+      fix: 'Remove them first with SUBSTITUTE (for example `=VALUE(SUBSTITUTE(A2, CHAR(160), ""))`) or, in Sheets, with REGEXREPLACE.'
+    - error: SUM returns 0 or a too-small total
+      cause: Some or all of the values are text, and SUM ignores text.
+      fix: Convert them with VALUE in a helper column, or use =SUMPRODUCT(--A2:A5).
+    - error: Wrong decimals, for example 1,5 becomes 15 or an error
+      cause: The decimal separator in the text does not match the regional settings.
+      fix: In Excel use NUMBERVALUE with explicit separators; in Sheets change the locale in File > Settings or SUBSTITUTE the comma with a dot.
+  faq:
+    - q: How can I tell if a number is stored as text?
+      a: Use =ISTEXT(A2) or =ISNUMBER(A2). Text numbers are left-aligned by default, and Excel marks them with a small green triangle.
+    - q: What is the difference between VALUE and the double minus?
+      a: The result is the same. VALUE is easier to read; -- is shorter and common inside SUMPRODUCT and array formulas.
+    - q: How do I keep leading zeros?
+      a: Do not convert those values. Codes such as 00123 are identifiers, not quantities, so leave them as text or format the number with a custom format like 00000.
+  related: [trim, substitute, extract_numbers, len]
+
+- id: number-to-text
+  category: text
+  slugs: {excel: number-to-text-excel, sheets: number-to-text-google-sheets}
+  title: How to Convert Numbers to Text
+  summary: >-
+    Converting a number to text lets you keep leading zeros, show a fixed number of decimals,
+    add thousands separators or a currency sign, and join numbers into sentences without losing
+    the formatting. TEXT and the &"" trick work in Excel and Google Sheets; Sheets also has
+    TO_TEXT, and Excel 365 has VALUETOTEXT.
+  problem: >-
+    You need a number as text: an ID that must keep its leading zeros, a price shown as $1,250.50
+    inside a sentence, or a key that must match a text column in a lookup. Joining the number
+    directly drops the formatting, and changing the cell format does not change the value.
+  excel:
+    formula: '=TEXT(A2, "00000")'
+    explain: >-
+      Syntax: `TEXT(value, format_text)`. The format code "00000" pads the number with leading
+      zeros to five digits, so 123 becomes the text 00123. Other codes add separators, decimals,
+      currency signs or a percent sign.
+    notes: >-
+      Useful number codes are 0 (a digit that is always shown), # (a digit shown only when
+      needed), a comma for thousands separators, a dot for decimals and % for percentages, so
+      "$#,##0.00" turns 1250.5 into $1,250.50 and "0.0%" turns 0.256 into 25.6%. For a plain
+      conversion without formatting, `=A2&""` is the shortest option. Excel 365 also offers
+      `=VALUETOTEXT(A2)`. The result is text, so it aligns left and SUM ignores it; keep the
+      original number for calculations. Like dates, number codes follow the regional settings,
+      so separators may be swapped in non-English Excel versions.
+    alternatives:
+      - label: Plain conversion
+        formula: '=A2&""'
+      - label: Currency with thousands separator
+        formula: '=TEXT(A2, "$#,##0.00")'
+      - label: Excel 365 function
+        formula: '=VALUETOTEXT(A2)'
+    diff: >-
+      Google Sheets uses the same TEXT codes and the &"" trick, and adds TO_TEXT; it has no
+      VALUETOTEXT.
+  sheets:
+    formula: '=TEXT(A2, "00000")'
+    explain: >-
+      TEXT works the same way in Google Sheets: "00000" pads 123 to the text 00123, and the
+      other format codes add separators, decimals and currency signs.
+    notes: >-
+      Google Sheets has its own function for a plain conversion: `=TO_TEXT(A2)` returns the
+      number as text and keeps the look of the cell format, so a cell showing $19.99 becomes
+      the text "$19.99". The &"" trick also works. To convert a whole column use
+      `=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "00000")))`. If you type the values yourself,
+      Format > Number > Plain text stores everything you enter as text, and an apostrophe in
+      front of a single value (for example '00123) does the same. Remember that SUM and other
+      math functions ignore the resulting text.
+    alternatives:
+      - label: Plain conversion with TO_TEXT
+        formula: '=TO_TEXT(A2)'
+      - label: Whole column with leading zeros
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "00000")))'
+      - label: Currency with thousands separator
+        formula: '=TEXT(A2, "$#,##0.00")'
+    diff: >-
+      Excel has VALUETOTEXT in Microsoft 365 instead of TO_TEXT, and fills a column by spilling
+      instead of ARRAYFORMULA.
+  example:
+    intro: Real numbers in column A converted to text in different layouts.
+    grid:
+      - [Number, Plain text, Padded, Formatted, Check]
+      - [123]
+      - [1250.5]
+      - [1234567]
+      - [0.256]
+    checks:
+      - cell: B2
+        label: plain conversion
+        excel: '=A2&""'
+        result: '123'
+      - cell: C2
+        label: leading zeros
+        excel: '=TEXT(A2, "00000")'
+        result: '00123'
+      - cell: D3
+        label: currency
+        excel: '=TEXT(A3, "$#,##0.00")'
+        result: '$1,250.50'
+      - cell: D4
+        label: thousands separator
+        excel: '=TEXT(A4, "#,##0")'
+        result: '1,234,567'
+      - cell: D5
+        label: percentage inside a label
+        excel: '="Share: "&TEXT(A5, "0.0%")'
+        result: 'Share: 25.6%'
+      - cell: E2
+        label: the result is text
+        excel: '=ISTEXT(C2)'
+        result: true
+      - cell: E3
+        label: the source is still a number
+        excel: '=ISNUMBER(A3)'
+        result: true
+  steps:
+    - Decide how the text should look, for example five digits with leading zeros or a price with two decimals.
+    - 'In a helper column type `=TEXT(A2, "00000")` and press Enter.'
+    - 'Change the format code as needed: "$#,##0.00" for currency, "#,##0" for thousands, "0.0%" for percentages.'
+    - 'For a plain conversion without formatting, use `=A2&""`.'
+    - Fill the formula down, and keep the original numbers for any calculations.
+  errors:
+    - error: Leading zeros disappear
+      cause: The value was converted with &"" or typed as a number, which never stores leading zeros.
+      fix: 'Use TEXT with zeros in the code, for example `=TEXT(A2, "00000")`.'
+    - error: SUM of the converted column is 0
+      cause: The converted values are text, and SUM ignores text.
+      fix: Sum the original numbers instead, or convert back with VALUE.
+    - error: Lookup still does not match
+      cause: One side is text and the other a number, or the text has a different number of digits.
+      fix: Convert both sides the same way, for example TEXT(A2, "00000") on both, or use VALUE on the text side.
+  faq:
+    - q: Is formatting a cell the same as converting the number to text?
+      a: No. Cell formatting changes only the display. The value stays a number. TEXT and &"" create a real text value.
+    - q: How do I join a number to text and keep two decimals?
+      a: 'Use TEXT inside the join: `="Total: "&TEXT(A2, "#,##0.00")`.'
+    - q: How do I convert text back to a number?
+      a: Use VALUE or the double minus, for example =VALUE(A2) or =--A2.
+  related: [text-to-number, leading-zeros, concatenate, len]

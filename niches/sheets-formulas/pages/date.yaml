@@ -409,3 +409,122 @@
     - q: How do I calculate hours for a shift that passes midnight?
       a: 'If the end time is smaller than the start time, add 1 day: =MOD(C2-B2, 1) returns the correct duration for both normal and overnight shifts, for example 22:00 to 06:00 gives 8:00.'
   related: [networkdays, days-between-dates, percentage-change]
+
+- id: text-function
+  category: date
+  slugs: {excel: text-function-excel, sheets: text-function-google-sheets}
+  title: How to Format Dates with the TEXT Function
+  summary: >-
+    TEXT turns a real date into a text string in exactly the layout you choose, such as
+    2026-03-05, March 5, 2026 or Thursday. It is the standard way to put a nicely formatted
+    date inside a sentence, a file name or a label. Excel and Google Sheets share the TEXT
+    syntax, but Excel's format codes depend on the language of your Excel installation, while
+    Google Sheets always reads English codes.
+  problem: >-
+    You join a date to some text with & and get a meaningless serial number like 46086 instead
+    of a readable date, or you need a date in one fixed layout (ISO, month name, weekday) for
+    an export, a report title or a lookup key, regardless of how the cell itself is formatted.
+  excel:
+    formula: '=TEXT(A2, "yyyy-mm-dd")'
+    explain: >-
+      Syntax: `TEXT(value, format_text)`. A2 holds a real date (a serial number behind the
+      scenes); the format code "yyyy-mm-dd" returns it as the text 2026-03-05. The result is
+      text, so it no longer sorts or calculates like a date.
+    notes: >-
+      The most useful date codes are yyyy (four-digit year), yy (two-digit year), m or mm
+      (month number), mmm (Jan), mmmm (January), d or dd (day number), ddd (Thu) and dddd
+      (Thursday). In Excel the codes are localised: a German Excel expects "JJJJ-MM-TT" and a
+      French Excel "aaaa-mm-jj", so a workbook built with English codes can show the wrong
+      result when it is opened in another language version. If you only want the cell to look
+      different, use Format Cells > Number > Custom instead of TEXT, because cell formatting
+      keeps the value a real date. In Microsoft 365, TEXT spills over a range:
+      `=TEXT(A2:A10, "mmm yyyy")` returns one label per row.
+    alternatives:
+      - label: Readable date inside a sentence
+        formula: '="Due on "&TEXT(A2, "mmmm d, yyyy")'
+      - label: Weekday name
+        formula: '=TEXT(A2, "dddd")'
+      - label: Spill labels for a range (Excel 365)
+        formula: '=TEXT(A2:A10, "mmm yyyy")'
+    diff: >-
+      Google Sheets uses the same TEXT function and the same English codes in every locale; it
+      fills a column with ARRAYFORMULA instead of spilling.
+  sheets:
+    formula: '=TEXT(A2, "yyyy-mm-dd")'
+    explain: >-
+      The same TEXT syntax works in Google Sheets: A2 must be a real date, and the format code
+      decides how the returned text looks.
+    notes: >-
+      Google Sheets always reads the English format codes (yyyy, mm, mmmm, dddd), whatever the
+      spreadsheet locale is, so the formula is portable between accounts. The locale (File >
+      Settings) only changes the language of month and weekday names in the result, for example
+      "jeudi" instead of "Thursday" for a French locale. To format a whole column at once use
+      `=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "yyyy-mm-dd")))`. When you only want a
+      different look, use Format > Number > Custom date and time, which keeps the value a real
+      date. If TEXT returns the input unchanged, the cell holds text that only looks like a date;
+      convert it with DATEVALUE first.
+    alternatives:
+      - label: Whole column of ISO dates
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "yyyy-mm-dd")))'
+      - label: Readable date inside a sentence
+        formula: '="Due on "&TEXT(A2, "mmmm d, yyyy")'
+      - label: Convert a text date first, then format
+        formula: '=TEXT(DATEVALUE(A2), "dd mmm yyyy")'
+    diff: >-
+      Excel expects format codes in the language of the Excel installation and spills over
+      ranges; Sheets always uses English codes and needs ARRAYFORMULA for a column.
+  example:
+    intro: Three real dates in column A turned into four common text layouts.
+    grid:
+      - [Date, ISO text, Long date, Weekday, Label]
+      - [2026-03-05]
+      - [2026-12-25]
+      - [2026-07-01]
+    checks:
+      - cell: B2
+        label: ISO 8601 layout
+        excel: '=TEXT(A2, "yyyy-mm-dd")'
+        fill: [B2, B3, B4]
+        results: ['2026-03-05', '2026-12-25', '2026-07-01']
+      - cell: C2
+        label: full month name
+        excel: '=TEXT(A2, "mmmm d, yyyy")'
+        fill: [C2, C3, C4]
+        results: ['March 5, 2026', 'December 25, 2026', 'July 1, 2026']
+      - cell: D2
+        label: weekday name
+        excel: '=TEXT(A2, "dddd")'
+        fill: [D2, D3, D4]
+        results: [Thursday, Friday, Wednesday]
+      - cell: E2
+        label: date joined to text
+        excel: '="Due "&TEXT(A2, "mmm yyyy")'
+        fill: [E2, E3, E4]
+        results: [Due Mar 2026, Due Dec 2026, Due Jul 2026]
+  steps:
+    - Make sure column A holds real dates. =ISNUMBER(A2) should return TRUE.
+    - 'In the result cell type `=TEXT(A2, "yyyy-mm-dd")` and press Enter.'
+    - 'Swap the format code for the layout you need: "mmmm d, yyyy" for March 5, 2026, "dddd" for the weekday, "mmm yyyy" for Mar 2026.'
+    - 'To use the date inside a sentence, join it with &: `="Due "&TEXT(A2, "mmm yyyy")`.'
+    - Fill the formula down (or spill it in Excel 365, or wrap it in ARRAYFORMULA in Google Sheets).
+  errors:
+    - error: Result shows a number like 46086
+      cause: The date was joined with & without TEXT, so its serial number was used.
+      fix: 'Wrap the date in TEXT: `="Due "&TEXT(A2, "mmm yyyy")`.'
+    - error: Wrong or literal letters in the result (for example YYYY-03-05)
+      cause: In Excel the format codes follow the installation language, or the code uses a letter Excel does not know.
+      fix: Use the codes of your Excel language (for example JJJJ in German Excel), or keep the formatting in Format Cells instead of TEXT.
+    - error: TEXT returns the value unchanged
+      cause: The cell holds text that looks like a date, not a real date.
+      fix: Convert it first with DATEVALUE, for example =TEXT(DATEVALUE(A2), "yyyy-mm-dd").
+    - error: Sorting by the result is wrong
+      cause: TEXT returns text, so "April" sorts before "March".
+      fix: Sort by the original date column, or use the ISO layout yyyy-mm-dd, which sorts correctly as text.
+  faq:
+    - q: Why does my date turn into a number when I combine it with text?
+      a: Dates are stored as serial numbers, and & uses the stored value. Wrap the date in TEXT with a format code to keep it readable.
+    - q: Is TEXT the same as changing the cell format?
+      a: No. Cell formatting changes only how the value looks and keeps it a real date. TEXT returns a new text value that no longer calculates like a date.
+    - q: How do I show the month name only?
+      a: 'Use `=TEXT(A2, "mmmm")` for the full name or `=TEXT(A2, "mmm")` for the three-letter abbreviation.'
+  related: [days-between-dates, eomonth, datedif-age, networkdays]
