@@ -528,3 +528,345 @@
     - q: How do I show the month name only?
       a: 'Use `=TEXT(A2, "mmmm")` for the full name or `=TEXT(A2, "mmm")` for the three-letter abbreviation.'
   related: [days-between-dates, eomonth, datedif-age, networkdays]
+
+- id: date-function
+  category: date
+  slugs: {excel: date-excel, sheets: date-google-sheets}
+  title: How to Use the DATE Function
+  summary: >-
+    DATE builds a real date from a year, a month and a day number. It is the safest way to put a
+    date inside a formula, to rebuild dates from separate columns or from text codes such as
+    20260704, and to move a date by whole months or years. Works the same in Excel and Google
+    Sheets, with a few Sheets-only helpers.
+  problem: >-
+    Your export has the year, month and day in three separate columns, or a date written as a code
+    like 20260704, and you need a real date that sorts, filters and works with other date
+    functions. Typing a date as text inside a formula also breaks when someone opens the file with
+    different regional settings.
+  excel:
+    formula: '=DATE(A2, B2, C2)'
+    explain: >-
+      Syntax: `DATE(year, month, day)`. It returns the serial number of that date, so format the
+      cell as a date (Ctrl+1 > Date). DATE(2026, 3, 15) is March 15, 2026 on every computer,
+      whatever the regional date order.
+    notes: >-
+      DATE rolls over automatically: month 14 becomes February of the next year, and day 0 is the
+      last day of the previous month, so `=DATE(A2, B2+1, 0)` returns the month end and
+      `=DAY(DATE(A2, B2+1, 0))` the number of days in that month. Always type four-digit years,
+      because Excel adds 1900 to any year from 0 to 1899, so DATE(26, 1, 1) means 1926. Excel
+      cannot show dates before January 1, 1900. Inside other formulas, prefer DATE over a typed
+      date string, for example `=COUNTIFS(A:A, ">="&DATE(2026, 1, 1))`.
+    alternatives:
+      - label: Same day next month
+        formula: '=DATE(YEAR(D2), MONTH(D2)+1, DAY(D2))'
+      - label: From a text code like 20260704
+        formula: '=DATE(LEFT(F2, 4), MID(F2, 5, 2), RIGHT(F2, 2))'
+      - label: Days in the month
+        formula: '=DAY(DATE(A2, B2+1, 0))'
+    diff: >-
+      Google Sheets has the same DATE function and the same roll-over rules, plus TO_DATE and
+      ARRAYFORMULA for whole columns.
+  sheets:
+    formula: '=DATE(A2, B2, C2)'
+    explain: >-
+      DATE works the same way in Google Sheets: year, month and day become a real date, and month
+      or day numbers outside the normal range roll over into the next or previous month.
+    notes: >-
+      Google Sheets usually formats the result as a date automatically; if you see a number such
+      as 46096, use Format > Number > Date. To build a whole column at once, wrap the formula in
+      ARRAYFORMULA and leave empty rows blank with IF. TO_DATE turns a serial number back into a
+      date without changing the cell format, which is handy after math on dates. Sheets also
+      adds 1900 to two-digit years, so type four digits. Unlike Excel, a Google Sheets cell can
+      hold dates before 1900, but DATE itself still treats years below 1900 as offsets.
+    alternatives:
+      - label: Whole column with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", DATE(A2:A, B2:B, C2:C)))'
+      - label: Serial number to date
+        formula: '=TO_DATE(46096)'
+      - label: From a text code like 20260704
+        formula: '=DATE(LEFT(F2, 4), MID(F2, 5, 2), RIGHT(F2, 2))'
+    diff: >-
+      Excel has no TO_DATE; format the cell as a date instead, and in Microsoft 365 the column
+      version spills without ARRAYFORMULA.
+  example:
+    intro: >-
+      Year, month and day numbers in columns A to C, and text date codes in column F. Row 3 uses
+      month 14 and row 4 uses day 0 to show how DATE rolls over.
+    grid:
+      - [Year, Month, Day, Date, Next month, Text code, From code, Days in month]
+      - [2026, 3, 15, null, null, '20260704']
+      - [2026, 14, 1, null, null, '20261231']
+      - [2026, 3, 0, null, null, '20270115']
+    checks:
+      - cell: D2
+        label: filled down
+        excel: '=DATE(A2, B2, C2)'
+        fill: [D2, D3, D4]
+        results: [2026-03-15, 2027-02-01, 2026-02-28]
+      - cell: E2
+        label: same day one month later
+        excel: '=DATE(YEAR(D2), MONTH(D2)+1, DAY(D2))'
+        result: 2026-04-15
+      - cell: G2
+        label: text code to date, filled down
+        excel: '=DATE(LEFT(F2, 4), MID(F2, 5, 2), RIGHT(F2, 2))'
+        fill: [G2, G3, G4]
+        results: [2026-07-04, 2026-12-31, 2027-01-15]
+      - cell: H2
+        label: days in March 2026
+        excel: '=DAY(DATE(A2, B2+1, 0))'
+        result: 31
+  steps:
+    - Put the year, month and day in separate cells, or point DATE at the columns you already have.
+    - 'Type `=DATE(A2, B2, C2)` in the first result cell and press Enter.'
+    - If the result shows a number, format the cell as a date.
+    - Fill the formula down. Month 14 in row 3 rolls into February 2027, and day 0 in row 4 returns the last day of February 2026.
+    - 'For text codes, cut the code into pieces with LEFT, MID and RIGHT and pass them to DATE: 20260704 becomes July 4, 2026.'
+  errors:
+    - error: Result shows a number like 46096
+      cause: The cell is formatted as a number, and dates are stored as serial numbers.
+      fix: Format the cell as a date.
+    - error: The year comes out as 1926
+      cause: A two-digit year was used, and years from 0 to 1899 are added to 1900.
+      fix: Always pass a four-digit year, for example 2026.
+    - error: '#VALUE!'
+      cause: One of the arguments is text that cannot be read as a number, such as "March".
+      fix: Use the month number, or convert the text first, for example with MONTH(DATEVALUE("1 "&B2&" 2026")).
+    - error: '#NUM!'
+      cause: The resulting date is before 1900 in Excel, for example a negative year.
+      fix: Check the year column for empty or wrong values.
+  faq:
+    - q: How do I get the first day of the month with DATE?
+      a: 'Use day 1: =DATE(YEAR(A2), MONTH(A2), 1).'
+    - q: How do I add years to a date?
+      a: 'Add to the year part: =DATE(YEAR(A2)+1, MONTH(A2), DAY(A2)). February 29 then rolls to March 1 in a non-leap year.'
+    - q: Why use DATE instead of typing "3/15/2026" in a formula?
+      a: A typed date string is read according to the regional settings, so it can mean a different date or an error on another computer. DATE always means the same day.
+  related: [eomonth, days-between-dates, text-to-date, today-now, sum-by-month]
+
+- id: today-now
+  category: date
+  slugs: {excel: today-now-excel, sheets: today-now-google-sheets}
+  title: How to Use TODAY and NOW
+  summary: >-
+    TODAY returns the current date and NOW the current date and time. Both update automatically,
+    which makes them perfect for countdowns, overdue flags and ages, but useless as a fixed time
+    stamp. This page shows both functions, how to freeze the date, and how Excel and Google Sheets
+    decide when to update them.
+  problem: >-
+    You want a task list that shows how many days are left until each deadline and flags overdue
+    items, without retyping today's date every morning. You also need a fixed time stamp for
+    when a row was entered, which TODAY and NOW cannot give you.
+  excel:
+    formula: '=TODAY()'
+    explain: >-
+      TODAY and NOW take no arguments. `=TODAY()` returns today's date with no time part, and
+      `=NOW()` returns the date plus the current time, for example 2026-10-31 14:30.
+    notes: >-
+      Both functions are volatile: Excel recalculates them every time the workbook is opened or
+      anything is edited, and when you press F9. Put =TODAY() in one cell and refer to that cell,
+      so every formula uses the same date. For a fixed value that never changes, press Ctrl+; to
+      type today's date or Ctrl+Shift+; for the current time. NOW uses the clock and time zone of
+      your computer. The time part of NOW is `=NOW()-TODAY()`, and `=INT(NOW())` equals TODAY.
+    alternatives:
+      - label: Days until a due date
+        formula: '=B2-TODAY()'
+      - label: Current time only
+        formula: '=NOW()-TODAY()'
+      - label: Date and time as text
+        formula: '=TEXT(NOW(), "yyyy-mm-dd hh:mm")'
+    diff: >-
+      Google Sheets has the same TODAY and NOW, but uses the spreadsheet time zone and lets you
+      choose how often they recalculate.
+  sheets:
+    formula: '=TODAY()'
+    explain: >-
+      TODAY and NOW work the same way in Google Sheets: TODAY gives the date and NOW the date and
+      time, and both update on their own.
+    notes: >-
+      Google Sheets takes the time from the spreadsheet time zone in File > Settings, not from
+      your computer, so check it if NOW looks hours off. In the same Settings dialog, the
+      Calculation tab lets you recalculate on change, every minute or every hour, which keeps a
+      NOW clock moving even when nobody edits the sheet. Ctrl+; and Ctrl+Shift+; insert a fixed
+      date and time, just like in Excel. To compute days left for a whole column at once, use
+      ARRAYFORMULA, and TO_DATE turns the result of INT(NOW()) back into a date format.
+    alternatives:
+      - label: Days left for the whole column
+        formula: '=ARRAYFORMULA(IF(B2:B="", "", B2:B-TODAY()))'
+      - label: Date part of NOW as a date
+        formula: '=TO_DATE(INT(NOW()))'
+      - label: Date and time as text
+        formula: '=TEXT(NOW(), "yyyy-mm-dd hh:mm")'
+    diff: >-
+      Excel uses the computer clock and recalculates on every edit or F9; there is no
+      every-minute setting and no TO_DATE.
+  example:
+    intro: >-
+      A deadline list. On a live sheet F2 holds =TODAY(); here it is frozen at Saturday,
+      October 31, 2026 so the results are reproducible. Column G shows checks that are true on
+      any day.
+    grid:
+      - [Task, Due date, Days left, Status, null, Today, Check]
+      - [Invoice, 2026-11-10, null, null, null, 2026-10-31]
+      - [Report, 2026-10-25]
+      - [Review, 2026-10-31]
+    checks:
+      - cell: C2
+        label: days left, filled down
+        excel: '=B2-$F$2'
+        fill: [C2, C3, C4]
+        results: [10, -6, 0]
+      - cell: D2
+        label: status, filled down
+        excel: '=IF(B2<$F$2, "Overdue", IF(B2=$F$2, "Due today", "Open"))'
+        fill: [D2, D3, D4]
+        results: [Open, Overdue, Due today]
+      - cell: G2
+        label: TODAY is a whole number of days
+        excel: '=TODAY()=INT(TODAY())'
+        result: true
+      - cell: G3
+        label: the date part of NOW is TODAY
+        excel: '=INT(NOW())=TODAY()'
+        result: true
+      - cell: G4
+        label: NOW minus TODAY is the time of day, always under 1
+        excel: '=NOW()-TODAY()<1'
+        result: true
+  steps:
+    - Type `=TODAY()` in a spare cell such as F2, so every formula refers to the same date.
+    - 'Subtract it from each due date: `=B2-$F$2` gives 10 days left for the invoice, -6 for the overdue report and 0 for the review.'
+    - 'Turn the number into a label with IF: past dates are Overdue, today is Due today, later dates are Open.'
+    - Use NOW instead of TODAY when the time matters, for example to count hours until a deadline with (B2-NOW())*24.
+    - For a time stamp that must never change, type it with Ctrl+; (date) or Ctrl+Shift+; (time) instead of a formula.
+  errors:
+    - error: The time stamp changes every day
+      cause: TODAY and NOW are volatile and always show the current date and time.
+      fix: Insert a fixed value with Ctrl+; or copy the cell and paste it as values.
+    - error: Days left shows a date like 1/10/1900
+      cause: The result cell inherited a date format from the due date.
+      fix: Format the days-left cell as Number.
+    - error: Comparing a date with NOW() never matches
+      cause: NOW includes the time, so it is never equal to a date at midnight.
+      fix: Compare with TODAY(), or use INT(NOW()).
+    - error: NOW is a few hours off in Google Sheets
+      cause: The spreadsheet time zone differs from your own.
+      fix: Change it in File > Settings > Time zone.
+  faq:
+    - q: How do I calculate someone's age from a birth date?
+      a: 'Use DATEDIF with TODAY: =DATEDIF(A2, TODAY(), "y") returns full years.'
+    - q: Does TODAY update if the file is closed?
+      a: No. It updates the next time the file is opened or recalculated, so a printed or exported copy keeps the old date.
+    - q: How do I show today's date inside a sentence?
+      a: 'Format it with TEXT: ="Report date: "&TEXT(TODAY(), "mmmm d, yyyy").'
+  related: [date-function, days-between-dates, datedif-age, workday]
+
+- id: workday
+  category: date
+  slugs: {excel: workday-excel, sheets: workday-google-sheets}
+  title: How to Add Business Days with WORKDAY
+  summary: >-
+    WORKDAY returns the date that is a given number of working days after (or before) a start
+    date, skipping weekends and an optional list of holidays. It is the standard way to compute
+    due dates, delivery dates and SLA deadlines. WORKDAY.INTL does the same for other weekends.
+  problem: >-
+    Orders ship 5 business days after they are placed, and contracts are due 10 working days
+    after signing. Adding 5 to the date counts weekends and public holidays, so the due date
+    comes out too early.
+  excel:
+    formula: '=WORKDAY(A2, B2, $F$2:$F$4)'
+    explain: >-
+      Syntax: `WORKDAY(start_date, days, [holidays])`. It moves forward from A2 by B2 working
+      days (Monday to Friday), skipping any dates listed in F2:F4. The start date itself is not
+      counted. A negative number of days moves backward.
+    notes: >-
+      Format the result as a date, because WORKDAY returns a serial number. Keep holidays in their
+      own range and lock it with $ so the formula can be filled down. For another weekend use
+      WORKDAY.INTL: weekend code 7 means Friday and Saturday, 11 means Sunday only, and a
+      7-character string such as "0000011" marks days off with 1, starting on Monday. To count
+      the working days between two dates instead, use NETWORKDAYS. If the start date falls on a
+      weekend, WORKDAY still counts from it, so a Saturday plus 1 working day is Monday.
+    alternatives:
+      - label: Friday-Saturday weekend
+        formula: '=WORKDAY.INTL(A2, B2, 7, $F$2:$F$4)'
+      - label: Three working days before a date
+        formula: '=WORKDAY(A2, -3, $F$2:$F$4)'
+      - label: Next working day if the date is on a weekend
+        formula: '=WORKDAY(A2-1, 1, $F$2:$F$4)'
+    diff: >-
+      Google Sheets has the same WORKDAY and WORKDAY.INTL functions and can read the holiday list
+      from an open-ended range on another sheet.
+  sheets:
+    formula: '=WORKDAY(A2, B2, $F$2:$F$4)'
+    explain: >-
+      WORKDAY works the same way in Google Sheets: it skips Saturdays, Sundays and the listed
+      holidays, and does not count the start date.
+    notes: >-
+      In Google Sheets it is convenient to keep public holidays on their own tab and point to an
+      open-ended range such as Holidays!A2:A, so new holidays are picked up without editing the
+      formula. Empty cells in that range are ignored. WORKDAY.INTL accepts the same weekend codes
+      and 7-character strings as in Excel. If the result appears as a number, choose Format >
+      Number > Date. Holidays typed as text, for example "Dec 25", are not skipped, so make sure
+      the list contains real dates.
+    alternatives:
+      - label: Holidays on a separate tab
+        formula: '=WORKDAY(A2, B2, Holidays!A2:A)'
+      - label: Sunday-only weekend with a weekend string
+        formula: '=WORKDAY.INTL(A2, B2, "0000001", Holidays!A2:A)'
+      - label: Next working day if the date is on a weekend
+        formula: '=WORKDAY(A2-1, 1, Holidays!A2:A)'
+    diff: >-
+      Excel uses the same functions; point the holidays argument at a fixed range or a table
+      column instead of an open-ended range.
+  example:
+    intro: >-
+      Start dates and working days to add, with three public holidays in F2:F4 (November 26 and
+      December 25, 2026, and January 1, 2027).
+    grid:
+      - [Start, Days, Due (weekends only), Due (with holidays), null, Holidays]
+      - [2026-11-02, 10, null, null, null, 2026-11-26]
+      - [2026-11-20, 5, null, null, null, 2026-12-25]
+      - [2026-12-18, 7, null, null, null, 2027-01-01]
+      - [2026-12-31, -3]
+    checks:
+      - cell: C2
+        label: weekends skipped, filled down
+        excel: '=WORKDAY(A2, B2)'
+        fill: [C2, C3, C4, C5]
+        results: [2026-11-16, 2026-11-27, 2026-12-29, 2026-12-28]
+      - cell: D2
+        label: weekends and holidays skipped, filled down
+        excel: '=WORKDAY(A2, B2, $F$2:$F$4)'
+        fill: [D2, D3, D4, D5]
+        results: [2026-11-16, 2026-11-30, 2026-12-30, 2026-12-28]
+      - cell: E4
+        label: Friday-Saturday weekend
+        excel: '=WORKDAY.INTL(A4, B4, 7, $F$2:$F$4)'
+        result: 2026-12-28
+  steps:
+    - List the start dates in column A and the number of working days in column B.
+    - Put the public holidays in their own range, here F2:F4, as real dates.
+    - 'Type `=WORKDAY(A2, B2, $F$2:$F$4)` and fill it down.'
+    - Monday, November 2 plus 10 working days is Monday, November 16. Friday, November 20 plus 5 is Friday, November 27, but Thanksgiving on November 26 pushes it to Monday, November 30.
+    - A negative number counts backwards, so 3 working days before Thursday, December 31 is Monday, December 28.
+  errors:
+    - error: The due date ignores a holiday
+      cause: The holiday is typed as text, or the holiday range moved when the formula was filled down.
+      fix: Enter holidays as real dates and lock the range with $.
+    - error: Result shows a number like 46342
+      cause: The cell is formatted as a number.
+      fix: Format it as a date.
+    - error: '#NUM!'
+      cause: The weekend code in WORKDAY.INTL is invalid, for example "1111111" with no working days.
+      fix: Use a valid code from 1 to 7 or 11 to 17, or a string with at least one 0.
+    - error: Due date one day later than expected
+      cause: You expected the start date to count as day 1.
+      fix: WORKDAY never counts the start date; use B2-1 days if your rule counts it.
+  faq:
+    - q: What is the difference between WORKDAY and NETWORKDAYS?
+      a: WORKDAY returns a date a number of working days away; NETWORKDAYS counts the working days between two dates.
+    - q: How do I add working hours instead of days?
+      a: Divide the hours by the hours in a working day and pass the whole days to WORKDAY, then add the remaining hours to the start time.
+    - q: How do I get the last working day of a month?
+      a: '=WORKDAY(EOMONTH(A2, 0)+1, -1) goes to the first day of the next month and steps back one working day.'
+  related: [networkdays, eomonth, days-between-dates, today-now]
