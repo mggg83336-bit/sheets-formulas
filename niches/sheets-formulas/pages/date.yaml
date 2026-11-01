@@ -870,3 +870,349 @@
     - q: How do I get the last working day of a month?
       a: '=WORKDAY(EOMONTH(A2, 0)+1, -1) goes to the first day of the next month and steps back one working day.'
   related: [networkdays, eomonth, days-between-dates, today-now]
+
+- id: add-months
+  category: date
+  slugs: {excel: add-months-excel, sheets: add-months-google-sheets}
+  title: How to Add Months to a Date (EDATE)
+  summary: >-
+    EDATE shifts a date by a whole number of calendar months and keeps the same day of the month
+    when that day exists. It is the clean way to add or subtract months for renewals, billing
+    cycles and contract end dates. When the day does not exist in the target month, EDATE lands
+    on the last day of that month instead of spilling into the next one.
+  problem: >-
+    A subscription renews every 3 months from the signup date, and some invoices fall on the
+    31st. Adding 90 days drifts off the calendar month, and DATE(YEAR, MONTH+n, DAY) turns
+    January 31 plus one month into March 3 instead of February 28.
+  excel:
+    formula: '=EDATE(A2, B2)'
+    explain: >-
+      Syntax: `EDATE(start_date, months)`. A2 is the start date and B2 is how many months to move
+      (positive forward, negative backward). EDATE returns a date serial, so format the cell as a
+      Date. January 31 plus 1 month becomes February 28 (or 29 in a leap year), not March 3.
+    notes: >-
+      Prefer EDATE over `=DATE(YEAR(A2), MONTH(A2)+B2, DAY(A2))` whenever the day of the month
+      might not exist in the target month. The DATE construction rolls overflowing days into the
+      next month, so Jan 31 + 1 becomes March 3 in a non-leap year, while EDATE clamps to the
+      last day of February. Format the result as a date because EDATE returns a serial number.
+      EOMONTH is better when you always want month-end due dates; combine both when a rule is
+      "same day next month, else last day of month" which is exactly what EDATE already does.
+      Negative months work the same way for going backward.
+    alternatives:
+      - label: Same day next month
+        formula: '=EDATE(A2, 1)'
+      - label: Three months earlier
+        formula: '=EDATE(A2, -3)'
+      - label: DATE construction (rolls over missing days)
+        formula: '=DATE(YEAR(A2), MONTH(A2)+B2, DAY(A2))'
+      - label: End of the month n months away
+        formula: '=EOMONTH(A2, B2)'
+    diff: >-
+      Google Sheets has the same EDATE and EOMONTH functions with identical month-end clamping.
+  sheets:
+    formula: '=EDATE(A2, B2)'
+    explain: >-
+      EDATE works the same way in Google Sheets: it moves A2 by B2 calendar months and clamps to
+      the last day of the month when the original day does not exist.
+    notes: >-
+      In Google Sheets, keep signup or invoice dates as real dates (Format > Number > Date) so
+      EDATE can read them. Open-ended ranges such as A2:A work fine inside ARRAYFORMULA when you
+      want a whole column of renewal dates: `=ARRAYFORMULA(IF(A2:A="", "", EDATE(A2:A, B2:B)))`.
+      Empty cells in the months column are treated as zero, which returns the original date, so
+      guard with IF when that is not what you want. EOMONTH is still the better choice for pure
+      month-end deadlines. If the result looks like 46081, set Format > Number > Date on the
+      formula column.
+    alternatives:
+      - label: Whole column of renewals
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", EDATE(A2:A, B2:B)))'
+      - label: Same day next month
+        formula: '=EDATE(A2, 1)'
+      - label: End of month n months away
+        formula: '=EOMONTH(A2, B2)'
+    diff: >-
+      Excel uses the same EDATE function; fill the formula down or spill it in Microsoft 365
+      instead of wrapping it in ARRAYFORMULA.
+  example:
+    intro: >-
+      Start dates and months to add. Row 2 shows a normal mid-month shift; row 3 shows EDATE
+      clamping January 31 to February 28 while the DATE construction rolls into March.
+    grid:
+      - [Start, Months, EDATE result, DATE construction]
+      - [2026-01-15, 3]
+      - [2026-01-31, 1]
+      - [2026-11-01, 2]
+      - [2026-03-15, -1]
+    checks:
+      - cell: C2
+        label: EDATE filled down
+        excel: '=EDATE(A2, B2)'
+        fill: [C2, C3, C4, C5]
+        results: [2026-04-15, 2026-02-28, 2027-01-01, 2026-02-15]
+      - cell: D2
+        label: DATE construction (rollover on missing days)
+        excel: '=DATE(YEAR(A2), MONTH(A2)+B2, DAY(A2))'
+        fill: [D2, D3, D4, D5]
+        results: [2026-04-15, 2026-03-03, 2027-01-01, 2026-02-15]
+  steps:
+    - Put the start dates in column A and the number of months to move in column B.
+    - 'Type `=EDATE(A2, B2)` and fill it down. Format column C as a date.'
+    - January 15 plus 3 months is April 15. January 31 plus 1 month is February 28, because February 2026 has no 31st.
+    - 'Compare with `=DATE(YEAR(A2), MONTH(A2)+B2, DAY(A2))` on the same row: for January 31 it returns March 3 instead of February 28.'
+    - Negative months move backward, so March 15 minus 1 month is February 15.
+  errors:
+    - error: January 31 plus one month becomes March 3
+      cause: The formula used DATE(YEAR, MONTH+1, DAY) instead of EDATE, so the missing day spilled into March.
+      fix: Switch to EDATE, which clamps to the last day of February.
+    - error: Result shows a number like 46081
+      cause: The cell is formatted as a number.
+      fix: Format it as a date.
+    - error: '#VALUE!'
+      cause: The start date is text that looks like a date, or months is non-numeric text.
+      fix: Convert the date with DATEVALUE and make sure months is a number.
+    - error: Renewal is one day off every other month
+      cause: The workbook added a fixed number of days (for example 30 or 90) instead of calendar months.
+      fix: Use EDATE with the real month count so month lengths are handled automatically.
+  faq:
+    - q: What is the difference between EDATE and EOMONTH?
+      a: EDATE keeps the same day of the month (or the last day if that day is missing). EOMONTH always returns the last day of the target month.
+    - q: How do I add months and then land on the next working day?
+      a: 'Wrap EDATE in WORKDAY: =WORKDAY(EDATE(A2, B2)-1, 1) moves to the renewal date and then to the next working day if needed.'
+    - q: Does EDATE keep the time portion of a date-time value?
+      a: No. EDATE returns a pure date serial with no time. Add the original time back with +MOD(A2,1) if you need it.
+  related: [eomonth, workday, date-function, today-now]
+
+- id: month-year
+  category: date
+  slugs: {excel: month-year-excel, sheets: month-year-google-sheets}
+  title: How to Get Month and Year from a Date
+  summary: >-
+    Pull a month-year label, the month number and the year from a real date so you can group
+    invoices, build pivot keys and label charts. TEXT gives a readable "2026-11" or "Nov 2026"
+    string; MONTH and YEAR return the numbers; DATE(YEAR, MONTH, 1) gives the first day of that
+    month for sorting and range lookups.
+  problem: >-
+    A sales log has full dates, but the report needs one row per calendar month. Sorting by the
+    month name as text puts April before February, and joining YEAR and MONTH with & without
+    zero-padding breaks chronological order.
+  excel:
+    formula: '=TEXT(A2, "yyyy-mm")'
+    explain: >-
+      Syntax: `TEXT(value, format_text)`. With "yyyy-mm" the date in A2 becomes the text
+      2026-11, which sorts correctly as text and works as a SUMIF / COUNTIF key. Use MONTH(A2)
+      and YEAR(A2) when you need the numbers, or DATE(YEAR(A2), MONTH(A2), 1) when you need a
+      real first-of-month date.
+    notes: >-
+      Prefer the ISO layout "yyyy-mm" for grouping keys because it sorts in calendar order as
+      text. "mmm yyyy" is nicer for chart labels but sorts alphabetically. MONTH returns 1 to 12
+      and YEAR returns the four-digit year; neither needs special formatting. When you need a
+      value that still behaves like a date (for example as the start of a SUMIFS range), use
+      `=DATE(YEAR(A2), MONTH(A2), 1)` and format it as MMM YYYY. In Excel the TEXT format codes
+      follow the installation language, so a German Excel expects different letters for year and
+      day. If you only want a different look without changing the value, use Format Cells instead
+      of TEXT.
+    alternatives:
+      - label: Month number
+        formula: '=MONTH(A2)'
+      - label: Year number
+        formula: '=YEAR(A2)'
+      - label: First day of the month
+        formula: '=DATE(YEAR(A2), MONTH(A2), 1)'
+      - label: Short month-year label
+        formula: '=TEXT(A2, "mmm yyyy")'
+    diff: >-
+      Google Sheets uses the same TEXT, MONTH, YEAR and DATE functions; English format codes work
+      in every Sheets locale.
+  sheets:
+    formula: '=TEXT(A2, "yyyy-mm")'
+    explain: >-
+      TEXT with "yyyy-mm" returns the same month-year key in Google Sheets. MONTH, YEAR and
+      DATE(YEAR, MONTH, 1) match Excel.
+    notes: >-
+      Google Sheets always accepts English TEXT codes (yyyy, mm, mmm), whatever the spreadsheet
+      locale is; the locale only changes whether month names come back in English or another
+      language. For a whole column of keys use
+      `=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "yyyy-mm")))`. Keep a parallel first-of-month
+      column with DATE for anything that must stay a real date, because TEXT results cannot be
+      fed into date arithmetic without converting them back. If TEXT leaves the value unchanged,
+      the cell is text that only looks like a date — wrap it in DATEVALUE first.
+    alternatives:
+      - label: Whole column of month-year keys
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", TEXT(A2:A, "yyyy-mm")))'
+      - label: Month number
+        formula: '=MONTH(A2)'
+      - label: First day of the month
+        formula: '=DATE(YEAR(A2), MONTH(A2), 1)'
+    diff: >-
+      Excel spills TEXT over a range in Microsoft 365 and localises format codes; Sheets uses
+      ARRAYFORMULA and always reads English codes.
+  example:
+    intro: Four invoice dates turned into a month-year key, month number, year and first-of-month date.
+    grid:
+      - [Invoice date, Month-year, Month, Year, First of month]
+      - [2026-01-15]
+      - [2026-03-31]
+      - [2026-11-01]
+      - [2026-12-25]
+    checks:
+      - cell: B2
+        label: yyyy-mm text key
+        excel: '=TEXT(A2, "yyyy-mm")'
+        fill: [B2, B3, B4, B5]
+        results: ['2026-01', '2026-03', '2026-11', '2026-12']
+      - cell: C2
+        label: month number
+        excel: '=MONTH(A2)'
+        fill: [C2, C3, C4, C5]
+        results: [1, 3, 11, 12]
+      - cell: D2
+        label: year number
+        excel: '=YEAR(A2)'
+        fill: [D2, D3, D4, D5]
+        results: [2026, 2026, 2026, 2026]
+      - cell: E2
+        label: first day of month
+        excel: '=DATE(YEAR(A2), MONTH(A2), 1)'
+        fill: [E2, E3, E4, E5]
+        results: [2026-01-01, 2026-03-01, 2026-11-01, 2026-12-01]
+  steps:
+    - Confirm column A holds real dates (=ISNUMBER(A2) is TRUE).
+    - 'Type `=TEXT(A2, "yyyy-mm")` for a sortable month-year key and fill it down.'
+    - 'Add `=MONTH(A2)` and `=YEAR(A2)` when you need the numbers for filters or charts.'
+    - 'Use `=DATE(YEAR(A2), MONTH(A2), 1)` when the helper column must stay a real date for SUMIFS or pivots.'
+    - Group or pivot on the key column; ISO keys keep months in calendar order.
+  errors:
+    - error: Month names sort as April, August, February
+      cause: The key used "mmm yyyy" or the month name alone, which sorts alphabetically.
+      fix: Use "yyyy-mm" or a real first-of-month date column for sorting.
+    - error: Result shows a serial number when joined to text
+      cause: The date was concatenated with & without TEXT.
+      fix: 'Wrap it: `="Month "&TEXT(A2, "yyyy-mm")`.'
+    - error: TEXT returns the input unchanged
+      cause: The cell holds text that looks like a date.
+      fix: Convert with DATEVALUE first, then apply TEXT or MONTH.
+    - error: Wrong year near New Year
+      cause: A fiscal-year rule was expected, but YEAR returns the calendar year.
+      fix: Build a fiscal key with IF(MONTH(A2)>=start_month, YEAR(A2)+1, YEAR(A2)) or similar.
+  faq:
+    - q: Should I use TEXT or MONTH and YEAR for grouping?
+      a: Use TEXT("yyyy-mm") for a single readable key. Use MONTH and YEAR when you need the numbers separately, or DATE(YEAR, MONTH, 1) when the helper must remain a date.
+    - q: How do I sum amounts by month-year?
+      a: 'Add a helper column with =TEXT(A2, "yyyy-mm") and use SUMIF on that column, or pivot on =DATE(YEAR(A2), MONTH(A2), 1).'
+    - q: Why is TEXT better than Format Cells for a lookup key?
+      a: Format Cells only changes how the value looks; VLOOKUP and SUMIF still see the full date. TEXT returns a real text key that matches across rows in the same month.
+  related: [text-function, eomonth, date-function, sum-by-month]
+
+- id: weekday
+  category: date
+  slugs: {excel: weekday-excel, sheets: weekday-google-sheets}
+  title: How to Get the Weekday of a Date (WEEKDAY)
+  summary: >-
+    WEEKDAY returns a number for the day of the week so you can flag weekends, build workday
+    rules and sort by Monday-first calendars. Pair it with TEXT(..., "dddd") when you need the
+    weekday name instead of a number. The second argument controls whether the week starts on
+    Sunday or Monday.
+  problem: >-
+    A schedule needs to mark Saturdays and Sundays, or shift a due date when it falls on a
+    weekend. Comparing the date formatted as "Saturday" as text is brittle across locales, and
+    the default WEEKDAY numbering (Sunday = 1) surprises people who expect Monday = 1.
+  excel:
+    formula: '=WEEKDAY(A2, 2)'
+    explain: >-
+      Syntax: `WEEKDAY(serial_number, [return_type])`. With return_type 2, Monday is 1 and Sunday
+      is 7, which matches most business calendars. Return_type 1 (the default) makes Sunday 1 and
+      Saturday 7. The result is a number; use TEXT(A2, "dddd") when you need the name.
+    notes: >-
+      Return_type 2 is the usual choice for Monday-to-Friday logic: weekend tests become
+      `=WEEKDAY(A2, 2)>=6`. Return_type 1 is the Excel default and matches some US calendars.
+      Return_type 11 to 17 mirror the WORKDAY.INTL weekend codes if you need another start day.
+      WEEKDAY ignores any time portion of a date-time value. Format the result as a number, not a
+      date. For the weekday name use TEXT with "ddd" or "dddd"; those codes follow the Excel
+      installation language, so a French Excel may show "lundi" instead of "Monday". To push a
+      weekend date to the next Monday, use WORKDAY or a small IF around WEEKDAY.
+    alternatives:
+      - label: Sunday = 1 (Excel default)
+        formula: '=WEEKDAY(A2, 1)'
+      - label: Weekday name
+        formula: '=TEXT(A2, "dddd")'
+      - label: Weekend flag (Mon=1)
+        formula: '=IF(WEEKDAY(A2, 2)>=6, "Weekend", "Weekday")'
+      - label: Next Monday if weekend
+        formula: '=IF(WEEKDAY(A2, 2)>=6, A2+(8-WEEKDAY(A2, 2)), A2)'
+    diff: >-
+      Google Sheets supports the same WEEKDAY return types and the same TEXT weekday codes.
+  sheets:
+    formula: '=WEEKDAY(A2, 2)'
+    explain: >-
+      WEEKDAY in Google Sheets uses the same return_type codes: 2 for Monday = 1 through Sunday =
+      7, and 1 for Sunday = 1.
+    notes: >-
+      Sheets reads English TEXT codes in every locale, but the weekday *names* still follow the
+      File > Settings locale, so "dddd" may return a translated name. For a whole column use
+      `=ARRAYFORMULA(IF(A2:A="", "", WEEKDAY(A2:A, 2)))`. Weekend highlighting is often easier
+      with conditional formatting and a custom formula `=WEEKDAY(A2, 2)>=6` applied to the date
+      range. If you only need the name for a label, TEXT is enough; keep WEEKDAY when formulas
+      must branch on the number. Empty date cells return 0 from WEEKDAY in some contexts, so
+      guard with IF(A2="", "", WEEKDAY(A2, 2)).
+    alternatives:
+      - label: Whole column of weekday numbers
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", WEEKDAY(A2:A, 2)))'
+      - label: Weekday name
+        formula: '=TEXT(A2, "dddd")'
+      - label: Weekend flag
+        formula: '=IF(WEEKDAY(A2, 2)>=6, "Weekend", "Weekday")'
+    diff: >-
+      Excel uses the same WEEKDAY return types; fill down or spill instead of ARRAYFORMULA, and
+      remember that TEXT weekday names follow the Excel UI language.
+  example:
+    intro: >-
+      Four dates in late 2026 with WEEKDAY return_type 1 (Sunday = 1), return_type 2 (Monday = 1)
+      and the weekday name from TEXT.
+    grid:
+      - [Date, WEEKDAY type 1, WEEKDAY type 2, Weekday name]
+      - [2026-11-01]
+      - [2026-11-02]
+      - [2026-11-07]
+      - [2026-12-25]
+    checks:
+      - cell: B2
+        label: Sunday=1 numbering
+        excel: '=WEEKDAY(A2, 1)'
+        fill: [B2, B3, B4, B5]
+        results: [1, 2, 7, 6]
+      - cell: C2
+        label: Monday=1 numbering
+        excel: '=WEEKDAY(A2, 2)'
+        fill: [C2, C3, C4, C5]
+        results: [7, 1, 6, 5]
+      - cell: D2
+        label: weekday name
+        excel: '=TEXT(A2, "dddd")'
+        fill: [D2, D3, D4, D5]
+        results: [Sunday, Monday, Saturday, Friday]
+  steps:
+    - List the dates in column A as real dates.
+    - 'Type `=WEEKDAY(A2, 2)` for Monday-first numbers and fill down.'
+    - 'Add `=WEEKDAY(A2, 1)` if you need the Sunday-first numbering for comparison.'
+    - 'Use `=TEXT(A2, "dddd")` when you want the name instead of a number.'
+    - 'Flag weekends with `=WEEKDAY(A2, 2)>=6`, or move a weekend date with WORKDAY.'
+  errors:
+    - error: Monday comes back as 2 instead of 1
+      cause: The formula used the default return_type 1, where Sunday is 1.
+      fix: Pass 2 as the second argument for Monday = 1.
+    - error: Weekday name is in another language
+      cause: TEXT uses the Excel UI language or the Sheets spreadsheet locale for names.
+      fix: Change the locale, or map WEEKDAY numbers to English names with CHOOSE or SWITCH.
+    - error: '#VALUE!'
+      cause: The cell holds text that only looks like a date.
+      fix: Convert it with DATEVALUE before WEEKDAY.
+    - error: Weekend test marks Friday as a weekend
+      cause: The test used return_type 1 with >=6, which treats Friday (6) and Saturday (7) as the weekend.
+      fix: Use return_type 2, where Saturday and Sunday are 6 and 7.
+  faq:
+    - q: What return_type should I use?
+      a: Use 2 when weeks start on Monday (common in business sheets). Use 1 only when you specifically need Sunday = 1.
+    - q: How do I get the weekday name instead of a number?
+      a: 'Use =TEXT(A2, "dddd") for the full name or "ddd" for the three-letter form.'
+    - q: How do I skip weekends when adding days?
+      a: Prefer WORKDAY or WORKDAY.INTL over manual WEEKDAY loops; they skip weekends and optional holidays in one call.
+  related: [workday, networkdays, text-function, today-now]
