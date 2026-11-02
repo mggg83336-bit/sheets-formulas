@@ -504,18 +504,27 @@
   sheets:
     formula: '=IF(C2=0, "", B2/C2)'
     explain: >-
-      Identical in Google Sheets.
+      Identical guard pattern in Google Sheets: test the divisor first, return a blank when it is
+      zero or empty, and only then divide revenue by orders so #DIV/0! never appears in the report.
     notes: >-
       Google Sheets also has a DIVIDE function, and its hover message reads "Function DIVIDE
       parameter 2 cannot be zero", which makes the cause easy to confirm. To fill a whole column
       without errors, use ARRAYFORMULA with the same test:
       `=ARRAYFORMULA(IF(C2:C=0, "", B2:B/C2:C))`. Because empty rows also have C=0, the formula
-      leaves them blank automatically.
+      leaves them blank automatically. Prefer the explicit IF test over IFERROR so typos and
+      #REF! issues stay visible; IFERROR is still useful around AVERAGEIF when a month has no
+      matching rows. Format the result column as a number, and return "" rather than 0 when the
+      month simply has no activity so charts are not pulled down by fake zeros.
     alternatives:
       - label: Whole column with ARRAYFORMULA
         formula: '=ARRAYFORMULA(IF(C2:C=0, "", B2:B/C2:C))'
+      - label: Show a message instead of blank
+        formula: '=IF(C2=0, "No orders", B2/C2)'
+      - label: AVERAGEIF with no matches
+        formula: '=IFERROR(AVERAGEIF(A2:A5, "May", B2:B5), 0)'
     diff: >-
-      The same formula works in Google Sheets.
+      Excel uses the same IF guard; fill the formula down or spill it in Microsoft 365 instead of
+      wrapping open ranges in ARRAYFORMULA.
   example:
     intro: February had no orders and April's orders are not entered yet.
     grid:

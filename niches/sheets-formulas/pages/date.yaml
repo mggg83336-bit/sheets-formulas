@@ -1216,3 +1216,344 @@
     - q: How do I skip weekends when adding days?
       a: Prefer WORKDAY or WORKDAY.INTL over manual WEEKDAY loops; they skip weekends and optional holidays in one call.
   related: [workday, networkdays, text-function, today-now]
+
+- id: weeknum
+  category: date
+  slugs: {excel: weeknum-excel, sheets: weeknum-google-sheets}
+  title: How to Get the Week Number of a Date (WEEKNUM)
+  summary: >-
+    WEEKNUM returns which week of the year a date falls in. The second argument chooses Sunday-first,
+    Monday-first, or ISO week numbering, so the same date can show week 1 or week 53 depending on
+    the system you pick. Use it for week-based reports, ISO calendars and week-over-week dashboards.
+  problem: >-
+    A sales workbook needs a Week column so PivotTables and charts can group by week. Typing the
+    week by hand drifts when the year rolls, and teams disagree on whether weeks start on Sunday
+    or Monday and whether late December belongs to week 53 or week 1.
+  excel:
+    formula: '=WEEKNUM(A2, 2)'
+    explain: >-
+      Syntax: `WEEKNUM(serial_number, [return_type])`. With return_type 2 the week starts on Monday
+      and the week that contains January 1 is week 1. Return_type 1 (the default) starts the week
+      on Sunday. Return_type 21 follows the ISO-8601 rule (Monday start, week 1 is the first week
+      with at least four days in the new year), which matches ISOWEEKNUM.
+    notes: >-
+      Pick one return_type for the whole workbook and stick to it; mixing 1 and 21 is the usual
+      source of off-by-one week charts. Return_type 2 is a good default for Monday-to-Friday
+      business sheets that are not strict ISO. When auditors or European partners expect ISO weeks,
+      use 21 (or ISOWEEKNUM in Microsoft 365). WEEKNUM ignores any time portion of a date-time
+      value. Format the result as a number. Pair with YEAR or a helper like `=YEAR(A2)&"-W"&TEXT(WEEKNUM(A2,21),"00")`
+      when you need a unique week key across years. Empty date cells can return 0, so guard with
+      IF(A2="", "", WEEKNUM(A2, 2)).
+    alternatives:
+      - label: Sunday-first week number (Excel default)
+        formula: '=WEEKNUM(A2, 1)'
+      - label: ISO week number
+        formula: '=WEEKNUM(A2, 21)'
+      - label: ISOWEEKNUM (Microsoft 365)
+        formula: '=ISOWEEKNUM(A2)'
+      - label: Year-week key for pivots
+        formula: '=YEAR(A2)&"-W"&TEXT(WEEKNUM(A2, 21), "00")'
+    diff: >-
+      Google Sheets supports the same WEEKNUM return types. ISOWEEKNUM is also available there; use
+      ARRAYFORMULA when filling a whole column.
+  sheets:
+    formula: '=WEEKNUM(A2, 2)'
+    explain: >-
+      WEEKNUM in Google Sheets uses the same return_type codes: 2 for Monday-start system weeks,
+      1 for Sunday-start, and 21 for ISO week numbers.
+    notes: >-
+      For a whole column use `=ARRAYFORMULA(IF(A2:A="", "", WEEKNUM(A2:A, 2)))`. Sheets also has
+      ISOWEEKNUM for the ISO-8601 week, which matches WEEKNUM with return_type 21. File > Settings
+      locale does not change WEEKNUM's numbering rules, but it does affect how dates are parsed
+      when you type them as text. Keep source values as real dates (Format > Number > Date) so
+      week numbers stay stable after locale changes. When building a week label for charts, combine
+      YEAR with TEXT around WEEKNUM so week 5 of 2026 does not collide with week 5 of 2027.
+    alternatives:
+      - label: Whole column of week numbers
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", WEEKNUM(A2:A, 2)))'
+      - label: ISO week with ISOWEEKNUM
+        formula: '=ISOWEEKNUM(A2)'
+      - label: Sunday-first week number
+        formula: '=WEEKNUM(A2, 1)'
+      - label: Year-week key
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", YEAR(A2:A)&"-W"&TEXT(WEEKNUM(A2:A, 21), "00")))'
+    diff: >-
+      Excel uses the same WEEKNUM return types; fill down or spill instead of ARRAYFORMULA, and use
+      ISOWEEKNUM in Microsoft 365 as a clearer alias for return_type 21.
+  example:
+    intro: >-
+      Five dates spanning early January, a mid-year Monday, and late December. Columns compare
+      return_type 1 (Sunday start), return_type 2 (Monday start) and return_type 21 (ISO).
+    grid:
+      - [Date, WEEKNUM type 1, WEEKNUM type 2, WEEKNUM type 21 (ISO)]
+      - [2026-01-01]
+      - [2026-01-04]
+      - [2026-01-05]
+      - [2026-11-02]
+      - [2026-12-28]
+    checks:
+      - cell: B2
+        label: Sunday-first week numbers
+        excel: '=WEEKNUM(A2, 1)'
+        fill: [B2, B3, B4, B5, B6]
+        results: [1, 2, 2, 45, 1]
+      - cell: C2
+        label: Monday-first system week numbers
+        excel: '=WEEKNUM(A2, 2)'
+        fill: [C2, C3, C4, C5, C6]
+        results: [1, 1, 2, 45, 1]
+      - cell: D2
+        label: ISO week numbers
+        excel: '=WEEKNUM(A2, 21)'
+        fill: [D2, D3, D4, D5, D6]
+        results: [1, 1, 2, 45, 53]
+  steps:
+    - List the dates in column A as real dates, not text.
+    - 'Type `=WEEKNUM(A2, 2)` for Monday-start system weeks and fill down.'
+    - 'Add `=WEEKNUM(A2, 1)` when you need the Sunday-first numbering for comparison.'
+    - 'Use `=WEEKNUM(A2, 21)` (or ISOWEEKNUM) when the report must follow ISO-8601 weeks.'
+    - 'Build a year-week key with YEAR and TEXT if the same week number appears in more than one year.'
+  errors:
+    - error: Late December shows week 1 instead of 53
+      cause: Return_type 1 or 2 treats the week that contains the next January 1 as week 1 of the new numbering, while ISO (21) keeps week 53 when that week still belongs to the old ISO year.
+      fix: Switch to return_type 21 or ISOWEEKNUM when you need ISO week 53 for late December dates such as 2026-12-28.
+    - error: Monday and Sunday give different week numbers for the same date
+      cause: Return_type 1 starts weeks on Sunday; return_type 2 starts on Monday, so Sunday dates often sit in different week buckets.
+      fix: Agree on one return_type for the file and document it next to the Week column header.
+    - error: '#VALUE!'
+      cause: The cell holds text that only looks like a date.
+      fix: Convert it with DATEVALUE or DATE before WEEKNUM.
+    - error: Week chart merges two years
+      cause: The summary keyed only on WEEKNUM without the year.
+      fix: Include YEAR in the grouping key, for example YEAR&"-W"&TEXT(WEEKNUM(...),"00").
+  faq:
+    - q: What is the difference between WEEKNUM and ISOWEEKNUM?
+      a: ISOWEEKNUM always uses the ISO-8601 rule (Monday start, week 1 has at least four days in the new year). WEEKNUM needs return_type 21 to match that; types 1 and 2 use simpler "week containing January 1" rules.
+    - q: Which return_type should I use?
+      a: Use 2 for typical Monday-first business sheets. Use 21 (or ISOWEEKNUM) when partners expect ISO week numbers. Use 1 only when you specifically need Sunday-first weeks.
+    - q: How do I get the week start date from a week number?
+      a: Store real dates and group with WEEKNUM, or compute the Monday of the week with a formula based on the date (for example date - WEEKDAY(date, 2) + 1). Avoid reconstructing dates from a week number alone when the year boundary is ambiguous.
+  related: [weekday, workday, networkdays, today-now]
+
+- id: text-to-date
+  category: date
+  slugs: {excel: text-to-date-excel, sheets: text-to-date-google-sheets}
+  title: How to Convert Text to a Date (DATEVALUE)
+  summary: >-
+    DATEVALUE turns a date written as text into a real spreadsheet date so WEEKDAY, EDATE and
+    PivotTables can use it. When the text is not in a locale-friendly order, build the date with
+    DATE plus LEFT, MID and RIGHT instead. This page shows both patterns with worked results.
+  problem: >-
+    Exports arrive with dates as plain text ("2026-11-02", "11/02/2026", "20261102"). Sorting,
+    filtering and date formulas treat them as text, so month totals and weekday flags come out
+    wrong until the values become real dates.
+  excel:
+    formula: '=DATEVALUE(A2)'
+    explain: >-
+      Syntax: `DATEVALUE(date_text)`. Excel parses date_text using the Windows/Mac regional date
+      order and returns a date serial. Format the result cell as a Date. When the string is an
+      unambiguous ISO value such as 2026-11-02, DATEVALUE usually works; for compact digits such as
+      20261102, split the parts with DATE.
+    notes: >-
+      DATEVALUE depends on the workbook locale: `11/02/2026` means 2 November in a US locale and
+      11 February in a UK/EU locale. Prefer ISO `yyyy-mm-dd` text when you control the export, or
+      parse fixed positions with `=DATE(LEFT(A2,4), MID(A2,5,2), RIGHT(A2,2))` for `yyyymmdd`.
+      VALUE can also coerce some date-like text, but DATEVALUE is clearer for date-only strings.
+      After converting, Copy > Paste Special > Values if you want to replace the text column.
+      Text that LibreOffice or Excel cannot parse returns #VALUE!; fix the pattern before wrapping
+      in IFERROR if you need a blank instead.
+    alternatives:
+      - label: Parse yyyymmdd digits
+        formula: '=DATE(LEFT(A2,4), MID(A2,5,2), RIGHT(A2,2))'
+      - label: Parse yyyy-mm-dd with DATE parts
+        formula: '=DATE(LEFT(A2,4), MID(A2,6,2), RIGHT(A2,2))'
+      - label: Coerce with VALUE
+        formula: '=VALUE(A2)'
+    diff: >-
+      Google Sheets DATEVALUE follows the spreadsheet locale under File > Settings, and also
+      accepts many ISO strings. ARRAYFORMULA can convert a whole column in one step.
+  sheets:
+    formula: '=DATEVALUE(A2)'
+    explain: >-
+      DATEVALUE in Google Sheets converts date text to a date serial using the File > Settings
+      locale. Format the result with Format > Number > Date.
+    notes: >-
+      Set the spreadsheet locale to match the text order before relying on DATEVALUE for
+      slash-separated dates. ISO `yyyy-mm-dd` is the safest import format across locales. For a
+      whole column use `=ARRAYFORMULA(IF(A2:A="", "", DATEVALUE(A2:A)))`. Compact `yyyymmdd`
+      strings still need DATE with LEFT/MID/RIGHT because DATEVALUE does not split bare digits.
+      If DATEVALUE returns #VALUE!, check for extra spaces (TRIM first) or a time stamp glued to
+      the date; split on space or use REGEXEXTRACT when the pattern is consistent. After a
+      successful convert, paste values over the text column when formulas should no longer depend
+      on the raw export.
+    alternatives:
+      - label: Whole column convert
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", DATEVALUE(A2:A)))'
+      - label: Parse yyyymmdd digits
+        formula: '=DATE(LEFT(A2,4), MID(A2,5,2), RIGHT(A2,2))'
+      - label: Trim then convert
+        formula: '=DATEVALUE(TRIM(A2))'
+    diff: >-
+      Excel uses the same DATEVALUE function with the OS locale instead of a spreadsheet setting;
+      fill the formula down rather than using ARRAYFORMULA.
+  example:
+    intro: >-
+      Mixed text dates. DATEVALUE handles the ISO and month-name forms; the compact yyyymmdd value
+      is rebuilt with DATE. Results are shown as calendar dates.
+    grid:
+      - [Text date, DATEVALUE, DATE from digits]
+      - ['2026-11-02']
+      - ['02-Nov-2026']
+      - ['20261102']
+      - ['2026-01-15']
+    checks:
+      - cell: B2
+        label: DATEVALUE on parseable text
+        excel: '=DATEVALUE(A2)'
+        fill: [B2, B3]
+        results: [2026-11-02, 2026-11-02]
+      - cell: B5
+        label: DATEVALUE on another ISO date
+        excel: '=DATEVALUE(A5)'
+        result: 2026-01-15
+      - cell: C4
+        label: DATE parts for yyyymmdd
+        excel: '=DATE(LEFT(A4,4), MID(A4,5,2), RIGHT(A4,2))'
+        result: 2026-11-02
+  steps:
+    - Put the text dates in column A. Prefer ISO `yyyy-mm-dd` when you can control the export.
+    - 'Type `=DATEVALUE(A2)` and format the result as a Date, then fill down for locale-friendly text.'
+    - 'For compact `yyyymmdd` values use `=DATE(LEFT(A2,4), MID(A2,5,2), RIGHT(A2,2))` instead.'
+    - Replace the original text with Paste Special > Values once the convert column looks correct.
+    - 'Confirm with WEEKDAY or MONTH on the converted cells to prove they are real dates.'
+  errors:
+    - error: "#VALUE! from DATEVALUE"
+      cause: The text order does not match the locale, or the string is bare digits / a non-date value.
+      fix: Switch locale, standardize on ISO text, or parse with DATE and LEFT/MID/RIGHT.
+    - error: 11/02/2026 becomes February instead of November
+      cause: The locale reads dates as DMY while the text was written as MDY (or the reverse).
+      fix: Use ISO text, or parse known positions with DATE so month and day cannot swap.
+    - error: Converted date looks like 46328
+      cause: The cell is still formatted as a number.
+      fix: Format it as a Date.
+    - error: Leading spaces break the parse
+      cause: Imported text includes stray spaces or non-breaking spaces.
+      fix: Wrap with TRIM (and SUBSTITUTE for CHAR(160) when needed) before DATEVALUE.
+  faq:
+    - q: When should I use DATE instead of DATEVALUE?
+      a: Use DATE when the year, month and day sit in fixed character positions (for example yyyymmdd) or when slash order is ambiguous across locales. Use DATEVALUE for already locale-friendly or ISO date text.
+    - q: Does DATEVALUE keep a time portion?
+      a: No. DATEVALUE returns a pure date serial. If the text includes a time, parse the date and time separately or use VALUE on a full date-time string your locale understands.
+    - q: How do I convert a whole column in Google Sheets?
+      a: 'Use =ARRAYFORMULA(IF(A2:A="", "", DATEVALUE(A2:A))) and format the column as Date.'
+  related: [date-function, text-to-number, weekday, text-function]
+
+- id: time-difference
+  category: date
+  slugs: {excel: time-difference-excel, sheets: time-difference-google-sheets}
+  title: How to Calculate the Difference Between Two Times
+  summary: >-
+    Subtracting two time values returns the elapsed duration as a fraction of a day. Multiply by
+    24 for decimal hours, and add 1 when the shift crosses midnight so overnight end times stay
+    positive. This page shows same-day and overnight examples with verified hour totals.
+  problem: >-
+    A timesheet stores clock-in and clock-out times. A simple end-minus-start formula works for
+    day shifts but turns negative or wraps oddly when someone works past midnight, and payroll
+    needs decimal hours rather than a clock format.
+  excel:
+    formula: '=IF(B2<A2, B2+1-A2, B2-A2)*24'
+    explain: >-
+      A2 is the start time and B2 is the end time. When the end is earlier than the start, the
+      shift crossed midnight, so adding 1 day before subtracting keeps the duration positive.
+      Multiplying by 24 converts the day-fraction into decimal hours for pay calculations.
+    notes: >-
+      Excel stores times as fractions of a day (06:00 is 0.25, 18:00 is 0.75). Format the raw
+      difference as h:mm when you want a duration clock, or multiply by 24 and format as a Number
+      for decimal hours. The IF(B2<A2, B2+1-A2, B2-A2) pattern covers overnight shifts without
+      needing a separate date column. If start and end include full dates, a plain B2-A2 already
+      spans midnight and you only need `*24`. For totals over 24 hours across many rows, sum the
+      durations and use the [h]:mm format on the total (see the sum-hours guide). Negative plain
+      subtractions usually mean an overnight shift was not adjusted.
+    alternatives:
+      - label: Same-day duration as time
+        formula: '=B2-A2'
+      - label: Same-day decimal hours
+        formula: '=(B2-A2)*24'
+      - label: Overnight-safe duration (day fraction)
+        formula: '=IF(B2<A2, B2+1-A2, B2-A2)'
+      - label: Minutes instead of hours
+        formula: '=IF(B2<A2, B2+1-A2, B2-A2)*1440'
+    diff: >-
+      Google Sheets uses the same day-fraction arithmetic. Format > Number > Duration is a handy
+      display option for the raw difference, and ARRAYFORMULA can fill a whole timesheet column.
+  sheets:
+    formula: '=IF(B2<A2, B2+1-A2, B2-A2)*24'
+    explain: >-
+      Same overnight-safe pattern in Google Sheets: adjust across midnight when needed, then
+      multiply by 24 for decimal hours.
+    notes: >-
+      Format start and end columns as Time (Format > Number > Time). For the raw difference,
+      Format > Number > Duration shows hours and minutes clearly, including values past 24 hours
+      when you sum several days. Whole-column version:
+      `=ARRAYFORMULA(IF(A2:A="", "", IF(B2:B<A2:A, B2:B+1-A2:A, B2:B-A2:A)*24))`. If people type
+      times as text, coerce with TIMEVALUE first. When both date and time live in the same cell,
+      subtract the full date-times and multiply by 24; the midnight IF is only required for
+      time-only columns. Pair with SUM on the decimal-hours column for payroll totals.
+    alternatives:
+      - label: Whole column of decimal hours
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", IF(B2:B<A2:A, B2:B+1-A2:A, B2:B-A2:A)*24))'
+      - label: Duration display (day fraction)
+        formula: '=IF(B2<A2, B2+1-A2, B2-A2)'
+      - label: Same-day decimal hours
+        formula: '=(B2-A2)*24'
+    diff: >-
+      Excel uses the same formulas; fill down or spill instead of ARRAYFORMULA, and use a custom
+      [h]:mm format when you need elapsed hours above 24 on a total row.
+  example:
+    intro: >-
+      Four shifts: a normal day, an overnight shift, a short morning block, and a zero-length
+      edge case. Decimal hours use the overnight-safe formula.
+    grid:
+      - [Start, End, Plain hours, Overnight-safe hours]
+      - ['09:00', '17:30']
+      - ['22:00', '06:30']
+      - ['08:15', '12:45']
+      - ['09:00', '09:00']
+    checks:
+      - cell: C2
+        label: plain (end-start)*24 filled down
+        excel: '=(B2-A2)*24'
+        fill: [C2, C3, C4, C5]
+        results: [8.5, -15.5, 4.5, 0]
+      - cell: D2
+        label: overnight-safe hours filled down
+        excel: '=IF(B2<A2, B2+1-A2, B2-A2)*24'
+        fill: [D2, D3, D4, D5]
+        results: [8.5, 8.5, 4.5, 0]
+  steps:
+    - Enter start times in column A and end times in column B as real Time values.
+    - 'Type `=(B2-A2)*24` for same-day shifts and format the result as a Number.'
+    - 'Switch to `=IF(B2<A2, B2+1-A2, B2-A2)*24` so overnight rows stay positive.'
+    - Fill down the timesheet; empty start cells can be guarded with IF(A2="", "", ...).
+    - Sum the decimal-hours column for payroll, or keep a Duration-formatted column for display.
+  errors:
+    - error: Overnight shift shows negative hours
+      cause: The formula used plain end-start without adding a day when end < start.
+      fix: Use IF(B2<A2, B2+1-A2, B2-A2) before multiplying by 24.
+    - error: Result looks like 0.354 or a clock time
+      cause: The cell still uses a Time format after you wanted decimal hours, or you forgot *24.
+      fix: Multiply by 24 and format as a Number (or keep Time/Duration only for the day-fraction column).
+    - error: '#VALUE!'
+      cause: Start or end is text that only looks like a time.
+      fix: Recode with TIMEVALUE or enter the values as real times.
+    - error: Total over several days wraps to a small clock value
+      cause: The total cell uses h:mm instead of elapsed-hour formatting.
+      fix: Use [h]:mm in Excel or Format > Number > Duration in Sheets on the total (see sum-hours).
+  faq:
+    - q: Why multiply by 24?
+      a: Spreadsheet times are fractions of a 24-hour day, so multiplying the duration by 24 converts that fraction into decimal hours.
+    - q: How do I get minutes instead of hours?
+      a: Multiply the day-fraction by 1440 (24×60) instead of 24.
+    - q: What if the timesheet also has dates?
+      a: Store full date-times in start and end, then use =(B2-A2)*24. The midnight adjustment is unnecessary when the date part already moves to the next day.
+  related: [sum-hours, weekday, today-now, text-to-date]

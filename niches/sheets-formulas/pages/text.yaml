@@ -400,21 +400,25 @@
   sheets:
     formula: '=TRIM(A2)'
     explain: >-
-      Same function in Google Sheets.
+      Same TRIM function in Google Sheets: it strips leading and trailing spaces and collapses
+      repeated spaces between words to a single space, which fixes most failed lookup matches.
     notes: >-
       Google Sheets has a menu shortcut that does not need a helper column: select the range and
       choose Data > Data cleanup > Trim whitespace. It edits the cells in place. For a formula
       that cleans a whole column at once, use `=ARRAYFORMULA(TRIM(A2:A))`. To strip every kind of
       whitespace, including non-breaking spaces and tabs, REGEXREPLACE works well:
-      `=TRIM(REGEXREPLACE(A2, "\s+", " "))`.
+      `=TRIM(REGEXREPLACE(A2, "\s+", " "))`. After cleaning, copy the results and use Paste
+      special > Values only if you want to replace the original messy column.
     alternatives:
       - label: Whole column with one formula
         formula: '=ARRAYFORMULA(TRIM(A2:A))'
       - label: Collapse all whitespace characters
         formula: '=TRIM(REGEXREPLACE(A2, "\s+", " "))'
+      - label: Also remove non-breaking spaces with CHAR
+        formula: '=TRIM(SUBSTITUTE(A2, CHAR(160), " "))'
     diff: >-
-      Google Sheets uses the same TRIM function and also offers Data > Data cleanup > Trim
-      whitespace.
+      Excel uses the same TRIM function; clean a column with fill-down or Flash Fill, and use
+      SUBSTITUTE+CLEAN for non-breaking spaces instead of REGEXREPLACE.
   example:
     intro: The quotes show the hidden spaces in the raw values.
     grid:

@@ -316,17 +316,24 @@
   sheets:
     formula: '=COUNTIF(C2:C8, "Pass")'
     explain: >-
-      Same syntax in Google Sheets: `COUNTIF(range, criterion)`.
+      Same syntax in Google Sheets: `COUNTIF(range, criterion)`. Criteria are not case-sensitive,
+      wildcards work the same way, and a blank criterion `""` still counts empty result cells.
     notes: >-
       COUNTIF works the same way in Google Sheets. For patterns that wildcards cannot express,
       Sheets users can combine REGEXMATCH with SUMPRODUCT, for example counting codes that start
       with two letters followed by digits: `=SUMPRODUCT(REGEXMATCH(A2:A8, "^[A-Z]{2}\d+$"))`.
       COUNTUNIQUE is another Sheets-only helper when you need distinct values instead of matches.
+      Open-ended ranges such as C2:C are fine inside ARRAYFORMULA when you want a live count that
+      grows with new rows: `=ARRAYFORMULA(COUNTIF(C2:C, "Pass"))` is not valid, so keep COUNTIF on
+      a fixed range or wrap criteria checks with SUMPRODUCT instead.
     alternatives:
       - label: Count cells matching a regular expression
         formula: '=SUMPRODUCT(REGEXMATCH(A2:A8, "^[A-Z]{2}\d+$"))'
+      - label: Count unique values in the column
+        formula: '=COUNTUNIQUE(C2:C8)'
     diff: >-
-      Google Sheets uses the same syntax. For complex patterns, combine REGEXMATCH and SUMPRODUCT.
+      Excel uses the same COUNTIF syntax; for regex-style patterns use helper columns or FILTER
+      rather than REGEXMATCH, and use UNIQUE+COUNTA instead of COUNTUNIQUE.
   example:
     intro: Ivy's result has not been entered yet.
     grid:
@@ -597,18 +604,23 @@
   sheets:
     formula: '=SUMIFS($B$2:$B$7, $A$2:$A$7, ">="&D2, $A$2:$A$7, "<="&EOMONTH(D2, 0))'
     explain: >-
-      Identical in Google Sheets.
+      Identical SUMIFS + EOMONTH pattern in Google Sheets. Put the first day of each month in
+      column D, format it as month and year, and fill the total formula down the summary rows.
     notes: >-
       Google Sheets can produce the whole month-by-month summary with one QUERY formula, no
       helper column needed: `=QUERY(A2:B7, "select year(A), month(A)+1, sum(B) where A is not
       null group by year(A), month(A)+1 label year(A) 'Year', month(A)+1 'Month', sum(B)
       'Total'", 0)`. QUERY's month() is zero-based (January = 0), which is why the formula adds 1.
+      Keep transaction dates as real dates (Format > Number > Date); text months break both
+      SUMIFS comparisons and QUERY's year/month grouping.
     alternatives:
       - label: One-formula monthly report with QUERY
         formula: '=QUERY(A2:B7, "select year(A), month(A)+1, sum(B) where A is not null group by year(A), month(A)+1 label year(A) ''Year'', month(A)+1 ''Month'', sum(B) ''Total''", 0)'
+      - label: SUMPRODUCT by month and year
+        formula: '=SUMPRODUCT((MONTH($A$2:$A$7)=MONTH(D2))*(YEAR($A$2:$A$7)=YEAR(D2))*$B$2:$B$7)'
     diff: >-
-      The same formula works in Google Sheets, which can also build the full monthly summary
-      with one QUERY.
+      Excel uses the same SUMIFS + EOMONTH formula; build the month list with UNIQUE or a
+      PivotTable instead of QUERY when you want a no-SQL summary.
   example:
     intro: D2:D4 contain the first day of each month (formatted as month and year).
     grid:

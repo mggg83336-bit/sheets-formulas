@@ -1,7 +1,7 @@
 ---
 title: How to Get the Weekday of a Date (WEEKDAY) in Google Sheets
 slug: weekday-google-sheets
-date: '2026-11-01'
+date: '2026-11-02'
 summary: WEEKDAY returns a number for the day of the week so you can flag weekends,
   build workday rules and sort by Monday-first calendars. Pair it with TEXT(..., "dddd")
   when you need the weekday name instead of a number. The second argument controls
