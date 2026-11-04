@@ -1,0 +1,181 @@
+---
+title: How to Use ROUND, ROUNDUP, and ROUNDDOWN in Google Sheets
+slug: round-google-sheets
+date: '2026-11-04'
+summary: ROUND sends a number to a chosen digit with half-away-from-zero rules, ROUNDUP
+  always moves away from zero, and ROUNDDOWN always moves toward zero. Negative digit
+  values round to tens, hundreds, and beyond — useful for currency, estimates, and
+  clean reports.
+tags:
+- Financial & percentages
+- Google Sheets
+keyword: round-google-sheets
+niche: sheets-formulas
+provider: structured
+entry_id: round
+platform: Google Sheets
+category: financial
+faq:
+- q: What is the difference between ROUND, ROUNDUP, and ROUNDDOWN?
+  a: ROUND uses half away from zero. ROUNDUP always moves away from zero. ROUNDDOWN
+    always moves toward zero. Pick based on whether understating or overstating is
+    worse for the report.
+- q: What do negative num_digits mean?
+  a: They round to the left of the decimal point. -1 rounds to tens, -2 to hundreds,
+    -3 to thousands.
+- q: How do I round to the nearest nickel or 5 minutes?
+  a: Use MROUND with the step size, for example =MROUND(A2, 0.05) for nickels or =MROUND(A2,
+    5) for multiples of 5.
+related:
+- - percentage-change-google-sheets
+  - percentage-change-excel
+- - weighted-average-google-sheets
+  - weighted-average-excel
+- - pmt-google-sheets
+  - pmt-excel
+- - cagr-google-sheets
+  - cagr-excel
+sibling: round-excel
+---
+ROUND sends a number to a chosen digit with half-away-from-zero rules, ROUNDUP always moves away from zero, and ROUNDDOWN always moves toward zero. Negative digit values round to tens, hundreds, and beyond — useful for currency, estimates, and clean reports.
+
+## Quick answer
+
+Use this formula in Google Sheets:
+
+```excel
+=ROUND(A2, 2)
+```
+
+Same ROUND syntax in Google Sheets: choose the number of digits, including negative digits for tens and hundreds.
+
+## The problem
+
+A pricing sheet shows long decimals from tax and FX formulas. Stakeholders want two decimal places for money, whole numbers for headcount, and rounded hundreds for rough forecasts, but plain cell formatting only changes the display while downstream formulas still see the full precision.
+
+## Worked example
+
+Five numbers covering two-decimal currency rounding, integer rounding of 2.5, negative values, and rounding to hundreds. Extra columns compare ROUNDUP, ROUNDDOWN, and MROUND.
+
+| | A | B | C | D | E | F |
+|---|---|---|---|---|---|---|
+| 1 | **Value** | **Digits** | **ROUND** | **ROUNDUP** | **ROUNDDOWN** | **MROUND to 5** |
+| 2 | 2.345 | 2 | **2.35** | **2.35** | **2.34** |  |
+| 3 | 3.14159 | 2 | **3.14** | **3.15** | **3.14** |  |
+| 4 | -1.567 | 2 | **-1.57** | **-1.57** | **-1.56** |  |
+| 5 | 2.5 | 0 | **3** | **3** | **2** |  |
+| 6 | 1234.567 | -2 | **1200** | **1300** | **1200** |  |
+| 7 | 17 | 0 |  |  |  | **15** |
+
+Formulas used in the example (results shown in **bold** in the table above):
+
+**C2 (filled to C6)** — ROUND with per-row digits
+
+```excel
+=ROUND(A2, B2)
+```
+
+Results: **2.35**, **3.14**, **-1.57**, **3**, **1200**
+
+**D2 (filled to D6)** — ROUNDUP with per-row digits
+
+```excel
+=ROUNDUP(A2, B2)
+```
+
+Results: **2.35**, **3.15**, **-1.57**, **3**, **1300**
+
+**E2 (filled to E6)** — ROUNDDOWN with per-row digits
+
+```excel
+=ROUNDDOWN(A2, B2)
+```
+
+Results: **2.34**, **3.14**, **-1.56**, **2**, **1200**
+
+**F7** — MROUND to nearest 5
+
+```excel
+=MROUND(A7, 5)
+```
+
+Result: **15**
+
+<!--AD_IN_ARTICLE-->
+
+## How the formula works
+
+1. List the raw values in column A and the num_digits argument in column B (2, 0, or -2).
+2. Type `=ROUND(A2, B2)` and fill down for standard half-away-from-zero rounding.
+3. Add ROUNDUP and ROUNDDOWN columns when you need always-up or always-down behaviour.
+4. Use a negative digit such as -2 to round to hundreds for rough forecasts.
+5. Reach for MROUND when the target is a multiple (5, 0.05, 100) rather than a decimal place.
+
+## Google Sheets-specific notes
+
+Whole-column rounding: `=ARRAYFORMULA(IF(A2:A="", "", ROUND(A2:A, 2)))`. Sheets follows the same half-away-from-zero rule for ROUND, and the same away-from-zero / toward-zero rules for ROUNDUP and ROUNDDOWN. MROUND is available for nearest-multiple rounding (price points, packing sizes). Locale settings change how decimals display, not how ROUND computes. When sharing files with Excel users, stick to ROUND/ROUNDUP/ROUNDDOWN/MROUND — they are portable. If you only need a prettier display and later formulas must keep full precision, use Format > Number instead of wrapping ROUND. For currency that must match bank statements, round to 2 before summing so the total matches the visible line items.
+
+**Whole column rounded to 2 places**
+
+```excel
+=ARRAYFORMULA(IF(A2:A="", "", ROUND(A2:A, 2)))
+```
+
+**ROUNDUP away from zero**
+
+```excel
+=ROUNDUP(A2, 2)
+```
+
+**ROUNDDOWN toward zero**
+
+```excel
+=ROUNDDOWN(A2, 2)
+```
+
+**Nearest multiple of 5**
+
+```excel
+=MROUND(A2, 5)
+```
+
+
+## Excel version
+
+The same formula works unchanged in Excel:
+
+```excel
+=ROUND(A2, 2)
+```
+
+Google Sheets supports the same ROUND, ROUNDUP, ROUNDDOWN, and MROUND functions. Use ARRAYFORMULA to round an entire column in one step.
+
+<!--SIBLING-->
+
+
+## Common errors and how to fix them
+
+- **Display shows 2.35 but another formula still uses 2.345** — Only the cell format was changed; the stored value stayed full precision. **Fix:** Wrap the source formula in ROUND (or ROUNDUP/ROUNDDOWN) so dependents see the rounded value.
+- **Negative number rounded the "wrong" way** — ROUNDUP moves away from zero and ROUNDDOWN toward zero, which feels opposite to "up on the number line" for negatives. **Fix:** Check the sign rule, or use ABS tricks only when you truly want number-line direction.
+- **#NUM! or unexpected MROUND result with uneven multiples** — MROUND expects the multiple and the value to allow a valid nearest multiple (and non-zero multiple). **Fix:** Use a non-zero multiple; for banker's or custom rules, build an explicit formula instead.
+- **Totals off by a cent after rounding each line** — Summing pre-rounded lines differs from rounding the unrounded sum once. **Fix:** Decide a policy (round lines then sum, or sum then round) and apply it consistently.
+
+## FAQ
+
+### What is the difference between ROUND, ROUNDUP, and ROUNDDOWN?
+
+ROUND uses half away from zero. ROUNDUP always moves away from zero. ROUNDDOWN always moves toward zero. Pick based on whether understating or overstating is worse for the report.
+
+### What do negative num_digits mean?
+
+They round to the left of the decimal point. -1 rounds to tens, -2 to hundreds, -3 to thousands.
+
+### How do I round to the nearest nickel or 5 minutes?
+
+Use MROUND with the step size, for example =MROUND(A2, 0.05) for nickels or =MROUND(A2, 5) for multiples of 5.
+
+## Related formulas
+
+<!--RELATED-->
+
+<!--PRODUCT_BOX-->

@@ -1557,3 +1557,122 @@
     - q: What if the timesheet also has dates?
       a: Store full date-times in start and end, then use =(B2-A2)*24. The midnight adjustment is unnecessary when the date part already moves to the next day.
   related: [sum-hours, weekday, today-now, text-to-date]
+
+- id: minutes-to-hours
+  category: date
+  slugs: {excel: minutes-to-hours-excel, sheets: minutes-to-hours-google-sheets}
+  title: How to Convert Minutes to Hours (and Back)
+  summary: >-
+    Divide minutes by 60 for decimal hours, multiply decimal hours by 60 to get minutes back, or
+    build a clock-style hours:minutes value with TIME or INT/MOD. This page covers payroll-friendly
+    decimal hours, overnight totals in minutes, and whole-column ARRAYFORMULA patterns in Sheets.
+  problem: >-
+    A timesheet or GPS export lists duration in minutes (90, 135, 480). Payroll and invoices need
+    decimal hours (1.5, 2.25, 8), while some dashboards still want a 1:30 clock display. Hand
+    dividing drifts, and mixing text "1:30" with real numbers breaks SUM.
+  excel:
+    formula: '=A2/60'
+    explain: >-
+      A2 holds a duration in minutes. Dividing by 60 converts it to decimal hours (90 → 1.5),
+      which you can multiply by an hourly rate for pay. Format the result as a Number, not Time.
+    notes: >-
+      Spreadsheet clocks store time as a fraction of a day, so a plain TIME display is not the same
+      as decimal hours. Use `=A2/60` when the source is a minute count, and format as Number (two
+      decimals is common for payroll). To show hours and minutes as a clock value, use
+      `=TIME(0, A2, 0)` and format h:mm — TIME wraps every 24 hours, so for totals above 1440
+      minutes prefer INT/MOD text or keep decimal hours. Going the other way, `=B2*60` turns
+      decimal hours back into minutes. When you already have separate Hours and Minutes columns,
+      combine with `=A2+B2/60`. Overnight shift lengths that you already computed as day-fractions
+      convert to minutes with `*1440` (see the time-difference guide). Guard empty rows with
+      IF(A2="", "", A2/60) so fill-down stays clean.
+    alternatives:
+      - label: Decimal hours to minutes
+        formula: '=B2*60'
+      - label: Minutes as a clock time (h:mm)
+        formula: '=TIME(0, A2, 0)'
+      - label: Hours and leftover minutes as two numbers
+        formula: '=INT(A2/60)'
+      - label: Hours + minutes columns to decimal hours
+        formula: '=A2+B2/60'
+    diff: >-
+      Google Sheets uses the same /60 and *60 arithmetic. Prefer ARRAYFORMULA for whole columns
+      and Format > Number > Duration when you want a clock-style duration display.
+  sheets:
+    formula: '=A2/60'
+    explain: >-
+      Same conversion in Google Sheets: minutes divided by 60 become decimal hours for pay and
+      charts.
+    notes: >-
+      Format the decimal-hours column as a Number (Format > Number > Number). For a whole column
+      use `=ARRAYFORMULA(IF(A2:A="", "", A2:A/60))`. Clock-style display from minutes works with
+      `=ARRAYFORMULA(IF(A2:A="", "", TIME(0, A2:A, 0)))` plus Format > Number > Time, or use
+      Duration when the value is already a day-fraction. Durations past 24 hours should stay as
+      decimal hours or use Duration on a day-fraction total — TIME alone wraps at 24:00. Convert
+      decimal hours back with `=ARRAYFORMULA(IF(B2:B="", "", B2:B*60))`. If people paste minutes
+      as text, coerce with VALUE or N before dividing. Pair the decimal-hours column with SUM for
+      payroll, matching the sum-hours pattern.
+    alternatives:
+      - label: Whole column of decimal hours
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", A2:A/60))'
+      - label: Whole column back to minutes
+        formula: '=ARRAYFORMULA(IF(B2:B="", "", B2:B*60))'
+      - label: Minutes as clock time
+        formula: '=TIME(0, A2, 0)'
+      - label: Hours + minutes columns to decimal hours
+        formula: '=A2+B2/60'
+    diff: >-
+      Excel uses the same formulas; fill down or spill instead of ARRAYFORMULA, and use a Number
+      format for decimal hours or h:mm / [h]:mm for clock displays.
+  example:
+    intro: >-
+      Four minute totals from a timesheet, plus a decimal-hours column converted back to minutes.
+      Clock display uses TIME for values under 24 hours.
+    grid:
+      - [Minutes, Decimal hours, Clock (h:mm), Back to minutes]
+      - [90]
+      - [45]
+      - [135]
+      - [480]
+    checks:
+      - cell: B2
+        label: minutes / 60 filled down
+        excel: '=A2/60'
+        fill: [B2, B3, B4, B5]
+        results: [1.5, 0.75, 2.25, 8]
+      - cell: C2
+        label: TIME clock from minutes
+        excel: '=TIME(0, A2, 0)'
+        fill: [C2, C3, C4, C5]
+        results: ['1:30', '0:45', '2:15', '8:00']
+      - cell: D2
+        label: decimal hours * 60 back to minutes
+        excel: '=B2*60'
+        fill: [D2, D3, D4, D5]
+        results: [90, 45, 135, 480]
+  steps:
+    - Enter minute counts as numbers in column A (90 for an hour and a half, not text "90 min").
+    - 'Type `=A2/60` for decimal hours and format the cell as a Number.'
+    - 'Add `=TIME(0, A2, 0)` when you need an h:mm clock display for values under 24 hours.'
+    - 'Convert decimal hours back with `=B2*60`, or combine Hours+Minutes columns with `=A2+B2/60`.'
+    - Sum the decimal-hours column for payroll; keep minute totals only when a system requires them.
+  errors:
+    - error: Result shows as a time like 1:30 instead of 1.5
+      cause: The decimal-hours cell inherited a Time format, or you used TIME when you wanted /60.
+      fix: Use =A2/60 and format as Number for pay calculations.
+    - error: Clock shows 0:00 or wraps oddly above 24 hours
+      cause: TIME only represents a time of day and resets after 1440 minutes.
+      fix: Keep totals as decimal hours, or format a day-fraction with [h]:mm / Duration instead of TIME.
+    - error: '#VALUE!'
+      cause: The minutes cell is text such as "90 min" or "1:30".
+      fix: Store a pure number of minutes, or parse text before dividing.
+    - error: Back-conversion does not match the original minutes
+      cause: The decimal-hours cell was rounded for display and that rounded value was multiplied by 60.
+      fix: Multiply the full-precision formula result (or the source minutes column), not a hand-typed rounded hour.
+  faq:
+    - q: How do I convert minutes to hours and minutes as two columns?
+      a: Use =INT(A2/60) for whole hours and =MOD(A2,60) for the leftover minutes.
+    - q: How do I convert a time of day like 1:30 into decimal hours?
+      a: Multiply the time by 24, for example =(C2)*24 when C2 is a real time value. That is different from dividing a minute count by 60.
+    - q: How do overnight shift minutes fit in?
+      a: First get a positive day-fraction with the overnight-safe pattern on the time-difference page, then multiply by 1440 for minutes or by 24 for decimal hours.
+  related: [time-difference, sum-hours, text-to-date, weekday]
