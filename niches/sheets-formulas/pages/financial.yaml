@@ -661,3 +661,386 @@
     - q: How do I show one decimal place in the percent?
       a: After applying Percent format, increase or decrease decimal places on the Home ribbon (Excel) or the toolbar (Sheets), for example 26.7%.
   related: [percentage-change, div0-error, weighted-average, cagr]
+
+- id: average
+  category: financial
+  slugs: {excel: average-excel, sheets: average-google-sheets}
+  title: How to Calculate an Average
+  summary: >-
+    AVERAGE returns the arithmetic mean of numbers and skips blank cells and text. Pair it with
+    AVERAGEIF or AVERAGEIFS when you need a mean for one region, status, or threshold, and use
+    IF to ignore zeros when a blank should stay blank instead of counting as zero.
+  problem: >-
+    A score sheet needs the class mean, the mean of scores above 80, and the East-region mean.
+    People use SUM/COUNT by hand, forget that zeros pull the average down, or mix AVERAGE with
+    a weighted average when some assessments count more than others.
+  excel:
+    formula: '=AVERAGE(B2:B8)'
+    explain: >-
+      Syntax: `AVERAGE(number1, [number2], …)`. Pass a range or individual numbers. Blank cells
+      and text are ignored; logical values typed directly are counted, but logicals inside a
+      cell range are ignored.
+    notes: >-
+      AVERAGE is the plain arithmetic mean. Empty cells do not shrink the denominator, but a
+      typed 0 does — clear the cell if the student was absent rather than scoring zero. For a
+      conditional mean use `=AVERAGEIF(A2:A8, "East", B2:B8)` or
+      `=AVERAGEIF(B2:B8, ">80")` when the criteria sit on the same range as the values.
+      AVERAGEIFS handles multiple conditions (`=AVERAGEIFS(B2:B8, A2:A8, "East", B2:B8, ">80")`).
+      To ignore zeros without deleting them, use
+      `=AVERAGEIF(B2:B8, "<>0")` or an array-style
+      `=AVERAGE(IF(B2:B8<>0, B2:B8))` entered normally in Excel 365. Do not confuse this with a
+      weighted average — when homework and exams have different weights, use SUMPRODUCT/SUM (see
+      weighted-average). ROUND the result only when reporting requires a fixed number of decimals.
+    alternatives:
+      - label: Mean of values above 80
+        formula: '=AVERAGEIF(B2:B8, ">80")'
+      - label: Mean for one region
+        formula: '=AVERAGEIF(A2:A8, "East", B2:B8)'
+      - label: Ignore zeros
+        formula: '=AVERAGEIF(B2:B8, "<>0")'
+      - label: Mean of numbers only via SUBTOTAL on a filtered list
+        formula: '=SUBTOTAL(1, B2:B8)'
+    diff: >-
+      Google Sheets supports the same AVERAGE, AVERAGEIF, and AVERAGEIFS functions. Use
+      ARRAYFORMULA when you want a column of per-row rolling means.
+  sheets:
+    formula: '=AVERAGE(B2:B8)'
+    explain: >-
+      Same AVERAGE syntax in Google Sheets. Blank cells and text inside the range are skipped.
+    notes: >-
+      Whole-column mean that expands as rows are added: `=AVERAGE(B2:B)` — trailing blanks stay
+      ignored. Conditional means use the same AVERAGEIF / AVERAGEIFS signatures as Excel.
+      Wrap a growing column with
+      `=ARRAYFORMULA(IF(B2:B="", "", AVERAGEIF(...)))` only when you need a per-row helper, not
+      for a single class mean. Sheets treats typed TRUE/FALSE inside ranges like Excel (ignored
+      in AVERAGE). Locale settings change decimal commas on screen, not the mean itself. Prefer
+      AVERAGEIF `"<>0"` over deleting zeros when a zero means “not yet scored”. When the file
+      must open in Excel, avoid Sheets-only helpers and stick to AVERAGE / AVERAGEIF /
+      AVERAGEIFS. For weights that differ by assessment, switch to AVERAGE.WEIGHTED or
+      SUMPRODUCT/SUM on the weighted-average page instead of forcing a plain AVERAGE.
+    alternatives:
+      - label: Growing column average
+        formula: '=AVERAGE(B2:B)'
+      - label: Mean of values above 80
+        formula: '=AVERAGEIF(B2:B8, ">80")'
+      - label: Mean for one region
+        formula: '=AVERAGEIF(A2:A8, "East", B2:B8)'
+      - label: Ignore zeros
+        formula: '=AVERAGEIF(B2:B8, "<>0")'
+    diff: >-
+      Excel uses the same AVERAGE family; fill down or use Excel 365 dynamic arrays instead of
+      open-ended B2:B ranges when you need per-row helpers.
+  example:
+    intro: >-
+      Seven student scores with a region column. Checks cover the class mean, the mean above 80,
+      the East-only mean, and how a typed zero changes the result versus a blank.
+    grid:
+      - [Region, Score, null, Metric, Value]
+      - [East, 72]
+      - [West, 88]
+      - [East, 95]
+      - [East, 88]
+      - [West, 64]
+      - [West, 91]
+      - [East, 88]
+      - [null, 0]
+    checks:
+      - cell: E2
+        label: class average (B2:B8)
+        excel: '=AVERAGE(B2:B8)'
+        result: 83.7142857142857
+      - cell: E3
+        label: average of scores above 80
+        excel: '=AVERAGEIF(B2:B8, ">80")'
+        result: 90
+      - cell: E4
+        label: East region average
+        excel: '=AVERAGEIF(A2:A8, "East", B2:B8)'
+        result: 85.75
+      - cell: E5
+        label: average including the typed zero in B9
+        excel: '=AVERAGE(B2:B9)'
+        result: 73.25
+  steps:
+    - Enter the numbers to average in a single column (and optional criteria columns beside them).
+    - 'Type `=AVERAGE(B2:B8)` for the plain mean; blanks and text are skipped automatically.'
+    - 'Add `=AVERAGEIF(B2:B8, ">80")` or `=AVERAGEIF(A2:A8, "East", B2:B8)` for conditional means.'
+    - Clear cells instead of typing 0 when a value is missing, or use AVERAGEIF `"<>0"` to skip zeros.
+    - Use the weighted-average page when some inputs must count more than others.
+  errors:
+    - error: Average looks too low
+      cause: Zeros for missing scores were typed into the range, so they count in the denominator.
+      fix: Clear the cells, or use =AVERAGEIF(range, "<>0").
+    - error: '#DIV/0!'
+      cause: The range has no numeric values (all blank/text), or AVERAGEIF matched nothing.
+      fix: Confirm the criteria and that at least one number is present.
+    - error: Conditional average includes the wrong rows
+      cause: Criteria range and average range are misaligned or different heights.
+      fix: Use matching row spans in AVERAGEIF / AVERAGEIFS.
+    - error: Result differs from a hand SUM/COUNT
+      cause: COUNT counted text or blanks differently than AVERAGE's skip rules.
+      fix: Prefer AVERAGE itself; or use COUNT on the same numeric range only.
+  faq:
+    - q: Does AVERAGE ignore blank cells?
+      a: Yes. Blanks and text in the range are skipped. A typed 0 is a number and is included.
+    - q: How do I average only values above a threshold?
+      a: Use =AVERAGEIF(range, ">80") or AVERAGEIFS with extra conditions on other columns.
+    - q: When should I use a weighted average instead?
+      a: When inputs have different importance (exam weights, quantity-weighted price). See the weighted-average guide.
+    - q: Can I average a filtered list only?
+      a: Yes. Use =SUBTOTAL(1, B2:B8) (or 101 to ignore hidden rows) so filtered-out rows drop out of the mean.
+  related: [weighted-average, averageif, median-mode, round, percentage]
+
+- id: median-mode
+  category: financial
+  slugs: {excel: median-mode-excel, sheets: median-mode-google-sheets}
+  title: How to Use MEDIAN and MODE
+  summary: >-
+    MEDIAN returns the middle value after sorting, so outliers hurt it less than AVERAGE. MODE
+    (MODE.SNGL in modern Excel) returns the value that appears most often. Use both beside the
+    mean when you describe a skewed score or price distribution.
+  problem: >-
+    A class has many mid-80s scores and one very low outlier. The mean drops, stakeholders ask
+    for the “typical” score, and nobody remembers whether to reach for MEDIAN or MODE — or how
+    ties work when several values share the highest frequency.
+  excel:
+    formula: '=MEDIAN(B2:B8)'
+    explain: >-
+      Syntax: `MEDIAN(number1, [number2], …)`. With an odd count it returns the middle value after
+      sorting; with an even count it averages the two central values. `MODE(range)` or
+      `MODE.SNGL(range)` returns the most frequent number.
+    notes: >-
+      MEDIAN ignores text and blanks the same way AVERAGE does. For an even-sized list such as
+      four prices, MEDIAN averages the 2nd and 3rd sorted values. MODE and MODE.SNGL return the
+      first most-frequent value when several numbers tie for top frequency; MODE.MULT spills every
+      modal value in Excel 365. Prefer MEDIAN over AVERAGE when a single outlier would distort the
+      story (salaries, home prices, latency). Prefer MODE when you care about the most common
+      size, rating, or SKU, not the centre. Combine with AVERAGE on the same sheet so readers see
+      mean, median, and mode together. ROUND the median only for display — keep full precision in
+      helper cells that feed charts. LibreOffice and older workbooks recognise MODE; new Excel
+      docs push MODE.SNGL with the same single-mode behaviour.
+    alternatives:
+      - label: Most frequent value (classic MODE)
+        formula: '=MODE(B2:B8)'
+      - label: Most frequent value (Excel 2010+)
+        formula: '=MODE.SNGL(B2:B8)'
+      - label: Mean for comparison
+        formula: '=AVERAGE(B2:B8)'
+      - label: Trim extremes then average
+        formula: '=TRIMMEAN(B2:B8, 0.2)'
+    diff: >-
+      Google Sheets supports MEDIAN and MODE. It does not use MODE.SNGL / MODE.MULT names — MODE
+      covers the single most-frequent value.
+  sheets:
+    formula: '=MEDIAN(B2:B8)'
+    explain: >-
+      Same MEDIAN behaviour in Google Sheets. Use MODE for the most common numeric value.
+    notes: >-
+      Open-ended ranges work: `=MEDIAN(B2:B)` and `=MODE(B2:B)` grow with new rows while blanks
+      stay ignored. Sheets has no MODE.SNGL or MODE.MULT; stick to MODE for the primary modal
+      value, or build a FREQUENCY / QUERY helper if you need every tied mode listed. ARRAYFORMULA
+      is unnecessary for a single median or mode summary cell. When sharing with Excel users,
+      MEDIAN and MODE are portable; avoid Sheets-only QUERY wrappers if the file must round-trip.
+      Put AVERAGE, MEDIAN, and MODE in neighbouring cells so a skewed class distribution is
+      obvious at a glance. Locale decimal separators affect display only. If MODE returns
+      #N/A, every value appears once — there is no repeated number to report as a mode.
+    alternatives:
+      - label: Most frequent value
+        formula: '=MODE(B2:B8)'
+      - label: Growing column median
+        formula: '=MEDIAN(B2:B)'
+      - label: Mean for comparison
+        formula: '=AVERAGE(B2:B8)'
+      - label: Trim extremes then average
+        formula: '=TRIMMEAN(B2:B8, 0.2)'
+    diff: >-
+      Excel also offers MODE.SNGL and spilling MODE.MULT; Sheets uses MODE for the single mode.
+  example:
+    intro: >-
+      Seven scores with a repeated 88. MEDIAN and MODE both land on 88 while AVERAGE is pulled
+      by the low 64. A second even-sized list shows MEDIAN averaging the two central values.
+    grid:
+      - [Student, Score, null, Stat, Result]
+      - [Ava, 72]
+      - [Ben, 88]
+      - [Cara, 95]
+      - [Drew, 88]
+      - [Eve, 64]
+      - [Finn, 91]
+      - [Gia, 88]
+      - [null, null, null, null, null]
+      - [Hana, 70]
+      - [Ian, 80]
+      - [Jade, 90]
+      - [Kai, 100]
+    checks:
+      - cell: E2
+        label: median of class scores
+        excel: '=MEDIAN(B2:B8)'
+        result: 88
+      - cell: E3
+        label: mode of class scores
+        excel: '=MODE(B2:B8)'
+        result: 88
+      - cell: E4
+        label: average for comparison
+        excel: '=AVERAGE(B2:B8)'
+        result: 83.7142857142857
+      - cell: E5
+        label: median of even-sized list (four scores)
+        excel: '=MEDIAN(B10:B13)'
+        result: 85
+  steps:
+    - List the numeric sample in one column (scores, prices, ratings).
+    - 'Type `=MEDIAN(B2:B8)` for the middle value after sorting.'
+    - 'Type `=MODE(B2:B8)` (or MODE.SNGL in modern Excel) for the most frequent value.'
+    - Place AVERAGE beside them so skew from outliers is visible.
+    - If MODE returns #N/A, every number appears once — there is no mode to report.
+  errors:
+    - error: "#N/A from MODE"
+      cause: No value repeats in the range.
+      fix: Expected when all values are unique; widen the sample or report “no mode”.
+    - error: Median looks like an average of two scores
+      cause: The list has an even count, so MEDIAN averages the two central values.
+      fix: That is correct behaviour; add or remove a point if you need a single observed value.
+    - error: Mode picks the “wrong” tied value
+      cause: Several numbers share the top frequency; MODE returns one of them (typically the first).
+      fix: Use MODE.MULT in Excel 365 to list every modal value, or inspect with COUNTIF.
+    - error: Text or errors in the range
+      cause: Non-numeric cells mixed into the sample.
+      fix: Keep the range numeric-only, or clean with VALUE / IFERROR first.
+  faq:
+    - q: When should I use MEDIAN instead of AVERAGE?
+      a: When outliers would pull the mean (income, house prices, a single failed exam). The median stays on the middle of the sorted list.
+    - q: What is the difference between MODE and MODE.SNGL?
+      a: In current Excel they both return one most-frequent value. MODE.MULT returns every mode as a spill. Google Sheets only has MODE.
+    - q: What does MEDIAN do with an even number of values?
+      a: "It averages the two middle numbers after sorting. Example: MEDIAN of 1, 2, 3, 4 is 2.5."
+    - q: Can MEDIAN or MODE ignore zeros?
+      a: Not automatically. Filter zeros with AVERAGEIF-style helpers, or use IF inside an array-capable median formula in Excel 365 / Sheets.
+  related: [average, weighted-average, rank, round, large-small]
+
+- id: rank
+  category: financial
+  slugs: {excel: rank-excel, sheets: rank-google-sheets}
+  title: How to Use the RANK Function
+  summary: >-
+    RANK returns a value’s position in a list. Order 0 (or omitted) ranks largest first; order 1
+    ranks smallest first. Tied values receive the same rank, and the next rank skips ahead
+    (competition ranking). Excel also offers RANK.EQ and RANK.AVG.
+  problem: >-
+    A leaderboard needs each score’s place among the class. People sort the sheet manually, break
+    formulas when rows move, or expect dense ranks (1,2,3) when ties should share a place and skip
+    the next number.
+  excel:
+    formula: '=RANK(B2, $B$2:$B$8, 0)'
+    explain: >-
+      Syntax: `RANK(number, ref, [order])`. `number` is the value to rank, `ref` is the full list
+      (lock it with $ when filling down). Order 0 or omitted = descending (best/largest = 1);
+      order 1 = ascending (smallest = 1).
+    notes: >-
+      RANK and RANK.EQ use competition ranking: if two scores tie for 2nd, both get 2 and the next
+      score gets 4. RANK.AVG would assign 2.5 to those ties instead. Absolute-reference the list
+      (`$B$2:$B$8`) so each row ranks against the same set when you fill down. RANK ignores text
+      and blanks inside ref. For a filtered visible-only rank, helper columns or more advanced
+      constructs are needed — plain RANK always sees the full ref. Pair RANK with COUNTIF when you
+      want a dense rank (1,2,3 with no gaps):
+      `=COUNTIF($B$2:$B$8, ">"&B2)+1` for descending dense ranks. Keep RANK for classic
+      leaderboards; switch to LARGE/SMALL when you need the nth value itself rather than a place.
+    alternatives:
+      - label: Ascending rank (smallest = 1)
+        formula: '=RANK(B2, $B$2:$B$8, 1)'
+      - label: Excel RANK.EQ (same as RANK)
+        formula: '=RANK.EQ(B2, $B$2:$B$8, 0)'
+      - label: Dense descending rank via COUNTIF
+        formula: '=COUNTIF($B$2:$B$8, ">"&B2)+1'
+      - label: Value of the top score
+        formula: '=LARGE($B$2:$B$8, 1)'
+    diff: >-
+      Google Sheets supports RANK with the same order argument. Prefer RANK over Excel-only
+      RANK.EQ / RANK.AVG names when the file must stay portable.
+  sheets:
+    formula: '=RANK(B2, $B$2:$B$8, 0)'
+    explain: >-
+      Same RANK syntax in Google Sheets. Lock the ref with $ before filling the rank column down.
+    notes: >-
+      Competition ties work the same as Excel: shared place, skipped next rank. Sheets does not
+      document RANK.EQ / RANK.AVG as separate functions — use RANK, or emulate RANK.AVG with
+      `=AVERAGE(COUNTIF($B$2:$B$8, ">"&B2)+1, COUNTIF($B$2:$B$8, ">="&B2))` when you need the
+      mid-tie average. Open-ended refs such as `$B$2:$B` work if you accept ranks shifting as new
+      scores arrive. ARRAYFORMULA can spill an entire rank column:
+      `=ARRAYFORMULA(IF(B2:B8="", "", RANK(B2:B8, $B$2:$B$8, 0)))`. When collaborating with Excel
+      users, RANK with order 0/1 is the safest portable choice. Use COUNTIF dense-rank patterns
+      when a dashboard must show 1,2,3 with no gaps after ties.
+    alternatives:
+      - label: Whole column ranks
+        formula: '=ARRAYFORMULA(IF(B2:B8="", "", RANK(B2:B8, $B$2:$B$8, 0)))'
+      - label: Ascending rank
+        formula: '=RANK(B2, $B$2:$B$8, 1)'
+      - label: Dense descending rank
+        formula: '=COUNTIF($B$2:$B$8, ">"&B2)+1'
+      - label: Average-style tie rank
+        formula: '=AVERAGE(COUNTIF($B$2:$B$8, ">"&B2)+1, COUNTIF($B$2:$B$8, ">="&B2))'
+    diff: >-
+      Excel adds RANK.EQ and RANK.AVG aliases; fill down instead of ARRAYFORMULA for a rank column.
+  example:
+    intro: >-
+      Seven scores with a three-way tie at 88. Descending RANK gives 1 for 95, 2 for 91, 3 for
+      each 88, then 6 and 7. Ascending RANK gives 1 to the lowest score.
+    grid:
+      - [Student, Score, Rank desc, Rank asc]
+      - [Ava, 72]
+      - [Ben, 88]
+      - [Cara, 95]
+      - [Drew, 88]
+      - [Eve, 64]
+      - [Finn, 91]
+      - [Gia, 88]
+    checks:
+      - cell: C2
+        label: descending rank filled down
+        excel: '=RANK(B2, $B$2:$B$8, 0)'
+        fill: [C2, C3, C4, C5, C6, C7, C8]
+        results: [6, 3, 1, 3, 7, 2, 3]
+      - cell: D2
+        label: ascending rank filled down
+        excel: '=RANK(B2, $B$2:$B$8, 1)'
+        fill: [D2, D3, D4, D5, D6, D7, D8]
+        results: [2, 3, 7, 3, 1, 6, 3]
+      - cell: C10
+        label: rank of the top score against the list
+        excel: '=RANK(95, B2:B8, 0)'
+        result: 1
+      - cell: C11
+        label: dense descending rank for Ben (88)
+        excel: '=COUNTIF($B$2:$B$8, ">"&B3)+1'
+        result: 3
+  steps:
+    - Put every comparable score in one locked range (for example $B$2:$B$8).
+    - 'In the first rank cell type `=RANK(B2, $B$2:$B$8, 0)` for largest-first leaderboards.'
+    - Fill the formula down so each row keeps the same absolute ref.
+    - 'Use order 1 when the smallest value should be rank 1 (race times, golf scores).'
+    - Switch to a COUNTIF dense-rank formula when ties must not create gaps.
+  errors:
+    - error: Every row ranks only against itself after fill-down
+      cause: The ref was relative (B2:B8) and shifted with each row.
+      fix: Lock the list with $B$2:$B$8 before filling.
+    - error: Ties show ranks 3,3,4 instead of 3,3,5
+      cause: Expecting ordinal labels differently, or mixing dense-rank logic with RANK.
+      fix: RANK uses competition ranking (skip after ties). Use COUNTIF for dense ranks.
+    - error: "#N/A or unexpected rank"
+      cause: The number is not in ref, or ref includes errors/text that break the list.
+      fix: Ensure the value exists in a clean numeric ref.
+    - error: Ranking looks reversed
+      cause: Order argument wrong (0 vs 1) for the sport or metric.
+      fix: Use 0 when higher is better; use 1 when lower is better.
+  faq:
+    - q: What is the difference between RANK, RANK.EQ, and RANK.AVG?
+      a: RANK and RANK.EQ are competition ranks (ties share a place, next place skips). RANK.AVG gives tied values the average of the places they span. Google Sheets focuses on RANK.
+    - q: How do I rank with no gaps after ties?
+      a: Use a dense-rank pattern such as =COUNTIF($B$2:$B$8, ">"&B2)+1 for descending places.
+    - q: Does RANK change when I sort the sheet?
+      a: No. RANK looks at values in ref, not at visual row order, so sorting alone does not change each score’s rank.
+    - q: How do I get the 2nd-highest value instead of its rank?
+      a: Use =LARGE(range, 2) or =SMALL(range, 2). RANK answers “what place?”, LARGE/SMALL answer “what value?”.
+  related: [average, median-mode, large-small, sort, sortby]
