@@ -1044,3 +1044,141 @@
     - q: How do I get the 2nd-highest value instead of its rank?
       a: Use =LARGE(range, 2) or =SMALL(range, 2). RANK answers “what place?”, LARGE/SMALL answer “what value?”.
   related: [average, median-mode, large-small, sort, sortby]
+
+- id: large-small
+  category: financial
+  slugs: {excel: large-small-excel, sheets: large-small-google-sheets}
+  title: How to Use LARGE and SMALL
+  summary: >-
+    LARGE returns the nth largest value in a list; SMALL returns the nth smallest. Use them when
+    you need the value itself (top score, second-lowest cost) rather than a rank place. Pair with
+    MAX/MIN for the extremes and RANK when you need position numbers instead of the underlying
+    amounts.
+  problem: >-
+    A scoreboard or sales list needs the top three amounts and the two lowest values for review.
+    Sorting the sheet breaks other formulas, MAX/MIN only give the single extreme, and RANK
+    answers “what place?” when the real question is “what number sits in that place?”.
+  excel:
+    formula: '=LARGE(B2:B8, 2)'
+    explain: >-
+      Syntax: `LARGE(array, k)` and `SMALL(array, k)`. `array` is the numeric list; `k` is the
+      place from the top (LARGE) or bottom (SMALL). `LARGE(range, 1)` matches MAX; `SMALL(range, 1)`
+      matches MIN.
+    notes: >-
+      LARGE and SMALL ignore text and blanks inside the array. If two values tie, both occupy a
+      place in the ordered list — LARGE(k) and LARGE(k+1) can return the same number when duplicates
+      exist. Keep k between 1 and the count of numbers; otherwise you get #NUM!. Absolute-reference
+      the list when you build a top-N table (`=LARGE($B$2:$B$8, ROW(A1))` filled down). RANK tells
+      you a value’s place; LARGE/SMALL pull the value at that place — use INDEX/MATCH with LARGE
+      when you also need the matching name:
+      `=INDEX($A$2:$A$8, MATCH(LARGE($B$2:$B$8, 1), $B$2:$B$8, 0))`. Prefer MAXIFS/MINIFS when the
+      nth extreme must respect a condition (one region only). ROUND is for display; leave helper
+      cells at full precision when they feed charts or further formulas.
+    alternatives:
+      - label: Highest value (same as MAX)
+        formula: '=LARGE(B2:B8, 1)'
+      - label: Lowest value (same as MIN)
+        formula: '=SMALL(B2:B8, 1)'
+      - label: Third-largest value
+        formula: '=LARGE(B2:B8, 3)'
+      - label: Name of the top score
+        formula: '=INDEX($A$2:$A$8, MATCH(LARGE($B$2:$B$8, 1), $B$2:$B$8, 0))'
+    diff: >-
+      Google Sheets supports the same LARGE and SMALL functions with identical k behaviour.
+  sheets:
+    formula: '=LARGE(B2:B8, 2)'
+    explain: >-
+      Same LARGE/SMALL syntax in Google Sheets. k=1 is the extreme; higher k walks inward from
+      that end of the sorted list.
+    notes: >-
+      Open-ended ranges such as `=LARGE(B2:B, 2)` grow as new scores are entered while blanks stay
+      ignored. Build a live top-N spill with
+      `=ARRAYFORMULA(LARGE(B2:B8, SEQUENCE(3)))` for the three largest values in one formula —
+      useful on dashboards that should not rely on fill-down. SORTN is another Sheets-friendly way
+      to return the top rows with names attached:
+      `=SORTN(A2:B8, 3, 0, 2, FALSE)`. When the workbook must open in Excel, stick to LARGE/SMALL
+      and INDEX/MATCH; avoid SORTN if collaborators use desktop Excel. Locale settings change how
+      decimals display, not which value LARGE selects. If k exceeds the numeric count, Sheets
+      returns #NUM! just like Excel — guard with IF or MIN(k, COUNT(range)).
+    alternatives:
+      - label: Top three values spilled
+        formula: '=ARRAYFORMULA(LARGE(B2:B8, SEQUENCE(3)))'
+      - label: Top three rows with names (SORTN)
+        formula: '=SORTN(A2:B8, 3, 0, 2, FALSE)'
+      - label: Lowest value
+        formula: '=SMALL(B2:B8, 1)'
+      - label: Growing-column second largest
+        formula: '=LARGE(B2:B, 2)'
+    diff: >-
+      Excel uses fill-down or SEQUENCE spills for top-N; Sheets can also use SORTN for whole rows.
+  example:
+    intro: >-
+      Seven student scores. LARGE pulls the top places; SMALL pulls the bottom. MAX/MIN match
+      LARGE/SMALL with k=1. A three-way pattern at 88 shows ties returning the same value twice.
+    grid:
+      - [Student, Score, null, Metric, Value]
+      - [Ava, 72]
+      - [Ben, 88]
+      - [Cara, 95]
+      - [Drew, 88]
+      - [Eve, 64]
+      - [Finn, 91]
+      - [Gia, 80]
+    checks:
+      - cell: E2
+        label: largest score
+        excel: '=LARGE(B2:B8, 1)'
+        result: 95
+      - cell: E3
+        label: second-largest score
+        excel: '=LARGE(B2:B8, 2)'
+        result: 91
+      - cell: E4
+        label: third-largest score
+        excel: '=LARGE(B2:B8, 3)'
+        result: 88
+      - cell: E5
+        label: smallest score
+        excel: '=SMALL(B2:B8, 1)'
+        result: 64
+      - cell: E6
+        label: second-smallest score
+        excel: '=SMALL(B2:B8, 2)'
+        result: 72
+      - cell: E7
+        label: MAX matches LARGE k=1
+        excel: '=MAX(B2:B8)'
+        result: 95
+      - cell: E8
+        label: MIN matches SMALL k=1
+        excel: '=MIN(B2:B8)'
+        result: 64
+  steps:
+    - Put the comparable numbers in one column (scores, sales, costs).
+    - 'Type `=LARGE(B2:B8, 1)` for the highest value or `=SMALL(B2:B8, 1)` for the lowest.'
+    - 'Raise k to walk down the leaderboard: `=LARGE(B2:B8, 2)` is second place by value.'
+    - Lock the range with $ if you fill a top-N column that must always read the same list.
+    - Use RANK when you need each row’s place number instead of the nth value itself.
+  errors:
+    - error: '#NUM!'
+      cause: k is less than 1, or larger than the count of numeric values in the array.
+      fix: Use a k between 1 and COUNT(range), or wrap with IF to show a blank when k is out of range.
+    - error: Top-N table shifts after fill-down
+      cause: The array reference was relative and moved with each row.
+      fix: Absolute-reference the list ($B$2:$B$8) and put 1,2,3 in a helper column for k.
+    - error: Wrong name next to a LARGE value
+      cause: MATCH finds the first tie, so duplicate scores can attach the wrong label.
+      fix: Deduplicate carefully, or use a more advanced INDEX/FILTER pattern for nth match.
+    - error: Result differs from a sorted view
+      cause: Hidden rows or filtered lists — LARGE still sees the full array, not only visible cells.
+      fix: Copy visible cells to a clean range, or use SUBTOTAL-based helpers for visible-only work.
+  faq:
+    - q: What is the difference between LARGE and RANK?
+      a: RANK returns a place number for a known value. LARGE/SMALL return the value that sits at place k. Use both when a dashboard needs the amount and its rank.
+    - q: Does LARGE(range, 1) equal MAX(range)?
+      a: Yes for a plain numeric list. Prefer MAX/MIN when you only need the single extreme; use LARGE/SMALL when k may be 2, 3, or more.
+    - q: How do ties work?
+      a: Duplicate values each take a slot in the ordered list. If two scores equal 88, LARGE(...,3) and LARGE(...,4) can both return 88.
+    - q: Can I get the largest value that meets a condition?
+      a: Use MAXIFS for the single conditional maximum. For the nth conditional value, filter the list first (FILTER in Excel 365 / Sheets) then apply LARGE.
+  related: [rank, average, median-mode, maxifs-minifs, weighted-average]
