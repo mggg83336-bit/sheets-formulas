@@ -1182,3 +1182,417 @@
     - q: Can I get the largest value that meets a condition?
       a: Use MAXIFS for the single conditional maximum. For the nth conditional value, filter the list first (FILTER in Excel 365 / Sheets) then apply LARGE.
   related: [rank, average, median-mode, maxifs-minifs, weighted-average]
+
+- id: npv-irr
+  category: financial
+  slugs: {excel: npv-irr-excel, sheets: npv-irr-google-sheets}
+  title: How to Calculate NPV and IRR
+  summary: >-
+    NPV discounts a series of cash flows to today's value; IRR is the rate that makes NPV equal
+    zero. Excel and Google Sheets both have the same NPV quirk: `NPV(rate, values)` treats the
+    first value as the end of period 1, so an immediate (t=0) investment is added separately.
+    IRR takes the full series, including that initial outflow. Worked example included.
+  problem: >-
+    You are reviewing a five-year project that costs 10,000 today and returns 3,000, 3,500,
+    4,000, 4,000 and 2,500 at the end of each of the next five years. You want the net present
+    value at a 10% discount rate and the internal rate of return, and you need the spreadsheet
+    functions to treat the timing correctly.
+  excel:
+    formula: '=NPV(E2, B3:B7)+B2'
+    explain: >-
+      Syntax: `NPV(rate, value1, [value2], …)` discounts each value as if it arrives at the end
+      of period 1, 2, 3, and so on. Add the time-zero cash flow (usually a negative investment)
+      outside the function. `IRR(values, [guess])` takes the entire series, including t=0, and
+      returns the rate that sets NPV to zero. Format NPV as currency and IRR as a percentage.
+    notes: >-
+      The sign convention is “cash in is positive, cash out is negative.” Put the initial
+      investment as a negative number and later inflows as positive so NPV and IRR have a
+      meaningful sign. NPV and IRR have been in Excel for decades; for dated or irregular cash
+      flows use XNPV and XIRR (Excel 2007 and later) instead of forcing everything onto a yearly
+      grid. IRR can return #NUM! when the series never changes sign, and it can have more than
+      one valid root when the sign flips more than once — supply a `guess` close to the rate you
+      expect, or inspect the cash-flow pattern. Do not type the discount rate as 10 for 10%;
+      enter 0.1 or 10% so the function receives a decimal. Leave the NPV cell at full precision
+      for later formulas; use a currency format only for display. A common audit check is to
+      compare `NPV(rate, future_flows)` with `NPV(rate, future_flows)+initial`: the two differ
+      by exactly the t=0 amount, which is how you confirm the investment was not discounted as
+      if it occurred a year from now.
+    alternatives:
+      - label: Present value of future flows only (no t=0)
+        formula: '=NPV(E2, B3:B7)'
+      - label: Internal rate of return on the full series
+        formula: '=IRR(B2:B7)'
+      - label: XNPV when each flow has a real date
+        formula: '=XNPV(E2, B2:B7, C2:C7)'
+      - label: XIRR for irregular dates
+        formula: '=XIRR(B2:B7, C2:C7)'
+    diff: >-
+      Google Sheets uses the same NPV and IRR functions with the same t=0 timing rule. XNPV and
+      XIRR are available in Sheets as well when the flows have actual dates.
+  sheets:
+    formula: '=NPV(E2, B3:B7)+B2'
+    explain: >-
+      Same timing rule in Google Sheets: `NPV` discounts from the end of period 1, so add the
+      immediate investment outside the function. `IRR` includes the t=0 flow in the range.
+    notes: >-
+      Sheets NPV and IRR follow the same semantics as Excel, including the t=0 pitfall, so a
+      file exchanged between the two platforms will usually recalculate the same project NPV.
+      Be careful with open-ended ranges such as `B3:B` or `B2:B`: a trailing zero, a stray
+      total row, or a blank that later becomes 0 will be treated as an extra cash flow and can
+      quietly distort IRR. Prefer a closed range, or wrap the series with FILTER to drop blanks,
+      before you grow the column. XNPV and XIRR exist in Sheets too and are the right tools
+      when the dates are irregular; do not press GOOGLEFINANCE into service as a substitute
+      for the discount rate in this kind of project example — the rate is an input you choose,
+      not a live ticker. Locale settings change the argument separator (comma vs semicolon)
+      and how percentages display, not the math. If collaborators still open the workbook in
+      desktop Excel, stay with NPV, IRR, XNPV and XIRR; leave ARRAYFORMULA and GOOGLEFINANCE
+      out of the shared file.
+    alternatives:
+      - label: Open-ended future flows (watch trailing zeros)
+        formula: '=NPV(E2, B3:B)+B2'
+      - label: IRR that ignores blank cells in a growing column
+        formula: '=IRR(FILTER(B2:B, B2:B<>""))'
+      - label: XNPV when each flow has a real date
+        formula: '=XNPV(E2, B2:B7, C2:C7)'
+      - label: XIRR for irregular dates
+        formula: '=XIRR(B2:B7, C2:C7)'
+    diff: >-
+      Excel uses the same NPV and IRR timing; it has no open-ended `B3:B` range, so keep a
+      closed range or a table when the file must open in Excel.
+  example:
+    intro: >-
+      A 10,000 investment at t=0, then five year-end inflows. The discount rate in E2 is an
+      input (10%). NPV adds the initial outflow outside the function; IRR uses the whole
+      column. The third result shows what NPV returns before that t=0 adjustment.
+    grid:
+      - [Year, Cash flow, null, Item, Value]
+      - [0, -10000, null, Discount rate, '10%']
+      - [1, 3000, null, NPV]
+      - [2, 3500, null, IRR]
+      - [3, 4000, null, PV of future flows]
+      - [4, 4000]
+      - [5, 2500]
+    checks:
+      - cell: E3
+        label: NPV including the t=0 investment
+        excel: '=NPV(E2, B3:B7)+B2'
+        result: '2,909.45'
+        expect: 2909.45104345828
+      - cell: E4
+        label: IRR of the full series
+        excel: '=IRR(B2:B7)'
+        result: '20.81%'
+        expect: 0.208060440727618
+      - cell: E5
+        label: NPV of year-1-to-5 flows only
+        excel: '=NPV(E2, B3:B7)'
+        result: '12,909.45'
+        expect: 12909.4510434583
+  steps:
+    - 'List every cash flow in time order, with the immediate investment as a negative number in B2 and the year-end inflows in B3:B7.'
+    - Enter the discount rate in E2 as 10% (or 0.1), not 10.
+    - '`=NPV(E2, B3:B7)` discounts only the future flows, as if the first of them arrives at the end of year 1: 12,909.45.'
+    - 'Add the t=0 investment outside NPV: `=NPV(E2, B3:B7)+B2` equals 12,909.45 − 10,000 = 2,909.45. That is the project NPV.'
+    - '`=IRR(B2:B7)` uses the entire series, including the initial outflow, and returns about 20.81%. At that rate the NPV of the same flows is zero.'
+  errors:
+    - error: NPV is 10,000 too high (about 12,909 instead of 2,909)
+      cause: The initial investment was included inside NPV, or it was left out of the addition, so t=0 was treated as the end of period 1 (or omitted).
+      fix: 'Call NPV on the period-1-to-n flows only, then add the t=0 cash flow: `=NPV(rate, B3:B7)+B2`.'
+    - error: '#NUM! from IRR'
+      cause: The cash flows never change sign, or they change sign more than once and IRR cannot settle on one root.
+      fix: 'Confirm there is at least one outflow and one inflow. For multiple sign changes, supply a guess (`=IRR(B2:B7, 0.1)`) or switch to MIRR / a plotted NPV profile.'
+    - error: Discounting looks wildly off
+      cause: The rate was entered as 10 rather than 10% (or 0.1), so the function discounted at 1000%.
+      fix: Type 10% or 0.1. Format the rate cell as a percentage so the next edit is obviously a rate.
+    - error: IRR changes after you extend the column
+      cause: An open-ended range, a trailing zero, or a total row was pulled into the series as an extra period.
+      fix: 'Use a closed range (B2:B7) or FILTER out blanks and totals before IRR and NPV see the list.'
+  faq:
+    - q: Why isn't the initial investment inside the NPV function?
+      a: Excel and Google Sheets NPV treat the first argument value as the end of period 1, not today. If you put the t=0 outlay in that first slot, it is discounted one full period and the project NPV is wrong by a year of interest. Add it outside the function instead.
+    - q: What is the difference between NPV and IRR?
+      a: 'NPV is an amount — the discounted value of the project in today''s currency at a rate you choose. IRR is a rate — the discount rate at which NPV would be zero. Use both: a high IRR can still be a small project, and NPV tells you how much value is added at your required return.'
+    - q: What if the cash flows are not evenly spaced?
+      a: Do not force irregular invoices or mid-year draws into NPV or IRR. Put a date next to each flow and use XNPV and XIRR, which discount by actual day count. Both functions exist in Excel and Google Sheets.
+    - q: Can I use GOOGLEFINANCE or a live market rate as the discount rate?
+      a: You can, but it is usually the wrong input for a project appraisal. The discount rate is a required return you choose (cost of capital, hurdle rate), not a ticker. Keep it as a typed assumption so the NPV is reproducible.
+  related: [compound-interest, cagr, pmt, percentage-change]
+
+- id: profit-margin
+  category: financial
+  slugs: {excel: profit-margin-excel, sheets: profit-margin-google-sheets}
+  title: How to Calculate Profit Margin
+  summary: >-
+    Profit margin is profit divided by revenue, shown as a percentage. Gross margin uses
+    revenue minus cost of goods sold; net margin also subtracts operating expenses. Markup is
+    a different ratio — profit divided by cost, not by revenue — and will look larger than
+    the matching margin on the same numbers. Worked example included.
+  problem: >-
+    A product line brought in 80,000 of revenue, with 52,000 of cost of goods sold and 14,000
+    of operating expenses. You want gross profit, gross margin, net profit, net margin, and
+    the markup on cost, all from the same inputs, formatted as currency or percentages.
+  excel:
+    formula: '=(B2-B3)/B2'
+    explain: >-
+      Gross margin is `(revenue − COGS) / revenue`. Net margin is `(revenue − COGS − operating
+      expenses) / revenue`, or net profit ÷ revenue. Markup is `(revenue − COGS) / COGS`.
+      Format the margin and markup cells as percentages (Ctrl+Shift+%); leave the profit cells
+      as currency. Do not multiply by 100 when percentage formatting is already applied.
+    notes: >-
+      These are ordinary arithmetic formulas; they work in every desktop Excel version. The
+      usual trap is mixing up margin and markup: a 35% gross margin is not a 35% markup, and
+      quoting the wrong one to a buyer or a boss will overstate the cushion. Watch the
+      denominator — margin always divides by revenue, markup by cost. A zero or blank revenue
+      cell produces #DIV/0!, so wrap the division with IF when a row might have no sales.
+      ROUND is for display or for a posted rate you have agreed to freeze; keep helper profit
+      cells at full precision if they feed a dashboard or a later tax calculation. Currency
+      format does not change the stored number, only how it looks. If you compare margins
+      across products, use a consistent definition (gross vs net) and the same period, or the
+      ranking will not mean what it appears to mean.
+    alternatives:
+      - label: Gross margin from a gross-profit helper
+        formula: '=B5/B2'
+      - label: Net margin
+        formula: '=(B2-B3-B4)/B2'
+      - label: Markup on cost
+        formula: '=(B2-B3)/B3'
+      - label: Safe margin when revenue may be zero
+        formula: '=IF(B2=0, "n/a", (B2-B3)/B2)'
+    diff: >-
+      Google Sheets uses the same arithmetic. Format with Format > Number > Percent, or wrap
+      the result in TO_PERCENT if you want the formula itself to apply the percent format.
+  sheets:
+    formula: '=(B2-B3)/B2'
+    explain: >-
+      Same gross-margin formula in Google Sheets. Format the result with Format > Number >
+      Percent. Net margin and markup use the same ratios as in Excel.
+    notes: >-
+      To compute a margin column down a product list, use
+      `=ARRAYFORMULA(IF(B2:B="",, (B2:B-C2:C)/B2:B))` so each new revenue/COGS row fills in
+      without a manual fill-down. `=TO_PERCENT(B5/B2)` applies percent formatting as part of
+      the formula, which is handy when the value is copied into a dashboard; Format > Number
+      > Percent does the same thing at the cell level and stays more Excel-compatible. Prefer
+      closed ranges, or be deliberate with open-ended ones (`B2:B`): a total row or a stray
+      zero at the bottom will flow into an ARRAYFORMULA and can show a nonsense margin.
+      QUERY is a good way to roll up revenue and cost by product or category first
+      (`=QUERY(A1:C, "select A, sum(B), sum(C) where A is not null group by A", 1)`), then
+      compute margin on the totals — do not average already-computed row margins if the
+      products are different sizes. Locale settings change decimal and argument separators,
+      not the ratio. If the workbook must open in Excel, avoid TO_PERCENT, ARRAYFORMULA and
+      QUERY; the plain `(revenue-COGS)/revenue` formula travels cleanly.
+    alternatives:
+      - label: Margin column for a growing product list
+        formula: '=ARRAYFORMULA(IF(B2:B="",, (B2:B-C2:C)/B2:B))'
+      - label: TO_PERCENT wrapper
+        formula: '=TO_PERCENT(B5/B2)'
+      - label: Net margin
+        formula: '=(B2-B3-B4)/B2'
+      - label: Markup on cost
+        formula: '=(B2-B3)/B3'
+    diff: >-
+      Excel has no TO_PERCENT or QUERY; use percentage cell formatting and, if you need a
+      roll-up, a pivot table or SUMIF before dividing.
+  example:
+    intro: >-
+      One product line: 80,000 revenue, 52,000 COGS, 14,000 operating expenses. Helper cells
+      compute gross and net profit; the margin and markup rows are formatted as percentages.
+    grid:
+      - [Item, Amount]
+      - [Revenue, 80000]
+      - [COGS, 52000]
+      - [Operating expenses, 14000]
+      - [Gross profit]
+      - [Gross margin]
+      - [Net profit]
+      - [Net margin]
+      - [Markup]
+    checks:
+      - cell: B5
+        label: gross profit
+        excel: '=B2-B3'
+        result: '28,000'
+        expect: 28000
+      - cell: B6
+        label: gross margin
+        excel: '=B5/B2'
+        result: '35%'
+        expect: 0.35
+      - cell: B7
+        label: net profit
+        excel: '=B5-B4'
+        result: '14,000'
+        expect: 14000
+      - cell: B8
+        label: net margin
+        excel: '=B7/B2'
+        result: '17.5%'
+        expect: 0.175
+      - cell: B9
+        label: markup on cost
+        excel: '=B5/B3'
+        result: '53.85%'
+        expect: 0.538461538461538
+  steps:
+    - 'Gross profit is revenue minus COGS: 80,000 − 52,000 = 28,000 (`=B2-B3`).'
+    - 'Gross margin divides that profit by revenue: 28,000 / 80,000 = 35% (`=B5/B2`). Format as a percentage.'
+    - 'Net profit subtracts operating expenses from gross profit: 28,000 − 14,000 = 14,000 (`=B5-B4`).'
+    - 'Net margin is net profit ÷ revenue: 14,000 / 80,000 = 17.5% (`=B7/B2`).'
+    - 'Markup uses cost in the denominator, not revenue: 28,000 / 52,000 ≈ 53.85% (`=B5/B3`). That is not the same figure as gross margin.'
+  errors:
+    - error: Result like 3500%
+      cause: The ratio was multiplied by 100 and then formatted as a percentage.
+      fix: Use `=(B2-B3)/B2` and format as Percent. Do not multiply by 100.
+    - error: '#DIV/0!'
+      cause: Revenue (for margin) or COGS (for markup) is 0 or blank.
+      fix: Guard with IF, e.g. `=IF(B2=0, "n/a", (B2-B3)/B2)`.
+    - error: Margin and markup are used interchangeably
+      cause: Profit was divided by cost when a margin was requested, or by revenue when a markup was requested.
+      fix: Margin = profit / revenue; markup = profit / cost. Label the cell so the denominator is obvious.
+    - error: Net margin looks too high
+      cause: Operating expenses were left out, so the figure is actually gross margin, or a cost was subtracted twice.
+      fix: Net margin uses revenue − COGS − operating expenses, all over revenue. Check the helper cells first.
+  faq:
+    - q: What is the difference between gross margin and net margin?
+      a: Gross margin only subtracts the cost of goods sold from revenue. Net margin also subtracts operating expenses (and, in a fuller income statement, other costs). Net margin is always equal to or lower than gross margin on the same numbers.
+    - q: Is markup the same as profit margin?
+      a: No. Markup divides profit by cost; margin divides profit by revenue. On this example the gross margin is 35% and the markup is about 53.85%. Convert with markup = margin / (1 − margin), or margin = markup / (1 + markup).
+    - q: Should I average product margins to get a company margin?
+      a: Not if the products have different revenue. Compute total profit ÷ total revenue (a weighted result). A simple average of row margins overstates small lines and understates large ones.
+    - q: How should I format the results?
+      a: Format profit cells as currency and margin or markup cells as percentages. Keep full precision in the cells that feed other formulas; rounding belongs in a display column or in a figure you have agreed to freeze.
+  related: [percentage, percentage-change, average, cagr]
+
+- id: tax-formula
+  category: financial
+  slugs: {excel: tax-formula-excel, sheets: tax-formula-google-sheets}
+  title: How to Calculate Tax in a Spreadsheet
+  summary: >-
+    A flat `income * rate` formula only works when every dollar is taxed the same. Progressive
+    (marginal) tax applies a different rate to each band of income. This guide builds a clear
+    three-bracket example with a nested IF and a SUMPRODUCT form that reads the brackets from
+    a table, then shows the effective rate as tax divided by income.
+  problem: >-
+    Taxable income is 55,000. The first 10,000 is taxed at 10%, the next 30,000 (up to 40,000)
+    at 12%, and anything above 40,000 at 22%. You want the tax due and the effective rate, with
+    formulas that still work if the income changes.
+  excel:
+    formula: '=IF(B2<=10000, B2*0.1, IF(B2<=40000, 1000+(B2-10000)*0.12, 1000+3600+(B2-40000)*0.22))'
+    explain: >-
+      The nested IF walks the brackets from the bottom. Income up to 10,000 pays 10%. In the
+      middle band the first 10,000 has already cost 1,000, and only the excess is taxed at 12%.
+      Above 40,000 the first two bands have already cost 1,000 + 3,600, and only the excess is
+      taxed at 22%. The SUMPRODUCT alternative reads thresholds and rates from a table and
+      scales without deeper nesting. Format tax as currency and the effective rate as a
+      percentage.
+    notes: >-
+      This is a teaching schedule, not a specific country's tax code — real returns add
+      allowances, credits, and different filing statuses that do not belong inside one cell.
+      Nested IF is easy to audit for two or three bands and works in every Excel version;
+      older Excel limited nesting depth, so a long schedule is safer as a table plus
+      SUMPRODUCT (or, in Excel 2019 / Microsoft 365, IFS). The SUMPRODUCT form
+      `=SUMPRODUCT((B2>$D$2:$D$4)*(B2-$D$2:$D$4)*($E$2:$E$4-N($E$1:$E$3)))` taxes the
+      amount above each threshold at the *increase* in the rate, which is why the rates must
+      sit in a contiguous column with a non-numeric cell immediately above the first rate
+      (the header works, because N of text is 0). Absolute-reference the bracket table when
+      you fill the formula down a list of incomes. Format the tax cell as currency and keep
+      full precision if it feeds an effective-rate or take-home calculation. A flat
+      `=B2*0.22` would overstate tax here; only the top slice faces 22%.
+    alternatives:
+      - label: SUMPRODUCT from a bracket table
+        formula: '=SUMPRODUCT((B2>$D$2:$D$4)*(B2-$D$2:$D$4)*($E$2:$E$4-N($E$1:$E$3)))'
+      - label: IFS (Excel 2019 / Microsoft 365)
+        formula: '=IFS(B2<=10000, B2*0.1, B2<=40000, 1000+(B2-10000)*0.12, TRUE, 1000+3600+(B2-40000)*0.22)'
+      - label: Effective rate
+        formula: '=B3/B2'
+      - label: Flat tax (wrong for this schedule — shown for contrast)
+        formula: '=B2*0.22'
+    diff: >-
+      Google Sheets accepts the same nested IF and SUMPRODUCT formulas. IFS is often the
+      cleaner Sheets rewrite, and ARRAYFORMULA can apply the tax formula down a column of
+      incomes.
+  sheets:
+    formula: '=IF(B2<=10000, B2*0.1, IF(B2<=40000, 1000+(B2-10000)*0.12, 1000+3600+(B2-40000)*0.22))'
+    explain: >-
+      The same nested IF works in Google Sheets. IFS is often easier to read for this kind of
+      bracket walk, and a SUMPRODUCT of a threshold table stays compatible with Excel.
+    notes: >-
+      IFS is a natural fit in Sheets and avoids the hard-to-scan nesting of a long IF chain
+      (`=IFS(B2<=10000, B2*0.1, B2<=40000, 1000+(B2-10000)*0.12, TRUE, 1000+3600+(B2-40000)*0.22)`).
+      To apply the same schedule down a column of incomes, wrap a closed-form expression in
+      ARRAYFORMULA rather than filling cell by cell; do not ask QUERY to compute marginal
+      brackets — QUERY can group and filter, but it will not walk a rate table the way
+      SUMPRODUCT or IFS does. LAMBDA (and a Named Function) is a clean way to package the
+      tax logic once and call `=TAX(B2)` from many sheets. Locale settings change separators
+      and how percentages appear, not which band an income falls into. Open-ended ranges in
+      an ARRAYFORMULA will tax stray zeros or totals at the bottom of the column, so keep a
+      bounded income list. If Excel collaborators will open the file, stick to IF or
+      SUMPRODUCT; IFS exists in current Excel but ARRAYFORMULA and Sheets Named Functions
+      will not travel.
+    alternatives:
+      - label: IFS brackets
+        formula: '=IFS(B2<=10000, B2*0.1, B2<=40000, 1000+(B2-10000)*0.12, TRUE, 1000+3600+(B2-40000)*0.22)'
+      - label: SUMPRODUCT from a bracket table
+        formula: '=SUMPRODUCT((B2>$D$2:$D$4)*(B2-$D$2:$D$4)*($E$2:$E$4-N($E$1:$E$3)))'
+      - label: Tax for a whole column of incomes
+        formula: '=ARRAYFORMULA(IF(B2:B="",, IF(B2:B<=10000, B2:B*0.1, IF(B2:B<=40000, 1000+(B2:B-10000)*0.12, 1000+3600+(B2:B-40000)*0.22))))'
+      - label: Effective rate
+        formula: '=B3/B2'
+    diff: >-
+      Excel can use the same IF and SUMPRODUCT formulas. ARRAYFORMULA is Sheets-only; Excel
+      365 would fill or spill with a different syntax, so keep IF/SUMPRODUCT in a shared file.
+  example:
+    intro: >-
+      Income of 55,000 against three brackets: 0–10,000 at 10%, 10,000–40,000 at 12%, and
+      above 40,000 at 22%. B3 uses a nested IF; B4 reads the threshold table with SUMPRODUCT
+      and should match. The effective rate is tax divided by income.
+    grid:
+      - [Item, Value, null, Threshold, Rate]
+      - [Income, 55000, null, 0, '10%']
+      - ['Tax (nested IF)', null, null, 10000, '12%']
+      - ['Tax (SUMPRODUCT)', null, null, 40000, '22%']
+      - [Effective rate]
+    checks:
+      - cell: B3
+        label: tax with a nested IF
+        excel: '=IF(B2<=10000, B2*0.1, IF(B2<=40000, 1000+(B2-10000)*0.12, 1000+3600+(B2-40000)*0.22))'
+        result: '7,900'
+        expect: 7900
+      - cell: B4
+        label: tax from the bracket table
+        excel: '=SUMPRODUCT((B2>$D$2:$D$4)*(B2-$D$2:$D$4)*($E$2:$E$4-N($E$1:$E$3)))'
+        result: '7,900'
+        expect: 7900
+      - cell: B5
+        label: effective rate
+        excel: '=B3/B2'
+        result: '14.36%'
+        expect: 0.143636363636364
+  steps:
+    - 'Tax in the first band is 10,000 × 10% = 1,000. The next 30,000 (from 10,000 to 40,000) is taxed at 12% = 3,600. The remaining 15,000 is taxed at 22% = 3,300. Total tax is 1,000 + 3,600 + 3,300 = 7,900.'
+    - 'The nested IF encodes the same arithmetic: at 55,000 it takes the third branch, `1000+3600+(B2-40000)*0.22`.'
+    - 'The SUMPRODUCT form looks up the thresholds in D2:D4 and the rates in E2:E4 and should return the same 7,900. Change the table, not the formula, when a band is revised.'
+    - 'Effective rate is tax ÷ income: 7,900 / 55,000 ≈ 14.36%, which is well below the 22% top rate because only the last slice is taxed at 22%.'
+    - 'To reuse the schedule, put other incomes in column B and fill the tax formula down, with the bracket table locked by absolute references.'
+  errors:
+    - error: Tax equals income times the top rate (12,100 here)
+      cause: A flat `=B2*0.22` was used, so every dollar was taxed at the marginal rate.
+      fix: Tax each band separately with a nested IF, IFS, or a SUMPRODUCT of the bracket table.
+    - error: Off-by-one band, or a jump at the threshold
+      cause: The test used `<` when the band is `<=` (or the other way around), so income of exactly 10,000 or 40,000 landed in the wrong slice.
+      fix: Pick one convention and apply it at every threshold. In this example a threshold is the top of the lower band (`B2<=10000`, `B2<=40000`).
+    - error: SUMPRODUCT does not match the nested IF
+      cause: The rate column is not contiguous, the cell above the first rate is numeric, or the thresholds are in the wrong order.
+      fix: Keep thresholds ascending, rates directly beside them, and a header (or a blank) immediately above the first rate so N(...) of that cell is 0.
+    - error: '#DIV/0! on the effective rate'
+      cause: Income is 0 or blank.
+      fix: Use `=IF(B2=0, "n/a", B3/B2)` and format the result as a percentage, not as currency.
+  faq:
+    - q: What is the difference between the marginal rate and the effective rate?
+      a: The marginal rate is the rate on the next dollar of income (22% once you are above 40,000 in this schedule). The effective rate is total tax divided by total income (about 14.36% here). Pay slips and planning conversations often mix the two up.
+    - q: When should I use IFS instead of a nested IF?
+      a: IFS is easier to read once you have more than two or three tests, and it is the usual choice in Google Sheets. Nested IF and SUMPRODUCT remain the most portable options when the file also has to open in older Excel. Do not rely on IFS alone if you need the example to recalculate in LibreOffice.
+    - q: Can I use QUERY or a lookup to compute marginal tax?
+      a: A lookup can return the *top* rate, which is useful for a marginal-rate label but not for the tax amount. QUERY is the wrong tool for walking brackets. Use IF/IFS for a short schedule, or SUMPRODUCT (or LAMBDA) against a threshold table when the bands may change.
+    - q: Does this formula work for payroll withholding or VAT?
+      a: Not by itself. Withholding tables, allowances, credits, and VAT-inclusive prices follow different rules. Use this pattern only for a progressive tax on a single taxable-income figure, and keep a published rate table next to the formula so the brackets stay auditable.
+  related: [ifs, nested-if, if, percentage, pmt]
