@@ -1596,3 +1596,335 @@
     - q: Does this formula work for payroll withholding or VAT?
       a: Not by itself. Withholding tables, allowances, credits, and VAT-inclusive prices follow different rules. Use this pattern only for a progressive tax on a single taxable-income figure, and keep a published rate table next to the formula so the brackets stay auditable.
   related: [ifs, nested-if, if, percentage, pmt]
+
+- id: randbetween
+  category: financial
+  slugs: {excel: randbetween-excel, sheets: randbetween-google-sheets}
+  title: How to Generate a Random Integer
+  summary: >-
+    RANDBETWEEN returns a random whole number between two bounds, and both bounds are
+    included. It is the usual tool for dice rolls, sample IDs, and test data in a fixed
+    range. The function is volatile — a new integer appears on every recalculation — so
+    freeze values you need to keep. Excel 365 can spill a block of integers with RANDARRAY;
+    Google Sheets RANDARRAY cannot, and uses a different pattern.
+  problem: >-
+    You need random integers from 10 to 20 inclusive: a few sample draws for a model, a
+    check that both ends of the range are reachable, and a way to generate a whole column
+    of draws without dragging the fill handle. You also want to know how to stop the
+    numbers from changing every time the sheet recalculates.
+  excel:
+    formula: '=RANDBETWEEN(E2, E3)'
+    explain: >-
+      Syntax: `RANDBETWEEN(bottom, top)` returns a random integer in that range, with both
+      ends included. Here E2 is 10 and E3 is 20, so every draw is a whole number from 10
+      through 20. Non-integer bounds are truncated toward zero first. The result changes
+      whenever the workbook recalculates.
+    notes: >-
+      RANDBETWEEN has been built into Excel since Excel 2007 (older versions needed the
+      Analysis ToolPak). It is volatile: any edit, opening the file, or pressing F9 draws
+      a new integer, which will silently rewrite a posted sample, an assigned ID, or a
+      “random” prize if you leave the live formula in place. When a draw must stay put,
+      copy the cells and use Paste Special > Values. Both bounds are inclusive, which is
+      why the classic rewrite `=INT(RAND()*(top-bottom+1))+bottom` adds 1 inside the
+      parentheses — without it the top integer would almost never appear. Duplicates are
+      allowed; this is sampling with replacement. For a set of unique integers, shuffle a
+      SEQUENCE of the range with SORTBY and RANDARRAY, then TAKE as many as you need,
+      instead of calling RANDBETWEEN in a loop and hoping. In Microsoft 365 / Excel 2021
+      you can spill a column of integers directly with
+      `=RANDARRAY(6, 1, E2, E3, TRUE)`; that function is not in Excel 2019 or earlier,
+      where you fill `=RANDBETWEEN($E$2, $E$3)` down. Do not use either function as a
+      source of cryptographic or audit-grade randomness, and never let a live random
+      formula sit in a cell that is later treated as a permanent invoice or employee
+      number. `#NUM!` means bottom is greater than top after any truncation.
+    alternatives:
+      - label: Spill six random integers (Excel 365 / 2021)
+        formula: '=RANDARRAY(6, 1, E2, E3, TRUE)'
+      - label: Classic RAND rewrite (inclusive)
+        formula: '=INT(RAND()*(E3-E2+1))+E2'
+      - label: Unique shuffle of every integer in the range
+        formula: '=SORTBY(SEQUENCE(E3-E2+1, 1, E2), RANDARRAY(E3-E2+1))'
+      - label: Fill-down form with locked bounds
+        formula: '=RANDBETWEEN($E$2, $E$3)'
+    diff: >-
+      Google Sheets has the same RANDBETWEEN function, but its RANDARRAY only returns
+      decimals from 0 to 1 and has no min, max, or integer argument. Use INT(RANDARRAY…)
+      or ARRAYFORMULA(RANDBETWEEN…) for a column of integers there.
+  sheets:
+    formula: '=RANDBETWEEN(E2, E3)'
+    explain: >-
+      Same syntax in Google Sheets: `RANDBETWEEN(bottom, top)` returns a random integer
+      that includes both bounds. The value changes whenever the sheet recalculates.
+    notes: >-
+      Sheets RANDBETWEEN matches Excel, including inclusive bounds and volatility: a new
+      integer appears after an edit and usually when the file is reopened. To freeze a
+      draw, copy and Paste special > Values only. The important platform gap is RANDARRAY.
+      Officially, Sheets `RANDARRAY(rows, columns)` only fills 0–1 decimals; it does not
+      accept the Excel min, max, or integer arguments, so
+      `=RANDARRAY(6, 1, E2, E3, TRUE)` is the wrong translation and will fail. For a
+      column of random integers without a fill-down, use
+      `=ARRAYFORMULA(INT(RANDARRAY(6, 1)*(E3-E2+1))+E2)` or
+      `=ARRAYFORMULA(RANDBETWEEN(SEQUENCE(6)*0+E2, E3))`. Open-ended ranges such as A2:A
+      are convenient, but an ARRAYFORMULA pointed at them will also fire on stray totals
+      or blank rows that later become numbers — keep a closed height unless you intend
+      that. Locale settings change the argument separator (comma vs semicolon), not the
+      math. If desktop Excel users will open the file, stay with plain RANDBETWEEN or
+      the INT(RAND()…) rewrite; ARRAYFORMULA will not travel.
+    alternatives:
+      - label: Column of integers with RANDARRAY (0–1 scaled)
+        formula: '=ARRAYFORMULA(INT(RANDARRAY(6, 1)*(E3-E2+1))+E2)'
+      - label: ARRAYFORMULA + RANDBETWEEN
+        formula: '=ARRAYFORMULA(RANDBETWEEN(SEQUENCE(6)*0+E2, E3))'
+      - label: Classic RAND rewrite (inclusive)
+        formula: '=INT(RAND()*(E3-E2+1))+E2'
+      - label: Unique shuffle of every integer in the range
+        formula: '=SORT(SEQUENCE(E3-E2+1, 1, E2), RANDARRAY(E3-E2+1, 1), TRUE)'
+    diff: >-
+      Excel 365 can spill integers with RANDARRAY(rows, columns, min, max, TRUE). Sheets
+      RANDARRAY cannot take those extra arguments; use the INT or ARRAYFORMULA forms
+      above. Excel has no ARRAYFORMULA and no open-ended A2:A range.
+  example:
+    intro: >-
+      Six already-drawn integers in column B stand in for a frozen RANDBETWEEN(10,20)
+      sample, so the range checks can be recalculated. E4 and E5 are fixed stand-ins for
+      a RAND() draw at the bottom and just below 1; the INT formulas show that both 10
+      and 20 are reachable. The live RANDBETWEEN in E12 changes on every recalc and is
+      not machine-verified.
+    grid:
+      - [Draw, Frozen sample, null, Item, Value]
+      - [1, 14, null, Low, 10]
+      - [2, 10, null, High, 20]
+      - [3, 17, null, Stand-in at 0, 0]
+      - [4, 11, null, Stand-in near 1, 0.999]
+      - [5, 20, null, Integer at low bound]
+      - [6, 15, null, Integer at high bound]
+      - [null, null, null, Min of sample]
+      - [null, null, null, Max of sample]
+      - [null, null, null, Rank of the 20]
+      - [null, null, null, Count inside 10–20]
+      - [null, null, null, Live RANDBETWEEN]
+    checks:
+      - cell: E6
+        label: inclusive low bound from a 0 stand-in
+        excel: '=INT(E4*(E3-E2+1))+E2'
+        result: 10
+        expect: 10
+      - cell: E7
+        label: inclusive high bound from a 0.999 stand-in
+        excel: '=INT(E5*(E3-E2+1))+E2'
+        result: 20
+        expect: 20
+      - cell: E8
+        label: minimum of the frozen sample
+        excel: '=MIN(B2:B7)'
+        result: 10
+        expect: 10
+      - cell: E9
+        label: maximum of the frozen sample
+        excel: '=MAX(B2:B7)'
+        result: 20
+        expect: 20
+      - cell: E10
+        label: descending rank of the 20
+        excel: '=RANK(B6, B2:B7, 0)'
+        result: 1
+        expect: 1
+      - cell: E11
+        label: how many frozen draws sit in 10–20
+        excel: '=COUNTIFS(B2:B7, ">="&E2, B2:B7, "<="&E3)'
+        result: 6
+        expect: 6
+      - cell: E12
+        label: live random integer (volatile)
+        excel: '=RANDBETWEEN(E2, E3)'
+        result: (changes on every recalc)
+        verify: false
+        why_unverified: RANDBETWEEN is volatile; LibreOffice would draw a new integer on every recalc, so this check is not compared to a fixed result
+  steps:
+    - 'Set the bounds in E2 and E3 (here 10 and 20). `=RANDBETWEEN(E2, E3)` then returns a whole number in that closed interval.'
+    - 'The inclusive rewrite is `=INT(RAND()*(top-bottom+1))+bottom`. With a stand-in of 0, `=INT(E4*(E3-E2+1))+E2` equals 10. With 0.999, the same formula equals 20. A stand-in of 1 would overshoot, which is why RAND itself never returns 1.'
+    - 'Column B is a frozen sample, as if six RANDBETWEEN results had already been pasted as values. MIN is 10, MAX is 20, every draw falls inside the bounds (COUNTIFS = 6), and the 20 ranks first.'
+    - 'To keep a live draw, copy it and paste values. Leaving RANDBETWEEN in the cell means the number will change the next time the workbook calculates.'
+    - 'For a list of integers that must not repeat, shuffle `SEQUENCE(E3-E2+1, 1, E2)` with RANDARRAY rather than calling RANDBETWEEN once per row. Duplicates are expected when you draw with replacement.'
+  errors:
+    - error: '#NUM!'
+      cause: Bottom is greater than top, or became greater after Excel truncated a non-integer bound toward zero.
+      fix: 'Swap the bounds or correct them, e.g. `=RANDBETWEEN(10, 20)` not `=RANDBETWEEN(20, 10)`.'
+    - error: The numbers keep changing
+      cause: RANDBETWEEN is volatile and recalculates on every workbook change (and typically when the file is reopened).
+      fix: Copy the results and use Paste Special > Values when the draws need to stay fixed.
+    - error: The top value never appears, or a value one past the top does
+      cause: The RAND rewrite omitted the `+1`, or someone used a scale that can reach 1 (`INT(RAND()*10)+1` is 1–10; `INT(RAND()*10)` is 0–9).
+      fix: 'Use `=INT(RAND()*(top-bottom+1))+bottom`, or just call RANDBETWEEN, which already includes both ends.'
+    - error: Repeated integers in a “unique” sample
+      cause: RANDBETWEEN (and RANDARRAY with integer TRUE) samples with replacement, so duplicates are normal.
+      fix: Shuffle a SEQUENCE of the range (SORTBY or SORT with RANDARRAY) and take the first n values.
+  faq:
+    - q: Does RANDBETWEEN include both the bottom and the top?
+      a: Yes. RANDBETWEEN(10, 20) can return 10 and can return 20. That is the same rule as INT(RAND()*(20-10+1))+10, which is why the +1 is required in the RAND form.
+    - q: How do I fill a column of random integers without dragging?
+      a: 'In Excel 365 use `=RANDARRAY(n, 1, bottom, top, TRUE)`. In Google Sheets RANDARRAY cannot take min, max, or integer; use `=ARRAYFORMULA(INT(RANDARRAY(n, 1)*(top-bottom+1))+bottom)` or ARRAYFORMULA with RANDBETWEEN. In older Excel, fill `=RANDBETWEEN($E$2, $E$3)` down.'
+    - q: How do I get unique random integers?
+      a: Do not filter duplicates after the fact and hope you still have enough rows. Build the list of allowed integers with SEQUENCE, shuffle it with RANDARRAY, and take as many as you need. That is sampling without replacement.
+    - q: Can I use this for lottery numbers or passwords?
+      a: No. Spreadsheet random functions are fine for mock data and informal shuffles, not for security or a legally auditable draw. Generate those elsewhere and paste the results as values if you only need to display them.
+  related: [sequence, unique, large-small, rank, round]
+
+- id: rand
+  category: financial
+  slugs: {excel: rand-excel, sheets: rand-google-sheets}
+  title: How to Use RAND to Shuffle or Sample a List
+  summary: >-
+    RAND returns a random decimal that is greater than or equal to 0 and strictly less
+    than 1. Scale it for a continuous range, or use it (or RANDARRAY) as a sort key to
+    shuffle a list and to sample rows without replacement. This is a different job from
+    RANDBETWEEN, which returns integers in a fixed band. Worked example included.
+  problem: >-
+    You have five regions in a list and want a fair shuffle, a single random pick, and a
+    way to map a RAND draw onto a 10–20 scale. You also need a pattern that works when
+    you do not have Microsoft 365, and a Google Sheets version that does not assume
+    Excel’s RANDARRAY arguments.
+  excel:
+    formula: '=SORTBY(A2:A6, RANDARRAY(COUNTA(A2:A6)))'
+    explain: >-
+      `RAND()` is a single decimal in the half-open interval [0, 1). `RANDARRAY(n)` spills
+      n such decimals. Feeding that spill into SORTBY reorders the region list by a fresh
+      random key, which is a shuffle without a helper column. The same RAND values can be
+      ranked, scaled, or used to pick one row.
+    notes: >-
+      RAND and RANDARRAY are volatile: every recalculation, including opening the file or
+      pressing F9, reshuffles the list. When the order must stick (a published draw, a
+      seating plan, an assigned review queue), copy the result and paste values. RAND
+      never returns 1, which is what keeps `=low+(high-low)*RAND()` inside the upper bound
+      and keeps `=INT(RAND()*(high-low+1))+low` from overshooting the top integer. In
+      Microsoft 365 / Excel 2021, RANDARRAY is the clean way to generate many draws at
+      once (`=RANDARRAY(5)` or `=RANDARRAY(5, 2)` for a grid) and SORTBY is the clean
+      shuffle; `=TAKE(SORTBY(A2:A6, RANDARRAY(COUNTA(A2:A6))), 3)` is a random sample of
+      three without replacement. Excel 2019 and older have RAND but not RANDARRAY or
+      SORTBY: put `=RAND()` in a helper column, then sort the list by that column (or use
+      RANK / INDEX to pull the first n). Fill-down of RAND() and a single RANDARRAY spill
+      are equivalent in distribution; the spill is just easier to maintain. Do not use
+      RAND as a stable unique ID, and do not treat a uniform RAND as a normal (bell-curve)
+      sample — if you need that, use `=NORM.INV(RAND(), mean, sd)` on a frozen draw.
+    alternatives:
+      - label: One random decimal
+        formula: '=RAND()'
+      - label: Scale a draw onto 10–20 (continuous)
+        formula: '=E2+(E3-E2)*RAND()'
+      - label: Random sample of three regions
+        formula: '=TAKE(SORTBY(A2:A6, RANDARRAY(COUNTA(A2:A6))), 3)'
+      - label: Helper-column RAND (Excel 2019 and older)
+        formula: '=RAND()'
+    diff: >-
+      Google Sheets has RAND and a RANDARRAY that only returns 0–1 decimals (no min, max,
+      or integer argument). The usual Sheets shuffle is SORT of the list with a RANDARRAY
+      sort column, or SORTN for a random sample.
+  sheets:
+    formula: '=SORT(A2:A6, RANDARRAY(COUNTA(A2:A6), 1), TRUE)'
+    explain: >-
+      `SORT` reorders the region list using a column of fresh RANDARRAY decimals as the
+      sort key. `TRUE` means ascending; the direction does not matter for a shuffle.
+      `RAND()` itself is the same [0, 1) decimal as in Excel.
+    notes: >-
+      Sheets RAND matches Excel. The platform differences sit in the array helpers.
+      Official Sheets `RANDARRAY(rows, columns)` only fills values between 0 and 1; it
+      does not take Excel’s min, max, or integer arguments, so do not paste
+      `=RANDARRAY(5, 1, 10, 20, TRUE)` into a Sheets file. For a continuous scale use
+      `=ARRAYFORMULA(E2+(E3-E2)*RANDARRAY(5, 1))`. SORTBY exists in current Sheets, but
+      SORT (and SORTN for “give me n random rows”) is the more typical Sheets pattern:
+      `=SORTN(A2:A6, 3, , RANDARRAY(COUNTA(A2:A6), 1), TRUE)` takes a sample of three
+      without replacement. Open-ended ranges such as A2:A work with COUNTA, but a trailing
+      blank that later gets a value will change the shuffle size — prefer a closed list or
+      a FILTER of non-blanks. RANDARRAY already spills, so wrapping RAND() in ARRAYFORMULA
+      is usually unnecessary and, if both arguments of a larger formula are scalars, may
+      not generate a separate draw per row. Locale settings change separators, not the
+      [0, 1) range. If the workbook must open in desktop Excel, a helper column of RAND()
+      plus a manual sort travels; SORTN and ARRAYFORMULA will not.
+    alternatives:
+      - label: One random decimal
+        formula: '=RAND()'
+      - label: Random sample of three with SORTN
+        formula: '=SORTN(A2:A6, 3, , RANDARRAY(COUNTA(A2:A6), 1), TRUE)'
+      - label: Scale a column of draws onto 10–20
+        formula: '=ARRAYFORMULA(E2+(E3-E2)*RANDARRAY(5, 1))'
+      - label: Helper-column RAND, then sort the range
+        formula: '=RAND()'
+    diff: >-
+      Excel 365 shuffles with SORTBY and RANDARRAY, and can request integer or bounded
+      RANDARRAY results. Sheets RANDARRAY is 0–1 only; use SORT or SORTN for the list, and
+      a scale formula when you need another range. Excel has no SORTN or ARRAYFORMULA.
+  example:
+    intro: >-
+      Five regions with a frozen RAND draw already typed in column B, as if live RAND()
+      results had been pasted as values. The scale, INT, RANK, INDEX and AVERAGE formulas
+      use those fixed numbers so they can be machine-verified. The live RAND in E9 changes
+      on every recalc and is not compared to a fixed result.
+    grid:
+      - [Region, Frozen RAND, null, Item, Value]
+      - [North, 0.42, null, Low, 10]
+      - [East, 0.07, null, High, 20]
+      - [South, 0.91, null, Scaled stand-in]
+      - [West, 0.33, null, INT mapping]
+      - [Central, 0.68, null, Rank of North]
+      - [null, null, null, Random pick (lowest RAND)]
+      - [null, null, null, Average of draws]
+      - [null, null, null, Live RAND]
+    checks:
+      - cell: E4
+        label: scale the 0.42 stand-in onto 10–20
+        excel: '=E2+(E3-E2)*B2'
+        result: 14.2
+        expect: 14.2
+      - cell: E5
+        label: map the 0.07 stand-in to a 1–10 integer
+        excel: '=INT(B3*10)+1'
+        result: 1
+        expect: 1
+      - cell: E6
+        label: ascending rank of North's draw
+        excel: '=RANK(B2, B2:B6, 1)'
+        result: 3
+        expect: 3
+      - cell: E7
+        label: region with the lowest frozen RAND
+        excel: '=INDEX(A2:A6, MATCH(MIN(B2:B6), B2:B6, 0))'
+        result: East
+      - cell: E8
+        label: average of the frozen draws
+        excel: '=AVERAGE(B2:B6)'
+        result: 0.482
+        expect: 0.482
+      - cell: E9
+        label: live RAND decimal (volatile)
+        excel: '=RAND()'
+        result: (changes on every recalc)
+        verify: false
+        why_unverified: RAND is volatile; LibreOffice would draw a new decimal on every recalc, so this check is not compared to a fixed result
+  steps:
+    - '`RAND()` (and each cell of `RANDARRAY`) returns a decimal in [0, 1), never 1. Column B is a frozen sample of five such draws, already pasted as values so the rest of the example is stable.'
+    - 'A continuous scale is `low+(high-low)*RAND()`. With the 0.42 stand-in, `=E2+(E3-E2)*B2` is 14.2, which stays below 20 because the stand-in is below 1.'
+    - 'The older integer mapping `=INT(RAND()*(high-low+1))+low` is what RANDBETWEEN hides. `=INT(B3*10)+1` with 0.07 equals 1, the bottom of a 1–10 band.'
+    - 'To shuffle, sort the list by a random key. In current Excel that is `=SORTBY(A2:A6, RANDARRAY(COUNTA(A2:A6)))`. Ranking the frozen draws (`=RANK(B2, B2:B6, 1)` is 3 for North) is the same idea in a helper column.'
+    - 'A single random pick is the item whose RAND is the smallest (or largest): `=INDEX(A2:A6, MATCH(MIN(B2:B6), B2:B6, 0))` returns East. A sample of several items is a shuffle followed by TAKE or SORTN, not several independent RAND calls, if you must not repeat a row.'
+  errors:
+    - error: The list order (or the “random” pick) keeps changing
+      cause: RAND, RANDARRAY, SORTBY and SORT of a random key are all volatile and recalculate together.
+      fix: Paste the shuffled list (or the pick) as values when the result needs to be permanent.
+    - error: A scale formula sometimes equals the high bound, or steps one past it
+      cause: The formula used a closed interval that can reach 1, or INT was applied without the +1 / +low offset.
+      fix: 'Keep RAND in [0, 1). For a continuous 10–20 range use `=10+(20-10)*RAND()`. For integers use RANDBETWEEN or `=INT(RAND()*(top-bottom+1))+bottom`.'
+    - error: '#SPILL! or #REF! on the shuffle'
+      cause: The spill range for SORTBY, SORT, or RANDARRAY is not empty, or (Sheets) the array would overwrite existing cells.
+      fix: Clear the cells the shuffle needs, or move the formula so it has room to expand.
+    - error: The same region appears twice in a “sample of three”
+      cause: RAND was used independently on each row (sampling with replacement), or the same item exists twice in the source list.
+      fix: Shuffle once with SORTBY or SORT and take the first n rows (TAKE or SORTN). That samples without replacement.
+  faq:
+    - q: What is the difference between RAND and RANDBETWEEN?
+      a: RAND returns a decimal in [0, 1). RANDBETWEEN returns a whole number between two bounds, inclusive. Use RAND (or RANDARRAY) to shuffle or sample a list and to scale a continuous value. Use RANDBETWEEN when you specifically want random integers in a range.
+    - q: Why not just fill RAND() down and sort by hand?
+      a: That is the right method in Excel 2019 and older, and it still works. SORTBY or SORT plus RANDARRAY does the same shuffle with one formula and updates if the list length changes. Either way, paste values once you like the order.
+    - q: Can I use RANDARRAY to get random integers in Google Sheets?
+      a: 'Not with Excel’s five-argument form. Sheets RANDARRAY only returns 0–1 decimals. Scale it (`=INT(RANDARRAY(n, 1)*(top-bottom+1))+bottom`) or use RANDBETWEEN / ARRAYFORMULA instead.'
+    - q: Is a helper column of RAND() worse than RANDARRAY?
+      a: The distribution is the same. RANDARRAY is easier to maintain because you do not have to remember to fill extra rows. A helper column is the portable option when the file must open in older Excel, or when you want to inspect the random keys before sorting.
+  related: [unique, sort, sortby, filter, sequence]
