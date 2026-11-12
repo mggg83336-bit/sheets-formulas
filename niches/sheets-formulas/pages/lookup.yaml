@@ -1871,3 +1871,437 @@
     - q: What does the second argument do?
       a: 'TRUE or omitted means the text is A1 style (`B8` or `''Rate Table''!B3`). FALSE means R1C1 style (`R8C2`). Mixing the two — for example passing `B8` with FALSE — returns `#REF!`.'
   related: [vlookup, index-match, vlookup-another-sheet, last-value]
+
+- id: offset
+  category: lookup
+  slugs: {excel: offset-excel, sheets: offset-google-sheets}
+  title: How to Use the OFFSET Function
+  summary: >-
+    OFFSET starts at a cell or range and returns another range a given number of rows
+    and columns away, optionally with a new height and width. It is the classic way to
+    build a moving or growing range for SUM, AVERAGE, or a chart. The function is
+    volatile, so a non-volatile INDEX range or an Excel Table is often a better long-term
+    choice. Google Sheets uses the same syntax and also offers open-ended ranges and FILTER.
+  problem: >-
+    You have a growing list of regional sales and want one formula that can return a
+    cell a few rows down, a block of the first few months, or a range that expands as
+    new rows are typed — without editing the formula each time the list gets longer.
+  excel:
+    formula: '=OFFSET(A2, 2, 0)'
+    explain: >-
+      Syntax: `OFFSET(reference, rows, cols, [height], [width])`. Starting at A2, move
+      down 2 rows and 0 columns to return East. Omit height and width to keep the size
+      of `reference` (here a single cell). Positive `rows` move down, negative move up;
+      positive `cols` move right, negative move left. When you do supply height and
+      width, they must be positive and they set the size of the returned range, which
+      you can wrap in SUM, AVERAGE, or COUNTA.
+    notes: >-
+      OFFSET is available in every Excel version, including older ones that lack TAKE
+      or FILTER. The usual pattern for a list that grows is
+      `=SUM(OFFSET(B2, 0, 0, COUNTA(B2:B100), 1))`, which starts at B2 and is as tall as
+      the number of filled cells in that column. Because OFFSET is volatile, it
+      recalculates on every workbook change, so a sheet full of OFFSET-based named
+      ranges can feel slow; the non-volatile equivalent is a range that ends at INDEX,
+      such as `=SUM(B2:INDEX(B2:B100, COUNTA(B2:B100)))`. In Microsoft 365, TAKE and
+      DROP often replace OFFSET when you only need the first or last n rows of a known
+      range (`=SUM(TAKE(B2:B6, 4))`). Excel Tables are even simpler for a growing list:
+      convert the data with Insert > Table and use `=SUM(Table1[Sales])`, which expands
+      when you type a new row and is not volatile. `#REF!` appears when the shift would
+      land above row 1 or left of column A, or when height or width is 0. Do not use
+      whole-column COUNTA($B:$B) if B1 is a header — you will over-count by one and pull
+      an extra blank into the range.
+    alternatives:
+      - label: First four sales, as a range inside SUM
+        formula: '=SUM(OFFSET(B2, 0, 0, 4, 1))'
+      - label: Growing list with COUNTA (volatile)
+        formula: '=SUM(OFFSET(B2, 0, 0, COUNTA(B2:B100), 1))'
+      - label: Same growing list with INDEX (non-volatile)
+        formula: '=SUM(B2:INDEX(B2:B100, COUNTA(B2:B100)))'
+      - label: Microsoft 365 with TAKE
+        formula: '=SUM(TAKE(B2:B6, 4))'
+    diff: >-
+      Google Sheets uses the same OFFSET syntax. It also allows open-ended ranges such
+      as B2:B, and FILTER is often a clearer replacement than OFFSET for a growing list.
+      TAKE is not available in Sheets.
+  sheets:
+    formula: '=OFFSET(A2, 2, 0)'
+    explain: >-
+      Same syntax in Google Sheets: `OFFSET(cell_reference, offset_rows, offset_columns,
+      [height], [width])`. From A2, two rows down and no column shift returns East.
+      Height and width, when given, must be positive.
+    notes: >-
+      OFFSET behaviour matches Excel for the five arguments, including negative row and
+      column shifts and the `#REF!` you get when the result would fall off the sheet.
+      The practical difference is how Sheets grows a list. Open-ended ranges such as
+      `B2:B` already expand as you add rows, so `=SUM(B2:B)` or a named range pointed at
+      `B2:B` often replaces an OFFSET+COUNTA construction — watch for a total or note
+      sitting at the bottom of the column, which an open-ended range would include.
+      FILTER is the usual Sheets-native alternative when you want every filled sale
+      (`=SUM(FILTER(B2:B, B2:B<>""))`) and is easier to read than OFFSET. INDIRECT can
+      also build a height from COUNTA, but it is volatile too. OFFSET itself remains
+      volatile, so a dashboard with many OFFSET named ranges will recalc often; INDEX
+      (`=SUM(B2:INDEX(B2:B, COUNTA(B2:B)))`) is the cheaper equivalent. TAKE does not
+      exist in Google Sheets; CHOOSEROWS plus SEQUENCE can pick the first n rows if you
+      need that shape. If Excel collaborators will open the file, stay with closed
+      ranges and skip FILTER-only or B2:B-only formulas.
+    alternatives:
+      - label: Open-ended sum that grows with the column
+        formula: '=SUM(B2:B)'
+      - label: Growing list with FILTER
+        formula: '=SUM(FILTER(B2:B, B2:B<>""))'
+      - label: Growing list with INDEX (non-volatile)
+        formula: '=SUM(B2:INDEX(B2:B, COUNTA(B2:B)))'
+      - label: First four sales, as a range inside SUM
+        formula: '=SUM(OFFSET(B2, 0, 0, 4, 1))'
+    diff: >-
+      Excel uses the same OFFSET formula but has no open-ended B2:B range. Microsoft 365
+      can use TAKE; Sheets cannot. Excel Tables auto-expand without OFFSET.
+  example:
+    intro: >-
+      Five regional sales in A2:C6. E2 returns the region two rows below the first
+      name, E3 a single sale, E4 the sum of the first four sales, E5 the average of
+      every filled sale, and E6 a three-row block that starts one row down.
+    grid:
+      - [Region, Sales, Month, null, Result]
+      - [North, 120, Jan, null]
+      - [South, 85, Feb]
+      - [East, 140, Mar]
+      - [West, 95, Apr]
+      - [North, 110, May]
+    checks:
+      - cell: E2
+        label: region two rows down from A2
+        excel: '=OFFSET(A2, 2, 0)'
+        result: East
+      - cell: E3
+        label: sales three rows down from B2
+        excel: '=OFFSET(B2, 3, 0)'
+        result: 95
+        expect: 95
+      - cell: E4
+        label: sum of the first four sales
+        excel: '=SUM(OFFSET(B2, 0, 0, 4, 1))'
+        result: 440
+        expect: 440
+      - cell: E5
+        label: average of every filled sale (COUNTA sets the height)
+        excel: '=AVERAGE(OFFSET(B2, 0, 0, COUNTA(B2:B6), 1))'
+        result: 110
+        expect: 110
+      - cell: E6
+        label: sum of a 3-row block starting one row down
+        excel: '=SUM(OFFSET(A2, 1, 1, 3, 1))'
+        result: 320
+        expect: 320
+  steps:
+    - '`=OFFSET(A2, 2, 0)` starts at North in A2, moves down two rows, and returns East from A4. Changing the 2 to 3 would return West.'
+    - '`=OFFSET(B2, 3, 0)` does the same move in the Sales column and returns 95, the West figure in B5.'
+    - 'Height and width turn OFFSET into a range. `=SUM(OFFSET(B2, 0, 0, 4, 1))` starts at B2, stays four rows tall and one column wide (B2:B5), and adds 120 + 85 + 140 + 95 = 440.'
+    - '`COUNTA` can supply that height so the range grows with the list. `=AVERAGE(OFFSET(B2, 0, 0, COUNTA(B2:B6), 1))` sees five filled sales and returns 110, the average of 120, 85, 140, 95 and 110.'
+    - 'The last example moves and resizes at once: `=SUM(OFFSET(A2, 1, 1, 3, 1))` starts one row down and one column right of A2 (that is B3), then takes three rows (B3:B5) and adds 85 + 140 + 95 = 320.'
+    - 'When you only need a growing list and care about speed, prefer `=SUM(B2:INDEX(B2:B6, COUNTA(B2:B6)))` or, in Excel, an Excel Table. Keep OFFSET for a start point or size that really does change by a calculated row or column offset.'
+  errors:
+    - error: '#REF!'
+      cause: The shift would land above row 1 or left of column A, or height or width was 0 or omitted in a context that cannot accept it.
+      fix: Keep `rows` and `cols` small enough that the result stays on the sheet. Use a positive height and width when you want a multi-cell range.
+    - error: The sum is too large, too small, or includes a header
+      cause: COUNTA counted a column header, a trailing total, or skipped blanks in the middle, so the height does not match the real list.
+      fix: Count only the data cells (for example COUNTA(B2:B100), not COUNTA(B:B) when B1 is a header) and do not leave blank rows in the middle of the list.
+    - error: The workbook became slow
+      cause: OFFSET is volatile, so every OFFSET named range recalculates on every change.
+      fix: Switch to an INDEX-ended range or an Excel Table wherever the start cell is fixed and only the length changes.
+    - error: The formula returns a single number when you expected a range
+      cause: OFFSET was not wrapped in SUM, AVERAGE, or another function, and the cell shows only the first value of the range.
+      fix: Wrap the OFFSET call in the function that should aggregate it, or use it as the source of a named range or chart series.
+  faq:
+    - q: When should I use OFFSET instead of INDEX?
+      a: Use OFFSET when the starting cell itself moves — for example “two rows below this label” or “a block that starts n columns to the right.” If the start is fixed and only the length of the list changes, `B2:INDEX(B2:B100, COUNTA(B2:B100))` does the same job and is not volatile. In Microsoft 365, TAKE is often clearer still.
+    - q: Does OFFSET work the same in Google Sheets?
+      a: The five arguments are the same. The usual Sheets alternative for a growing column is an open-ended range (`B2:B`) or FILTER, which Excel does not treat the same way. TAKE is Excel-only; INDEX works in both.
+    - q: Can I use OFFSET in a named range?
+      a: Yes. In Excel open Formulas > Name Manager and set the refers-to formula to `=OFFSET(Sheet1!$B$2,0,0,COUNTA(Sheet1!$B$2:$B$100),1)`. In Google Sheets use Data > Named ranges, or point the name at `B2:B` and skip OFFSET. See [dynamic named range](../{dynamic-range}/) for the full walkthrough.
+    - q: Why is OFFSET called volatile?
+      a: A volatile function recalculates whenever anything in the workbook changes, even if its inputs did not. A few OFFSET formulas are fine; a sheet of them, each wrapping COUNTA on a large column, is a common reason a model feels sluggish.
+  related: [indirect, last-value, index-match, filter, dynamic-range]
+
+- id: dynamic-range
+  category: lookup
+  slugs: {excel: dynamic-range-excel, sheets: dynamic-range-google-sheets}
+  title: How to Create a Dynamic Named Range
+  summary: >-
+    A dynamic named range expands as you add rows, so SUM, charts, data-validation lists
+    and lookups keep working without edits. In Excel the durable options are an Excel
+    Table or a non-volatile INDEX range; OFFSET plus COUNTA still works but recalculates
+    often. In Google Sheets the idiomatic approach is an open-ended named range such as
+    B2:B, with FILTER as a formula-only alternative.
+  problem: >-
+    You keep a product list that gains a new row every week. A total, a drop-down, and a
+    chart should all follow the list automatically. You do not want to edit the named
+    range — or every formula that uses it — each time someone types a new product.
+  excel:
+    formula: '=SUM(B2:INDEX(B2:B10, COUNTA(B2:B10)))'
+    explain: >-
+      `INDEX(B2:B10, COUNTA(B2:B10))` returns the last filled cell in the quantity
+      column. Joining it to B2 with a colon builds a range that ends at that cell, and
+      SUM adds 10 + 8 + 15 + 6 = 39. Put the same formula (with a taller ceiling such as
+      B2:B1000) in Formulas > Name Manager as the definition of a name like `Qty`, then
+      write `=SUM(Qty)` anywhere in the workbook.
+    notes: >-
+      The preferred Excel approach, when you can use it, is an Excel Table. Select the
+      list, choose Insert > Table, and refer to the column with a structured reference
+      (`=SUM(Table1[Qty])`). The table — and any chart or validation list that uses it —
+      grows when you type in the next row, and the reference is not volatile. When you
+      need a named range rather than a table (for example a single-column list used by
+      data validation in an older workbook), define it with INDEX as above, or with
+      `=OFFSET(Sheet1!$B$2,0,0,COUNTA(Sheet1!$B$2:$B$1000),1)`. OFFSET is easier to read
+      for some people but is volatile; INDEX is the better default. In Name Manager,
+      decide whether the name is workbook-scoped or worksheet-scoped, and always lock
+      the anchors with `$` so the definition does not shift when you click around.
+      COUNTA must count only data cells: if you write COUNTA($B:$B) and B1 is the
+      header “Qty”, the height is one too tall. Blank cells in the middle of the list
+      also throw the count off — keep the list contiguous. Microsoft 365 can additionally
+      spill a clean list with FILTER (`=FILTER(A2:B10, A2:A10<>"")`) and feed that to
+      a function or a chart, which avoids a named range altogether.
+    alternatives:
+      - label: OFFSET definition for a named range (volatile)
+        formula: '=SUM(OFFSET(B2, 0, 0, COUNTA(B2:B10), 1))'
+      - label: Excel Table structured reference
+        formula: '=SUM(Table1[Qty])'
+      - label: Spill only the filled rows (Microsoft 365)
+        formula: '=FILTER(A2:B10, A2:A10<>"")'
+    diff: >-
+      Google Sheets has no Excel Tables. The usual Sheets pattern is a named range
+      pointed at an open-ended address such as B2:B, or FILTER. The INDEX and OFFSET
+      formulas on this page still work in Sheets.
+  sheets:
+    formula: '=SUM(B2:INDEX(B2:B10, COUNTA(B2:B10)))'
+    explain: >-
+      The same INDEX construction works in Google Sheets and returns 39 for the four
+      quantities in the example. In practice you will often skip it and point a named
+      range at an open-ended column instead.
+    notes: >-
+      Google Sheets named ranges live under Data > Named ranges. The distinctive Sheets
+      feature is an open-ended address: a name `Qty` that refers to `B2:B` already grows
+      as you add products, and `=SUM(Qty)` stays correct without OFFSET or COUNTA. That
+      is the usual choice for a simple column. Two caveats: a total, note, or stray value
+      below the list becomes part of `B2:B`, and a blank in the middle is included as a
+      blank rather than trimming the range. When you need to ignore blanks or a trailing
+      total, use FILTER (`=SUM(FILTER(B2:B, B2:B<>""))`) or the INDEX formula above with
+      a reasonable ceiling. Sheets has no Excel Table and no structured references, so
+      do not expect `Table1[Qty]` to work; translate those to a named range or FILTER
+      when you share a file with Sheets users. Named ranges in Sheets are
+      spreadsheet-scoped, and tab names are case-sensitive if you qualify the address.
+      OFFSET plus COUNTA is supported but volatile, just as in Excel, so prefer
+      open-ended names or INDEX unless the start cell itself must move. FILTER also
+      works well as the source of a drop-down via a helper column, since a Sheets
+      validation list can point at that spilled range.
+    alternatives:
+      - label: Open-ended column (typical named-range refers-to)
+        formula: '=SUM(B2:B)'
+      - label: FILTER, ignoring blanks
+        formula: '=SUM(FILTER(B2:B, B2:B<>""))'
+      - label: OFFSET definition (volatile)
+        formula: '=SUM(OFFSET(B2, 0, 0, COUNTA(B2:B10), 1))'
+    diff: >-
+      Excel cannot use B2:B as a native open-ended range and instead uses an Excel Table
+      or an INDEX/OFFSET named range. Structured references such as Table1[Qty] are
+      Excel-only.
+  example:
+    intro: >-
+      Four products in A2:B5, with room to type more rows underneath. D2 sums the
+      quantities with OFFSET, D3 counts the product names, D4 uses the non-volatile
+      INDEX form of the same sum, and D5 returns the last product name.
+    grid:
+      - [Product, Qty, null, Result]
+      - [Apples, 10, null]
+      - [Bananas, 8]
+      - [Cherries, 15]
+      - [Dates, 6]
+    checks:
+      - cell: D2
+        label: sum of Qty with OFFSET and COUNTA
+        excel: '=SUM(OFFSET(B2, 0, 0, COUNTA(B2:B10), 1))'
+        result: 39
+        expect: 39
+      - cell: D3
+        label: count of product names in the dynamic range
+        excel: '=COUNTA(OFFSET(A2, 0, 0, COUNTA(A2:A10), 1))'
+        result: 4
+        expect: 4
+      - cell: D4
+        label: same sum with a non-volatile INDEX range
+        excel: '=SUM(B2:INDEX(B2:B10, COUNTA(B2:B10)))'
+        result: 39
+        expect: 39
+      - cell: D5
+        label: last product name in the growing list
+        excel: '=INDEX(A2:A10, COUNTA(A2:A10))'
+        result: Dates
+  steps:
+    - 'Type the list with a header in row 1 and a contiguous block of data from row 2 down. In the example, four products sit in A2:B5; A6:A10 and B6:B10 are empty on purpose so the range still has room to grow.'
+    - '`COUNTA(B2:B10)` returns 4, the number of filled quantities. `=SUM(OFFSET(B2, 0, 0, COUNTA(B2:B10), 1))` turns that count into a height, so the range is B2:B5 and the sum is 10 + 8 + 15 + 6 = 39.'
+    - 'The same idea on the name column, `=COUNTA(OFFSET(A2, 0, 0, COUNTA(A2:A10), 1))`, returns 4. When you later type Elderberry in A6, both COUNTA results become 5 and the sum range grows on its own.'
+    - 'The INDEX form is the one to store in Excel’s Name Manager: `=SUM(B2:INDEX(B2:B10, COUNTA(B2:B10)))` also returns 39, but it is not volatile. Raise the ceiling to B2:B1000 in a real workbook. `=INDEX(A2:A10, COUNTA(A2:A10))` returns Dates, the last name in the list.'
+    - 'To turn the formula into a name in Excel, open Formulas > Name Manager, add `Qty`, and paste `=Sheet1!$B$2:INDEX(Sheet1!$B$2:$B$1000, COUNTA(Sheet1!$B$2:$B$1000))`. In Google Sheets, open Data > Named ranges and point `Qty` at `B2:B`. After that, `=SUM(Qty)` works in both. In Excel, converting the list to a Table is often simpler still.'
+  errors:
+    - error: The total is one row too large, or includes the header
+      cause: COUNTA was applied to the whole column (`B:B`) and counted the header, or a total already sitting under the list.
+      fix: Count only the data (`COUNTA(B2:B1000)`), keep totals off to the side, and in Sheets avoid an open-ended `B2:B` if something sits below the list.
+    - error: The range stops too early or skips new rows
+      cause: A blank cell in the middle of the list makes COUNTA smaller than the last row number, so INDEX or OFFSET ends before the real last item.
+      fix: Keep the list contiguous. If gaps are unavoidable, FILTER on `<>""` instead of COUNTA.
+    - error: '#NAME? or the name does not update'
+      cause: The named range was defined as a fixed address (B2:B5) rather than a formula or an open-ended range, or the sheet name in the definition no longer matches.
+      fix: Redefine it with INDEX, OFFSET, an Excel Table, or (in Sheets) `B2:B`. Check the sheet name and the `$` anchors in Name Manager.
+    - error: The workbook became slow
+      cause: The name uses OFFSET (volatile) and is referenced many times, or COUNTA is running over an entire column on every recalc.
+      fix: Switch the definition to INDEX with a bounded ceiling (B2:B1000), or use an Excel Table. In Sheets, prefer `B2:B` or FILTER.
+  faq:
+    - q: Should I use an Excel Table or a named formula?
+      a: Use a Table when the data is a proper list with headers and you work mainly in Excel — structured references such as `Table1[Qty]` expand automatically and are not volatile. Use a named INDEX (or OFFSET) range when you need a name for data validation, a chart in an older workbook, or a single column that is not part of a table.
+    - q: How do I do this in Google Sheets?
+      a: Data > Named ranges, name the range, and set the address to `B2:B` (or `A2:B` for two columns). That open-ended form is the Sheets equivalent of an auto-expanding range. Use FILTER when you must skip blanks or a trailing total. Sheets has no Excel Tables.
+    - q: Can a drop-down use a dynamic named range?
+      a: Yes. In Excel, point Data Validation at `=Qty` (the name must be workbook-scoped). In Google Sheets, point the validation list at the named range, or at a helper column filled by FILTER. If the drop-down does not grow, the name is still a fixed address — redefine it as shown in the steps.
+    - q: OFFSET or INDEX, which should I store in Name Manager?
+      a: INDEX. It returns the same growing range and does not recalculate on every unrelated change. Keep [OFFSET](../{offset}/) for cases where the start cell itself moves. [INDIRECT](../{indirect}/) can also build an address from text, but it is volatile too and is the wrong tool for a simple growing list.
+  related: [offset, indirect, last-value, filter, unique]
+
+- id: choose
+  category: lookup
+  slugs: {excel: choose-excel, sheets: choose-google-sheets}
+  title: How to Use the CHOOSE Function
+  summary: >-
+    CHOOSE returns the value in position n from a list of arguments, so a 1, 2 or 3 in
+    a cell can pick a label, a number, or even a whole range to feed into SUM or AVERAGE.
+    It is the positional cousin of SWITCH, which matches on a value instead of a position.
+    The same function works in Excel and Google Sheets; SWITCH or IFS is often clearer
+    when you are mapping codes rather than positions.
+  problem: >-
+    A report lets you type 1 or 2 to pick the East or West column, and you also want a
+    status number such as 3 to show as “Delivered”. You need one formula that can return
+    a label and another that can hand an entire column to SUM, without a nested IF.
+  excel:
+    formula: '=CHOOSE(D2, "East", "West")'
+    explain: >-
+      Syntax: `CHOOSE(index_num, value1, [value2], …)`. `index_num` is a number from 1
+      to the number of value arguments (up to 254 in Excel). With D2 equal to 2, CHOOSE
+      returns the second value, "West". Each value can be a constant, a cell, a formula,
+      or a range; when it is a range, you can wrap CHOOSE in SUM or AVERAGE to aggregate
+      the chosen column.
+    notes: >-
+      CHOOSE is available in every Excel version, which makes it useful in workbooks that
+      still have to open in Excel 2016. It is a poor fit for mapping codes such as "P" or
+      "A" to labels — that is what SWITCH (Excel 2019 / Microsoft 365) or a lookup table
+      is for, because CHOOSE only understands a position number. There is no default
+      argument: an index of 0, a negative number, or a number larger than the list
+      returns `#VALUE!`. A non-integer index is truncated (2.9 is treated as 2). The
+      classic power-user trick is to return a range: `=SUM(CHOOSE(D2, B2:B5, C2:C5))`
+      adds whichever column the index points at, and the same pattern works with AVERAGE,
+      MIN, or a chart series. In Microsoft 365, SWITCH, IFS, and INDEX on a horizontal
+      list often read more clearly for labels, and CHOOSEROWS / CHOOSECOLS (different
+      functions) pick rows or columns out of an array rather than from a list of
+      arguments. For a long, maintained list of options, put the values in a range and
+      use INDEX; editing a 20-argument CHOOSE formula is brittle.
+    alternatives:
+      - label: Sum of the column picked by the index
+        formula: '=SUM(CHOOSE(D2, B2:B5, C2:C5))'
+      - label: SWITCH when you match a label, not a position
+        formula: '=SWITCH(D2, 1, "East", 2, "West", "Unknown")'
+      - label: INDEX on a horizontal list of labels
+        formula: '=INDEX({"East","West"}, D2)'
+    diff: >-
+      Google Sheets uses the same CHOOSE syntax, including a range as a value argument.
+      SWITCH and IFS are available in Sheets too. For a whole-column fill, Sheets wraps
+      CHOOSE in ARRAYFORMULA; Microsoft 365 can spill from a range of indexes instead.
+  sheets:
+    formula: '=CHOOSE(D2, "East", "West")'
+    explain: >-
+      Identical syntax in Google Sheets: `CHOOSE(index, value1, [value2], …)` returns
+      the value at that position. With D2 equal to 2 the result is "West".
+    notes: >-
+      Sheets CHOOSE matches Excel for positional picks, truncated non-integer indexes,
+      and `#VALUE!` when the index is out of range. Range arguments work the same way,
+      so `=SUM(CHOOSE(D2, B2:B5, C2:C5))` is a valid way to total the selected region.
+      Two Sheets-specific habits are worth knowing. First, to label a whole column from
+      one cell, wrap CHOOSE in ARRAYFORMULA and blank-check the index column, for
+      example `=ARRAYFORMULA(IF(D2:D="", "", CHOOSE(D2:D, "East", "West")))`. CHOOSE
+      inside ARRAYFORMULA can be picky with range-returning arguments, so keep those
+      wraps on the simple, single-value form and use a helper cell for the SUM pattern.
+      Second, SWITCH is usually the better Sheets formula when the input is a code or a
+      name rather than a position, and IFS is better for numeric bands. INDEX on a
+      literal array (`=INDEX({"East","West"}, D2)`) is a concise alternative that also
+      works inside ARRAYFORMULA. CHOOSECOLS and CHOOSEROWS exist in current Sheets and,
+      as in Excel, they select from an array rather than from a list of CHOOSE arguments
+      — do not confuse them with CHOOSE. If the file must open in older Excel, stay with
+      plain CHOOSE and skip ARRAYFORMULA.
+    alternatives:
+      - label: Whole column of labels with ARRAYFORMULA
+        formula: '=ARRAYFORMULA(IF(D2:D="", "", CHOOSE(D2:D, "East", "West")))'
+      - label: SWITCH with a default for an unknown index
+        formula: '=SWITCH(D2, 1, "East", 2, "West", "Unknown")'
+      - label: Sum of the column picked by the index
+        formula: '=SUM(CHOOSE(D2, B2:B5, C2:C5))'
+    diff: >-
+      Excel uses the same CHOOSE formula. Whole-column fills in Excel 365 spill from a
+      range of indexes; in Sheets you wrap CHOOSE in ARRAYFORMULA. SWITCH needs Excel
+      2019 or later, but is available in Sheets.
+  example:
+    intro: >-
+      East and West quantities for four fruits, with a region choice of 2 in D2. E2
+      returns the region name, E3 the sum of the chosen column, E4 a status label from
+      a fixed index of 3, and E5 the average of the East column.
+    grid:
+      - [Item, East, West, Choice, Result]
+      - [Apples, 40, 55, 2]
+      - [Bananas, 22, 30]
+      - [Cherries, 18, 25]
+      - [Dates, 12, 16]
+    checks:
+      - cell: E2
+        label: region name picked by the index in D2
+        excel: '=CHOOSE(D2, "East", "West")'
+        result: West
+      - cell: E3
+        label: sum of the column picked by D2
+        excel: '=SUM(CHOOSE(D2, B2:B5, C2:C5))'
+        result: 126
+        expect: 126
+      - cell: E4
+        label: status label for a fixed index of 3
+        excel: '=CHOOSE(3, "Pending", "Shipped", "Delivered", "Returned")'
+        result: Delivered
+      - cell: E5
+        label: average of the East column (index 1)
+        excel: '=AVERAGE(CHOOSE(1, B2:B5, C2:C5))'
+        result: 23
+        expect: 23
+  steps:
+    - 'D2 holds the position, 2. `=CHOOSE(D2, "East", "West")` returns the second label, West. Changing D2 to 1 would return East.'
+    - 'A value argument can be a range. `=SUM(CHOOSE(D2, B2:B5, C2:C5))` selects the West column (C2:C5) and adds 55 + 30 + 25 + 16 = 126.'
+    - 'The index can also be typed into the formula. `=CHOOSE(3, "Pending", "Shipped", "Delivered", "Returned")` returns Delivered, the third label, which is a handy way to turn a status number into a word.'
+    - '`=AVERAGE(CHOOSE(1, B2:B5, C2:C5))` forces the first column and returns 23, the average of 40, 22, 18 and 12. The same pattern works with MIN, MAX or COUNTA.'
+    - 'If you would rather match a name or a code than a position, switch to [SWITCH](../{switch}/) or a lookup table. Use [IFS](../{ifs}/) when each branch is a condition, such as a score band, rather than an index number.'
+  errors:
+    - error: '#VALUE!'
+      cause: The index is 0, negative, blank, text that is not a number, or larger than the number of value arguments. CHOOSE has no default fallback.
+      fix: Validate the index (for example with IF or IFERROR) or use SWITCH, which accepts a final default argument such as "Unknown".
+    - error: '#NAME?'
+      cause: The function was misspelled, or it was confused with CHOOSEROWS / CHOOSECOLS, which are separate functions and need a current Excel 365 or Sheets version.
+      fix: Use `CHOOSE` for a list of arguments. Use CHOOSEROWS or CHOOSECOLS only when you are picking from an existing array.
+    - error: The wrong column is summed, or only the first cell is returned
+      cause: The index is off by one (people often treat 0 as the first item), or CHOOSE was not wrapped in SUM / AVERAGE so only the first cell of the range is displayed.
+      fix: Remember that CHOOSE is 1-based. Wrap a range result in the aggregate you want, and check the index with a helper cell if needed.
+    - error: A decimal index such as 2.9 returns the second value
+      cause: CHOOSE truncates the index toward zero rather than rounding.
+      fix: Wrap the index in ROUND if you want 2.9 to mean 3, or use INT only when truncation is the intended rule.
+  faq:
+    - q: When should I use CHOOSE instead of SWITCH or IFS?
+      a: Use CHOOSE when the input is already a position (1, 2, 3) or when you want to hand a whole range to SUM. Use [SWITCH](../{switch}/) to map exact codes or names to labels, and [IFS](../{ifs}/) or [nested IF](../{nested-if}/) when each branch is a different condition.
+    - q: Can CHOOSE return a range, not just a single value?
+      a: Yes. `=SUM(CHOOSE(D2, B2:B5, C2:C5))` is the standard pattern in both Excel and Google Sheets. That is the main trick CHOOSE still has over SWITCH, which is better at labels than at returning a range.
+    - q: What happens if the index is out of range?
+      a: You get `#VALUE!`. Unlike SWITCH, CHOOSE has no trailing default. Guard it with `=IFERROR(CHOOSE(D2, "East", "West"), "Unknown")`, or validate the index first.
+    - q: Is CHOOSE the same as CHOOSEROWS or CHOOSECOLS?
+      a: No. CHOOSE picks from a list of arguments you type into the formula. CHOOSEROWS and CHOOSECOLS pick rows or columns out of an existing array and are separate functions in Microsoft 365 and current Google Sheets.
+  related: [switch, ifs, nested-if, index-match, if]
