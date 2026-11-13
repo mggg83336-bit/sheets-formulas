@@ -952,3 +952,149 @@
     - q: Can the default be another formula?
       a: Yes. The final argument can be a formula or cell reference, not only a fixed string.
   related: [ifs, nested-if, if, iferror]
+
+- id: isblank
+  category: logic
+  slugs:
+    excel: isblank-excel
+    sheets: isblank-google-sheets
+  title: How to Use ISBLANK to Check for Empty Cells
+  summary: >-
+    ISBLANK returns TRUE when a cell has nothing in it, and FALSE when it holds a value, a
+    space, or a formula — including a formula that looks empty because it returned an empty
+    string (""). That last case is the usual gotcha: a cell that displays as blank is not
+    always blank. Use ISBLANK to flag missing inputs, to skip empty rows in IF, or to guard a
+    lookup. To treat both truly empty cells and "" as empty, test `A2=""` or `LEN(A2)=0`
+    instead. The function is the same in Excel and Google Sheets; Sheets typically wraps it in
+    ARRAYFORMULA to check a whole column.
+  problem: >-
+    You have a contact list and need to flag rows with a missing email, show a clear
+    "Missing email" label, and understand why a cell that looks empty (because a formula
+    returned "") still fails an ISBLANK test.
+  excel:
+    formula: '=ISBLANK(B3)'
+    explain: >-
+      Syntax: `ISBLANK(value)`. B3 is empty, so the result is TRUE. A cell with text, a number,
+      a date, a space, or a formula — including `=""` — returns FALSE. Wrap ISBLANK in IF to
+      turn the test into a label, for example `=IF(ISBLANK(B3), "Missing email", B3)`.
+    notes: >-
+      ISBLANK is available in every Excel version. It tests the cell, not what the cell
+      displays. The most common surprise is a formula that returns `""` to hide a result:
+      the cell looks empty, but `ISBLANK` is FALSE because a formula lives there. In that
+      situation use `=IF(B3="", "Missing email", B3)` or `=LEN(B3)=0`, both of which treat
+      a true blank and an empty string as empty. A cell that contains only a space is also
+      not blank; TRIM it first if your import added padding. In Microsoft 365,
+      `=ISBLANK(B2:B5)` spills TRUE or FALSE for each row. To count empty cells, COUNTBLANK
+      is often simpler than SUM of ISBLANK, and it does count `""` as blank — the opposite
+      of ISBLANK. COUNTA counts cells that are not empty, and it treats `""` as a value, so
+      a column of hidden formulas still increments COUNTA. Use IF with ISBLANK to skip a
+      calculation, or IFNA / IFERROR when the problem is a lookup error rather than a
+      missing input. ISBLANK of a missing argument or a reference to a new, unused cell is
+      TRUE; ISBLANK of 0 is FALSE, because zero is a number.
+    alternatives:
+      - label: Label a missing email
+        formula: '=IF(ISBLANK(B3), "Missing email", B3)'
+      - label: Treat both a blank and "" as empty
+        formula: '=IF(B3="", "Missing email", B3)'
+      - label: Microsoft 365 spill of blank checks
+        formula: '=ISBLANK(B2:B5)'
+      - label: Count empty-looking cells, including ""
+        formula: '=COUNTBLANK(B2:B5)'
+    diff: >-
+      Google Sheets uses the same ISBLANK rule, including FALSE for a formula that returns
+      "". To check a whole column from one cell, wrap ISBLANK in ARRAYFORMULA; Excel 365
+      can spill from `ISBLANK(B2:B5)` instead.
+  sheets:
+    formula: '=ISBLANK(B3)'
+    explain: >-
+      Identical syntax in Google Sheets: `ISBLANK(value)` is TRUE when B3 has nothing in it,
+      and FALSE when the cell holds a value or a formula, including `=""`.
+    notes: >-
+      Sheets ISBLANK matches Excel for true blanks, for values, and for the empty-string
+      gotcha: a formula that returns `""` is not blank. The usual Sheets pattern is to wrap
+      the test in ARRAYFORMULA and guard the column, for example
+      `=ARRAYFORMULA(IF(A2:A="", "", IF(ISBLANK(B2:B), "Missing email", B2:B)))`, which
+      labels only the rows that have a name and a truly empty email. When you also want to
+      catch emails hidden by `""`, test `B2:B=""` inside ARRAYFORMULA instead of ISBLANK.
+      COUNTBLANK in Sheets, as in Excel, counts both empty cells and `""`, so it is the
+      better function when you want a single count of "looks empty" cells. Open-ended
+      ranges such as B2:B are legal, but an unbounded ISBLANK will flag every unused row
+      to the bottom of the sheet; cap the range or blank-check the name column first.
+      IF, IFS, and IFERROR combine with ISBLANK the same way they do in Excel. If the
+      file must open in older Excel, keep the single-cell form `=ISBLANK(B3)` or
+      `=IF(ISBLANK(B3), "Missing email", B3)` and skip ARRAYFORMULA.
+    alternatives:
+      - label: Whole column of missing-email labels
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", IF(ISBLANK(B2:B), "Missing email", B2:B)))'
+      - label: Treat both a blank and "" as empty, whole column
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", IF(B2:B="", "Missing email", B2:B)))'
+      - label: Label a missing email
+        formula: '=IF(ISBLANK(B3), "Missing email", B3)'
+      - label: Count empty-looking cells, including ""
+        formula: '=COUNTBLANK(B2:B5)'
+    diff: >-
+      Excel uses the same ISBLANK formula. Whole-column fills in Excel 365 spill from
+      `ISBLANK(B2:B5)`; in Sheets you wrap ISBLANK in ARRAYFORMULA. The empty-string
+      gotcha is the same on both platforms.
+  example:
+    intro: >-
+      Four contacts. Ben has no email. C2 holds a formula that returns an empty string, so
+      the cell looks blank. D2 tests whether Ben's email is truly empty, D3 tests Ann's
+      email, D4 turns a missing email into a label, and D5 shows that ISBLANK is FALSE for
+      the empty-string formula in C2.
+    grid:
+      - [Name, Email, Hidden, Result]
+      - [Ann, ann@ex.com]
+      - [Ben]
+      - [Cara, cara@ex.com]
+      - [Dan, dan@ex.com]
+    checks:
+      - cell: C2
+        label: a formula that displays as blank
+        excel: '=""'
+        result: ""
+      - cell: D2
+        label: Ben's email is empty
+        excel: '=ISBLANK(B3)'
+        result: true
+      - cell: D3
+        label: Ann's email is not empty
+        excel: '=ISBLANK(B2)'
+        result: false
+      - cell: D4
+        label: label a missing email
+        excel: '=IF(ISBLANK(B3), "Missing email", B3)'
+        result: Missing email
+      - cell: D5
+        label: ISBLANK is FALSE for a formula that returned ""
+        excel: '=ISBLANK(C2)'
+        result: false
+  steps:
+    - 'B3, Ben''s email, has nothing in it. `=ISBLANK(B3)` returns TRUE. `=ISBLANK(B2)` on Ann''s email returns FALSE, because the cell holds text.'
+    - '`=IF(ISBLANK(B3), "Missing email", B3)` turns that test into a label and returns Missing email. The same pattern works to skip a calculation: `=IF(ISBLANK(B3), "", some_formula)`.'
+    - 'C2 holds `=""`, a formula that displays as empty. `=ISBLANK(C2)` is FALSE, because the cell is not empty — it contains a formula. This is the gotcha that catches most people.'
+    - 'To treat both a true blank and `""` as empty, test `=IF(B3="", "Missing email", B3)` or `=LEN(B3)=0`. COUNTBLANK also counts `""` as blank, which is why a count of "empty-looking" cells is often better done with COUNTBLANK than with ISBLANK.'
+    - 'Combine ISBLANK with [IF](../{if}/) to branch on a missing input, or with [IFERROR](../{iferror}/) when you need to handle a lookup error as well. A cell that contains only a space is not blank; [TRIM](../{trim}/) it first if an import added padding.'
+  errors:
+    - error: ISBLANK returns FALSE on a cell that looks empty
+      cause: The cell contains a formula that returned `""`, a space, a non-breaking space, or an apostrophe. ISBLANK tests the cell, not what it displays.
+      fix: Use `B3=""` or `LEN(TRIM(B3))=0` when you want to treat those as empty. Clear the cell completely if you truly need ISBLANK to be TRUE.
+    - error: A whole-column ISBLANK flags hundreds of unused rows
+      cause: The range is open-ended (B:B or B2:B) and every unused row under the data is genuinely blank.
+      fix: Bound the range (B2:B5) or blank-check a column that is only filled on real rows, for example `=IF(A2="", "", ISBLANK(B2))`.
+    - error: COUNTBLANK and ISBLANK disagree on the same column
+      cause: COUNTBLANK counts formulas that return `""` as blank; ISBLANK does not. The two functions are answering slightly different questions.
+      fix: Use ISBLANK when you need to know whether a cell is truly empty. Use COUNTBLANK, or `B3=""`, when a hidden formula should count as empty.
+    - error: '#NAME?'
+      cause: The function was misspelled (IS_BLANK, ISTBLANK) or the workbook's list separator / language name is different.
+      fix: In English Excel and Google Sheets the name is `ISBLANK`. Check the formula for a typo and that you are not in a locale that uses a translated function name without the English alias.
+  faq:
+    - q: Why is ISBLANK false when the cell looks empty?
+      a: Because a formula such as `=""` still lives in the cell. ISBLANK is TRUE only when there is nothing there at all. Use `A2=""` or `LEN(A2)=0` if you want both a true blank and an empty string to count as empty, as the worked example shows for C2.
+    - q: Should I use ISBLANK or A2=""?
+      a: Use ISBLANK when you specifically need a truly empty cell, for example before writing into it or when a formula should not be treated as blank. Use `A2=""` (or [IF](../{if}/) with that test) when a formula that hides its result should be treated the same as a missing value.
+    - q: Does ISBLANK treat a zero or a space as blank?
+      a: No. 0 is a number, so ISBLANK is FALSE. A space or a non-breaking space is text, so ISBLANK is also FALSE. TRIM the cell, or test `LEN(TRIM(A2))=0`, if imported data may contain padding.
+    - q: How do I check a whole column at once?
+      a: In Microsoft 365, `=ISBLANK(B2:B5)` spills. In Google Sheets, use `=ARRAYFORMULA(ISBLANK(B2:B5))`, or wrap the IF label pattern shown in the Sheets alternatives. Bound the range so unused rows are not all flagged as blank.
+  related: [if, iferror, if-and-or, countif, trim]
