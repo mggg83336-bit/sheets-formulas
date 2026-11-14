@@ -1215,3 +1215,323 @@
     - q: Can SUMPRODUCT do a weighted average?
       a: Yes. Divide SUMPRODUCT(values, weights) by SUM(weights). See the weighted-average page for a full walkthrough.
   related: [sumif, sumifs, weighted-average, averageif, countif]
+
+- id: counta
+  category: conditional
+  slugs:
+    excel: counta-excel
+    sheets: counta-google-sheets
+  title: How to Count Non-Blank Cells with COUNTA
+  summary: >-
+    COUNTA counts every cell that is not empty: text, numbers, dates, TRUE or FALSE, error
+    values, and even a formula that looks blank because it returned an empty string ("").
+    That last case is the usual surprise. COUNT, by contrast, counts only numbers (including
+    dates). Use COUNTA when you need how many cells in a list actually have something in
+    them — filled names, submitted replies, or a column that mixes text and numbers. To
+    treat "" as empty, count with `SUMPRODUCT(--(A2:A6<>""))` or `COUNTIF(A2:A6,"<>")`
+    instead. The function is the same in Excel and Google Sheets; Excel can limit the count
+    to visible rows with SUBTOTAL, and Sheets must not confuse COUNTA with an unchecked
+    checkbox, which stores FALSE and therefore counts as filled.
+  problem: >-
+    You have a short score list with a missing score, a genuine zero, and a comment hidden
+    by a formula that returns "". You want the number of names entered, the number of
+    scores that were actually recorded (including zero), and you need to understand why
+    COUNTA still counts that hidden comment.
+  excel:
+    formula: '=COUNTA(B2:B6)'
+    explain: >-
+      Syntax: `COUNTA(value1, [value2], ...)`. `=COUNTA(B2:B6)` counts the scores that
+      are not empty. Ben's score is blank and is skipped; Cara's 0 is a real number, so it
+      is counted. The result is 4. COUNT on the same range also returns 4 here, because
+      every non-empty score happens to be numeric — the two functions diverge as soon as
+      a cell holds text, a boolean, an error, or `""`.
+    notes: >-
+      COUNTA is available in every Excel version. It counts cells, not unique values and
+      not rows that merely look filled. A formula that returns `""` still lives in the
+      cell, so COUNTA includes it; a truly empty cell is omitted. A cell that contains
+      only a space or an apostrophe is also counted, because that is text — TRIM the
+      column first if an import added padding. Zero is never empty, so a recorded 0
+      increments COUNTA and COUNT alike. Error values such as `#N/A` or `#DIV/0!` are
+      also counted. When you want to ignore hidden or filtered-out rows, use
+      `=SUBTOTAL(3, B2:B6)` or `=AGGREGATE(3, 5, B2:B6)` instead of a plain COUNTA
+      (function number 3 is COUNTA; 2 is COUNT). `=SUMPRODUCT(--(B2:B6<>""))` is the
+      usual way to count non-empty cells while treating `""` as empty, which is the
+      opposite of COUNTA. In an Excel Table you can write `=COUNTA(Table1[Score])` and
+      the range will grow with the table. The status bar "Count" is COUNTA; "Numerical
+      Count" is COUNT. Bound the range to the data — `COUNTA(B:B)` also counts the
+      header. To count distinct filled values, use UNIQUE or the [count unique](../{count-unique}/)
+      pattern rather than COUNTA alone.
+    alternatives:
+      - label: Visible non-blank cells only (filtered list)
+        formula: '=SUBTOTAL(3, B2:B6)'
+      - label: Treat "" as empty
+        formula: '=SUMPRODUCT(--(B2:B6<>""))'
+      - label: Count filled comments, including ""
+        formula: '=COUNTA(C2:C6)'
+      - label: Count numbers only
+        formula: '=COUNT(B2:B6)'
+    diff: >-
+      Google Sheets uses the same COUNTA rule, including counting `""` and 0. Sheets has
+      no SUBTOTAL-style visible-row count in everyday use; it typically uses open-ended
+      ranges such as B2:B (safe for COUNTA, because unused rows are empty) and must treat
+      an unchecked checkbox as FALSE, which COUNTA counts as filled.
+  sheets:
+    formula: '=COUNTA(B2:B6)'
+    explain: >-
+      Identical syntax in Google Sheets: `COUNTA(value1, [value2], ...)` counts the
+      non-empty scores in B2:B6 and returns 4, including Cara's 0 and skipping Ben's
+      blank cell.
+    notes: >-
+      Sheets COUNTA matches Excel for text, numbers, dates, errors, zero, and the
+      empty-string gotcha: a formula that returns `""` is counted. An open-ended range
+      such as `=COUNTA(B2:B)` is the usual Sheets pattern and is safe here, because
+      unused rows at the bottom are empty and do not increment the count — the opposite
+      of COUNTBLANK, which would add every unused row. A Sheets checkbox stores TRUE or
+      FALSE, never a blank, so COUNTA on a checkbox column equals the number of rows,
+      not the number of ticks; count checks with `=COUNTIF(B2:B, TRUE)` instead. To
+      count non-blank cells in each row of a block, use
+      `=BYROW(B2:D, LAMBDA(r, COUNTA(r)))`, or an ARRAYFORMULA of `(B2:B<>"")+(C2:C<>"")`
+      when you also want `""` treated as empty. FILTER plus COUNTA is handy when only
+      some rows should be included, for example `=COUNTA(FILTER(B2:B6, A2:A6<>""))`.
+      If the file must open in Excel, keep the bounded form `=COUNTA(B2:B6)` and skip
+      BYROW and checkbox assumptions.
+    alternatives:
+      - label: Whole column, unused rows are safely ignored
+        formula: '=COUNTA(B2:B)'
+      - label: Count checked checkboxes only
+        formula: '=COUNTIF(B2:B6, TRUE)'
+      - label: Non-blank count for each row
+        formula: '=BYROW(B2:D6, LAMBDA(r, COUNTA(r)))'
+      - label: Count numbers only
+        formula: '=COUNT(B2:B6)'
+    diff: >-
+      Excel uses the same COUNTA formula. For visible rows in a filtered list, Excel
+      uses SUBTOTAL(3, …) or AGGREGATE; Sheets uses a bounded or open column range and
+      has to handle checkboxes and BYROW separately. The empty-string gotcha is the same
+      on both platforms.
+  example:
+    intro: >-
+      Five people with scores and comments. Ben has no score. Cara's score is 0, which
+      still counts. C5 holds a formula that returns an empty string, so the comment looks
+      blank but COUNTA still includes it. D2 counts names, D3 counts scores with COUNTA,
+      D4 counts scores with COUNT, D5 counts comments, and D6 shows that COUNT ignores
+      the text comments entirely.
+    grid:
+      - [Name, Score, Comment, Result]
+      - [Ann, 85, good]
+      - [Ben]
+      - [Cara, 0]
+      - [Dan, 90]
+      - [Eve, 70]
+    checks:
+      - cell: C5
+        label: a comment formula that displays as blank
+        excel: '=""'
+        result: ""
+      - cell: D2
+        label: how many names were entered
+        excel: '=COUNTA(A2:A6)'
+        result: 5
+      - cell: D3
+        label: how many scores were recorded, including zero
+        excel: '=COUNTA(B2:B6)'
+        result: 4
+      - cell: D4
+        label: COUNT on the same scores, numbers only
+        excel: '=COUNT(B2:B6)'
+        result: 4
+      - cell: D5
+        label: comments including the hidden ""
+        excel: '=COUNTA(C2:C6)'
+        result: 2
+      - cell: D6
+        label: COUNT ignores text comments
+        excel: '=COUNT(C2:C6)'
+        result: 0
+  steps:
+    - 'Click the result cell and type `=COUNTA(`.'
+    - 'Select the range you want to count, for example B2:B6, and close the parenthesis. Press Enter.'
+    - '`=COUNTA(B2:B6)` returns 4. Ben''s score is skipped because the cell is empty; Cara''s 0 is counted because zero is a value.'
+    - '`=COUNTA(C2:C6)` returns 2: Ann''s "good" and the formula in C5 that returned `""`. The hidden comment is the gotcha — the cell looks empty, but COUNTA still counts it.'
+    - '`=COUNT(B2:B6)` also returns 4 here, because every filled score is numeric, but `=COUNT(C2:C6)` returns 0, because COUNT ignores text. Use COUNT when you only want numbers; use COUNTA when any filled cell should count. To treat `""` as empty, use `=SUMPRODUCT(--(C2:C6<>""))` instead.'
+  errors:
+    - error: COUNTA is one too high on a column that looks partly empty
+      cause: A formula that returned `""`, a space, a non-breaking space, or an apostrophe still lives in the cell. COUNTA counts those as filled.
+      fix: Clear the cells completely, TRIM padding, or count with `=SUMPRODUCT(--(A2:A6<>""))` when a hidden formula should not count.
+    - error: A recorded 0 was left out of a manual tally but COUNTA includes it
+      cause: Zero is a number, not a blank. COUNTA and COUNT both include it.
+      fix: This is correct. To count scores above zero, use [COUNTIF](../{countif}/) with `">0"` rather than COUNTA.
+    - error: The count includes the header or hundreds of extra rows
+      cause: The range is a whole column (B:B) or starts on the header row.
+      fix: Bound the range to the data (B2:B6), or use an Excel Table column such as `Table1[Score]`.
+    - error: Filtered-out rows are still in the total
+      cause: COUNTA always counts hidden and filtered rows.
+      fix: In Excel use `=SUBTOTAL(3, B2:B6)` or `=AGGREGATE(3, 5, B2:B6)`. In Sheets, filter first with FILTER and then COUNTA the result.
+  faq:
+    - q: What is the difference between COUNTA and COUNT?
+      a: COUNT counts only numbers (and dates, which are numbers). COUNTA counts every non-empty cell — text, numbers, booleans, errors, and formulas that return `""`. In the worked example both return 4 on the Score column, but only COUNTA sees the comments.
+    - q: Does COUNTA count a formula that returns ""?
+      a: Yes. The cell is not empty; it contains a formula. [ISBLANK](../{isblank}/) is also FALSE for that cell. Use `SUMPRODUCT(--(A2:A6<>""))` or [COUNTBLANK](../{countblank}/) when you want `""` treated as empty.
+    - q: Does a zero or a space count?
+      a: Yes. 0 is a number, and a space is text, so both increment COUNTA. A space does not increment COUNT. TRIM imported data if padding should not count as filled.
+    - q: How do I count non-blank cells in a filtered list or a whole column?
+      a: In Excel, `=SUBTOTAL(3, B2:B6)` ignores rows hidden by a filter. In Google Sheets, `=COUNTA(B2:B)` on an open-ended range is safe because unused rows are empty; do not switch that pattern to COUNTBLANK, which would count every unused row.
+  related: [countblank, countif, countifs, count-unique, isblank]
+
+- id: countblank
+  category: conditional
+  slugs:
+    excel: countblank-excel
+    sheets: countblank-google-sheets
+  title: How to Count Blank Cells with COUNTBLANK
+  summary: >-
+    COUNTBLANK counts cells that are truly empty and cells that only look empty because a
+    formula returned an empty string (""). It does not count a space, a zero, text, a date,
+    or TRUE/FALSE — those are values, even when the cell looks sparse. That makes COUNTBLANK
+    the opposite of [ISBLANK](../{isblank}/) on `""` (ISBLANK is FALSE for a hidden formula)
+    and a counterpart to [COUNTA](../{counta}/), which counts `""` as filled. Use it to find
+    missing replies, incomplete rows, or how many cells in a range still need input. The
+    function is the same in Excel and Google Sheets; the Sheets trap is an open-ended range
+    such as B2:B, which counts every unused row to the bottom of the sheet.
+  problem: >-
+    You have a five-day reply list. Tuesday was never filled in, Thursday is hidden by a
+    formula that returns "", and one note cell holds only a space. You want a count of
+    replies that are still missing, and you need to see why COUNTBLANK and ISBLANK disagree
+    on Thursday, and why the space is not treated as blank.
+  excel:
+    formula: '=COUNTBLANK(B2:B6)'
+    explain: >-
+      Syntax: `COUNTBLANK(range)`. `=COUNTBLANK(B2:B6)` counts the reply cells that are
+      empty or that contain `""`. Tuesday is a true blank and Thursday's formula returned
+      `""`, so the result is 2. Monday, Wednesday and Friday have text and are not counted.
+    notes: >-
+      COUNTBLANK is available in every Excel version and takes a single range (it does
+      not accept a list of separate areas the way COUNTA does). It counts both truly
+      empty cells and formulas that return `""`, which is why it often matches what you
+      see on the screen better than ISBLANK. A cell that contains only a space, a
+      non-breaking space, or an apostrophe is not blank — COUNTBLANK skips it and COUNTA
+      includes it; TRIM the column first if an import added padding. Zero is a number, so
+      a recorded 0 is not blank. Error values are not blank either. `=COUNTIF(B2:B6, "")`
+      and `=SUMPRODUCT(--(B2:B6=""))` return the same count as COUNTBLANK, including `""`.
+      There is no SUBTOTAL function number for COUNTBLANK, so a filtered list needs a
+      helper column or `=SUMPRODUCT((B2:B6="")*(SUBTOTAL(3, OFFSET(B2, ROW(B2:B6)-ROW(B2), 0))))`
+      when you must ignore hidden rows; for a simple visible non-blank count, SUBTOTAL 3
+      (COUNTA) is usually easier. Bound the range to the data. `COUNTBLANK(B:B)` counts
+      every unused cell in the column, which is almost never the number you want. Use
+      [COUNTA](../{counta}/) when you want filled cells, and [COUNTIF](../{countif}/) when
+      the missing value should match a specific label rather than a blank.
+    alternatives:
+      - label: Same count with COUNTIF
+        formula: '=COUNTIF(B2:B6, "")'
+      - label: Same count with SUMPRODUCT
+        formula: '=SUMPRODUCT(--(B2:B6=""))'
+      - label: How many replies were actually filled, including ""
+        formula: '=COUNTA(B2:B6)'
+      - label: Truly empty only (ISBLANK)
+        formula: '=ISBLANK(B3)'
+    diff: >-
+      Google Sheets uses the same COUNTBLANK rule, including `""` and excluding spaces.
+      The important Sheets difference is range style: `=COUNTBLANK(B2:B)` on an open
+      column counts every unused row to the bottom of the sheet, so you must bound the
+      range or count blanks only on rows that already have a key value.
+  sheets:
+    formula: '=COUNTBLANK(B2:B6)'
+    explain: >-
+      Identical syntax in Google Sheets: `COUNTBLANK(range)` counts truly empty replies
+      and cells that hold `""`. On this list that is Tuesday and Thursday, so the result
+      is 2.
+    notes: >-
+      Sheets COUNTBLANK matches Excel for true blanks, for `""`, and for the space
+      gotcha: a cell that contains only a space is not blank. The usual Sheets habit of
+      writing open-ended ranges is dangerous here. `=COUNTBLANK(B2:B)` adds every unused
+      row from the last reply to the bottom of the sheet, so a five-row list can return
+      a count in the hundreds or thousands. Always bound the range (`B2:B6`), or count
+      blanks only on rows that already have an entry in another column, for example
+      `=ARRAYFORMULA(SUM(N((A2:A6<>"")*(B2:B6=""))))` to count missing replies on named
+      rows. An unchecked checkbox stores FALSE, not a blank, so COUNTBLANK will not see
+      it as missing; test `=COUNTIF(B2:B6, FALSE)` instead. To flag each blank reply in
+      a helper column, use
+      `=ARRAYFORMULA(IF(A2:A="", "", IF(B2:B="", "Missing", "")))`. If the file must
+      open in Excel, keep the bounded `=COUNTBLANK(B2:B6)` and skip ARRAYFORMULA.
+    alternatives:
+      - label: Missing replies only on rows that have a day name
+        formula: '=ARRAYFORMULA(SUM(N((A2:A6<>"")*(B2:B6=""))))'
+      - label: Flag each blank reply
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", IF(B2:B="", "Missing", "")))'
+      - label: Same count with COUNTIF
+        formula: '=COUNTIF(B2:B6, "")'
+      - label: How many replies were actually filled, including ""
+        formula: '=COUNTA(B2:B6)'
+    diff: >-
+      Excel uses the same COUNTBLANK formula on a bounded range. Excel does not use
+      ARRAYFORMULA; it fills a flag column down, or uses COUNTIF / SUMPRODUCT for the
+      same count. Never copy a Sheets open range such as B2:B into COUNTBLANK, on either
+      platform, unless you really want unused rows included.
+  example:
+    intro: >-
+      Five weekdays of replies. Tuesday was never filled in. B5 holds a formula that
+      returns "", so Thursday looks blank. C2 holds a single space. D2 counts blank
+      replies with COUNTBLANK, D3 counts filled replies with COUNTA, D4 and D5 compare
+      ISBLANK on Tuesday versus Thursday, and D6 shows that COUNTBLANK does not treat
+      the space in C2 as blank.
+    grid:
+      - [Day, Reply, Note, Result]
+      - [Mon, Yes, ' ']
+      - [Tue]
+      - [Wed, No]
+      - [Thu]
+      - [Fri, Yes]
+    checks:
+      - cell: B5
+        label: a reply formula that displays as blank
+        excel: '=""'
+        result: ""
+      - cell: D2
+        label: blank replies, including ""
+        excel: '=COUNTBLANK(B2:B6)'
+        result: 2
+      - cell: D3
+        label: filled replies, including ""
+        excel: '=COUNTA(B2:B6)'
+        result: 4
+      - cell: D4
+        label: Tuesday is truly empty
+        excel: '=ISBLANK(B3)'
+        result: true
+      - cell: D5
+        label: Thursday's "" is not ISBLANK
+        excel: '=ISBLANK(B5)'
+        result: false
+      - cell: D6
+        label: a space is not a blank
+        excel: '=COUNTBLANK(C2:C6)'
+        result: 4
+  steps:
+    - 'Click the result cell and type `=COUNTBLANK(`.'
+    - 'Select the range of cells that should be filled, for example B2:B6, and close the parenthesis. Press Enter.'
+    - '`=COUNTBLANK(B2:B6)` returns 2: Tuesday is a true blank, and Thursday''s formula returned `""`. Monday, Wednesday and Friday have text and are not counted.'
+    - '`=COUNTA(B2:B6)` returns 4 on the same range, because COUNTA includes the hidden `""` in B5. The two functions disagree by one whenever a formula has hidden its result. `=ISBLANK(B3)` is TRUE, but `=ISBLANK(B5)` is FALSE for the same reason.'
+    - 'C2 holds a single space. `=COUNTBLANK(C2:C6)` returns 4, not 5: the space is text, so it is not blank, and the other four Note cells are empty. TRIM imported notes if padding should not hide a missing value. Always bound the range; a whole-column COUNTBLANK will count every unused row below the data.'
+  errors:
+    - error: COUNTBLANK is huge, often in the hundreds or thousands
+      cause: The range is open-ended (B:B or B2:B) and every unused row under the data is genuinely blank.
+      fix: Bound the range to the data (B2:B6), or count blanks only on rows that already have a value in another column.
+    - error: COUNTBLANK and ISBLANK disagree on the same cell
+      cause: The cell contains a formula that returned `""`. COUNTBLANK counts it as blank; ISBLANK does not.
+      fix: Use COUNTBLANK (or `B5=""`) when a hidden formula should count as empty. Use ISBLANK when you need the cell to be truly empty.
+    - error: A cell that looks empty was not counted
+      cause: The cell holds a space, a non-breaking space, an apostrophe, a zero, or the text "NULL" from an export.
+      fix: Inspect the formula bar. Use `=LEN(C2)` to confirm a space, then TRIM the column, or count with `=COUNTIF(C2:C6, "")` only after cleaning.
+    - error: '#VALUE! or a count of 0 when you expected blanks'
+      cause: COUNTBLANK was given several loose arguments, or the range pointed at the wrong column.
+      fix: COUNTBLANK takes one range only. Recheck the address, and use COUNTA or COUNTIF if you meant to count filled cells or a specific label.
+  faq:
+    - q: Does COUNTBLANK count a formula that returns ""?
+      a: Yes. That is the main difference from [ISBLANK](../{isblank}/), which is FALSE for the same cell. In the worked example Thursday is included in COUNTBLANK and excluded from ISBLANK.
+    - q: What is the difference between COUNTBLANK and COUNTA?
+      a: COUNTA counts filled cells and treats `""` as filled. COUNTBLANK counts empty-looking cells and treats `""` as empty. On the reply column they sum to 6, not 5, because B5 is counted by both. A range of five cells can therefore fail a "COUNTA + COUNTBLANK = ROWS" sanity check when `""` is present.
+    - q: Does a zero or a space count as blank?
+      a: No. 0 is a number, and a space is text. COUNTBLANK skips both. TRIM the cell, or test `LEN(TRIM(A2))=0`, if imported data may contain padding.
+    - q: Can I use COUNTBLANK on a whole column in Google Sheets?
+      a: Avoid it. `=COUNTBLANK(B2:B)` counts every unused row to the bottom of the sheet. Bound the range, or use an ARRAYFORMULA that tests blanks only on rows that already have a key value, as in the Sheets alternatives.
+  related: [counta, isblank, countif, countifs, if]

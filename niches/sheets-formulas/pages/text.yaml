@@ -1887,3 +1887,206 @@
     - q: How do I convert text back to a number?
       a: Use VALUE or the double minus, for example =VALUE(A2) or =--A2.
   related: [text-to-number, leading-zeros, concatenate, len]
+
+- id: isnumber-istext
+  category: text
+  slugs:
+    excel: isnumber-istext-excel
+    sheets: isnumber-istext-google-sheets
+  title: How to Use ISNUMBER and ISTEXT to Check Cell Types
+  summary: >-
+    ISNUMBER returns TRUE when a cell holds a real number — including dates and times,
+    which Excel and Google Sheets store as serial numbers — and FALSE for text, blanks,
+    and logical values. ISTEXT returns TRUE for any text, including a number stored as
+    text such as "123" and a formula that returned an empty string (""). A blank cell is
+    neither a number nor text: both functions return FALSE, and [ISBLANK](../{isblank}/)
+    is the test for that case. Use the pair to catch values that look numeric but will
+    break SUM or a lookup, or to decide whether to run VALUE. The functions are the same
+    in Excel and Google Sheets; Sheets typically wraps them in ARRAYFORMULA to check a
+    whole column, and also has ISDATE when you specifically need to test a date.
+  problem: >-
+    A mixed list contains a real number, the text "123", a word, a blank, a date, and a
+    formula that returned "". You need to flag which values are numbers you can add,
+    which are text (including a number stored as text), and which are neither, before
+    converting or looking them up.
+  excel:
+    formula: '=ISNUMBER(A2)'
+    explain: >-
+      Syntax: `ISNUMBER(value)` and `ISTEXT(value)`. `=ISNUMBER(A2)` is TRUE for the
+      real number 123. `=ISTEXT(A3)` is TRUE for the text "123", which looks numeric
+      but will be ignored by SUM until you convert it with VALUE. A date is a number,
+      so ISNUMBER is TRUE for A6; a blank and a logical TRUE or FALSE are neither
+      numbers nor text.
+    notes: >-
+      ISNUMBER and ISTEXT are available in every Excel version. They test the stored
+      type, not how the cell is formatted: a number formatted as a date or as text
+      still returns TRUE for ISNUMBER, and a number stored as text (left-aligned, often
+      with a green triangle) returns TRUE for ISTEXT even when it looks like 123.
+      Dates and times are serial numbers, so ISNUMBER is TRUE and ISTEXT is FALSE;
+      that is why you can add days to a date. A formula that returns `""` is text, so
+      ISTEXT is TRUE and [ISBLANK](../{isblank}/) is FALSE. A truly empty cell returns
+      FALSE for both. Logical values are a third type: `=ISNUMBER(TRUE)` and
+      `=ISTEXT(TRUE)` are both FALSE in Excel (use ISLOGICAL if you need that test).
+      `=ISNUMBER(VALUE(A3))` is the usual way to confirm that text can be converted,
+      and `=IF(ISTEXT(A3), VALUE(A3), A3)` turns a mixed column into numbers. In
+      Microsoft 365, `=ISNUMBER(A2:A7)` and `=ISTEXT(A2:A7)` spill a TRUE/FALSE flag
+      for each row. ISNONTEXT is TRUE for numbers, blanks, logicals and errors;
+      ISBLANK is the tighter test for an empty cell. Pair these checks with
+      [text to number](../{text-to-number}/) when you are ready to convert, and with
+      [IF](../{if}/) when the flag should become a label or a fallback value.
+    alternatives:
+      - label: Test for text, including "123"
+        formula: '=ISTEXT(A3)'
+      - label: Convert text and then test
+        formula: '=ISNUMBER(VALUE(A3))'
+      - label: Microsoft 365 spill of type flags
+        formula: '=ISNUMBER(A2:A7)'
+      - label: Turn text numbers into values
+        formula: '=IF(ISTEXT(A2), VALUE(A2), A2)'
+    diff: >-
+      Google Sheets uses the same ISNUMBER and ISTEXT rules, including FALSE for a
+      blank, TRUE for a date, and TRUE for ISTEXT(""). To check a whole column from
+      one cell, wrap the test in ARRAYFORMULA; Excel 365 can spill `=ISNUMBER(A2:A7)`
+      instead. Sheets also has ISDATE when you want to test a date specifically,
+      rather than any number.
+  sheets:
+    formula: '=ISNUMBER(A2)'
+    explain: >-
+      Identical syntax in Google Sheets: `ISNUMBER(value)` is TRUE for a real number
+      in A2, and `ISTEXT(value)` is TRUE for text, including a number stored as text.
+    notes: >-
+      Sheets ISNUMBER and ISTEXT match Excel for numbers, text-that-looks-like-a-number,
+      dates (serials are numbers), empty strings, and blanks: a blank is FALSE for
+      both, and `""` is text. Logical TRUE and FALSE are also neither numbers nor text,
+      the same as Excel. The usual Sheets pattern is to wrap the test in ARRAYFORMULA
+      and guard empty rows, for example
+      `=ARRAYFORMULA(IF(A2:A="", "", IF(ISNUMBER(A2:A), A2:A, IFERROR(VALUE(A2:A), A2:A))))`,
+      which keeps real numbers, converts text numbers, and leaves other text alone.
+      To flag a whole column without converting it, use
+      `=ARRAYFORMULA(IF(A2:A="", "", ISTEXT(A2:A)))`. Sheets adds ISDATE for a
+      date-specific test — ISNUMBER is TRUE for both a date and a plain quantity, so
+      ISDATE is the better check when only a date should pass. Values that arrive
+      through IMPORTRANGE, a form response, or a CSV often come in as text; ISTEXT
+      will be TRUE until you convert them, even when they look numeric. The decimal
+      separator follows the spreadsheet locale in File > Settings, so "1,5" may be
+      text in a US locale and a number in a European one. If the file must open in
+      Excel, keep the single-cell form `=ISNUMBER(A2)` or `=ISTEXT(A3)` and skip
+      ARRAYFORMULA and ISDATE.
+    alternatives:
+      - label: Whole column of number flags
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", ISNUMBER(A2:A)))'
+      - label: Convert text numbers, keep real numbers
+        formula: '=ARRAYFORMULA(IF(A2:A="", "", IF(ISNUMBER(A2:A), A2:A, IFERROR(VALUE(A2:A), A2:A))))'
+      - label: Test for text, including "123"
+        formula: '=ISTEXT(A3)'
+      - label: Convert text and then test
+        formula: '=ISNUMBER(VALUE(A3))'
+    diff: >-
+      Excel uses the same ISNUMBER and ISTEXT formulas. Whole-column fills in Excel 365
+      spill from `=ISNUMBER(A2:A7)`; in Sheets you wrap the test in ARRAYFORMULA. Excel
+      has no ISDATE; a date still passes ISNUMBER on both platforms because it is a
+      serial number.
+  example:
+    intro: >-
+      A mixed column of values. A2 is a real number, A3 is the text "123", A4 is a word,
+      A5 is blank, A6 holds DATE(2026,11,14) stored as the serial 46340, and A7 holds a
+      formula that returns "". Column C tests ISNUMBER and column D tests ISTEXT on each
+      row. E3 converts the text "123" back to a number.
+    grid:
+      - [Value, Description, ISNUMBER, ISTEXT, Converted]
+      - [123, number]
+      - ['123', text that looks like a number]
+      - [hello, text]
+      - [null, blank cell]
+      - [null, date]
+      - [null, empty string]
+    checks:
+      - cell: A6
+        label: a date stored as a serial number
+        excel: '=DATE(2026,11,14)'
+        result: 46340
+      - cell: A7
+        label: a formula that displays as blank
+        excel: '=""'
+        result: ""
+      - cell: C2
+        label: 123 is a number
+        excel: '=ISNUMBER(A2)'
+        result: true
+      - cell: D2
+        label: 123 is not text
+        excel: '=ISTEXT(A2)'
+        result: false
+      - cell: C3
+        label: the text 123 is not a number
+        excel: '=ISNUMBER(A3)'
+        result: false
+      - cell: D3
+        label: the text 123 is text
+        excel: '=ISTEXT(A3)'
+        result: true
+      - cell: C4
+        label: a word is not a number
+        excel: '=ISNUMBER(A4)'
+        result: false
+      - cell: D4
+        label: a word is text
+        excel: '=ISTEXT(A4)'
+        result: true
+      - cell: C5
+        label: a blank is not a number
+        excel: '=ISNUMBER(A5)'
+        result: false
+      - cell: D5
+        label: a blank is not text
+        excel: '=ISTEXT(A5)'
+        result: false
+      - cell: C6
+        label: a date is a number
+        excel: '=ISNUMBER(A6)'
+        result: true
+      - cell: D6
+        label: a date is not text
+        excel: '=ISTEXT(A6)'
+        result: false
+      - cell: C7
+        label: an empty string is not a number
+        excel: '=ISNUMBER(A7)'
+        result: false
+      - cell: D7
+        label: an empty string is text
+        excel: '=ISTEXT(A7)'
+        result: true
+      - cell: E3
+        label: convert the text 123 to a number
+        excel: '=VALUE(A3)'
+        result: 123
+  steps:
+    - 'To test a value, type `=ISNUMBER(A2)` or `=ISTEXT(A2)` and press Enter. ISNUMBER is TRUE for the real number in A2; ISTEXT is FALSE.'
+    - 'On A3, which holds the text "123", the results flip: `=ISNUMBER(A3)` is FALSE and `=ISTEXT(A3)` is TRUE. The value looks numeric, but SUM will ignore it until you convert it.'
+    - 'A date is stored as a serial number, so `=ISNUMBER(A6)` is TRUE and `=ISTEXT(A6)` is FALSE. A6 shows 46340, the serial for 14 November 2026. That is why you can add days to a date.'
+    - 'A blank cell (A5) returns FALSE for both tests. A formula that returned `""` (A7) is text: ISTEXT is TRUE and ISBLANK is FALSE. Use ISBLANK when you need a truly empty cell, and ISTEXT or `A7=""` when a hidden formula should count as text or empty-looking.'
+    - 'Convert a text number with `=VALUE(A3)` (result 123) or `=IF(ISTEXT(A2), VALUE(A2), A2)` down a mixed column. In Excel 365, spill `=ISNUMBER(A2:A7)` or `=ISTEXT(A2:A7)`. In Google Sheets, wrap the same tests in ARRAYFORMULA. Logical TRUE and FALSE fail both tests in Excel and Sheets; use ISLOGICAL for those.'
+  errors:
+    - error: SUM is 0 or too small even though the column looks numeric
+      cause: The values are text. ISTEXT is TRUE and ISNUMBER is FALSE, so SUM ignores them.
+      fix: Convert with VALUE, `--A2`, or the pattern on the [text to number](../{text-to-number}/) page, then sum the converted column.
+    - error: A date failed a "must be text" check, or a quantity passed a "must be a date" check
+      cause: Dates are numbers. ISNUMBER is TRUE for both a date and a plain amount; ISTEXT is FALSE for a real date.
+      fix: In Sheets use ISDATE when only a date should pass. In Excel test with DATEVALUE or compare the cell to a date, not with ISTEXT.
+    - error: Both ISNUMBER and ISTEXT are FALSE on a cell that looks empty
+      cause: The cell is truly blank, or it holds a logical TRUE/FALSE (for example an unchecked checkbox in Sheets, which stores FALSE).
+      fix: Use [ISBLANK](../{isblank}/) for an empty cell, and ISLOGICAL for TRUE/FALSE. A formula that returned `""` would have made ISTEXT TRUE.
+    - error: '#VALUE! after wrapping a test in VALUE'
+      cause: VALUE was applied to text that is not a number, such as "hello" or a date in an unexpected locale format.
+      fix: Use `=IF(ISTEXT(A2), IFERROR(VALUE(A2), A2), A2)` so non-numeric text is left unchanged.
+  faq:
+    - q: Why is ISNUMBER false for "123"?
+      a: Because the value is text, even if it looks like a number. ISTEXT is TRUE in that case, as the worked example shows for A3. Convert it with VALUE or the double minus when you need a real number.
+    - q: Is a date a number or text?
+      a: A real date is a number (a serial). ISNUMBER is TRUE and ISTEXT is FALSE, which is why A6 returns TRUE for ISNUMBER. A date typed or imported as text, such as "2026-11-14", is text until you convert it with DATEVALUE or DATE.
+    - q: What do ISNUMBER and ISTEXT return for a blank, "", or TRUE?
+      a: A blank is FALSE for both. A formula that returned `""` is text, so ISTEXT is TRUE. Logical TRUE and FALSE are FALSE for both ISNUMBER and ISTEXT in Excel and Google Sheets; use ISLOGICAL to detect them.
+    - q: How do I flag a whole column at once?
+      a: In Microsoft 365, `=ISNUMBER(A2:A7)` or `=ISTEXT(A2:A7)` spills. In Google Sheets, use `=ARRAYFORMULA(IF(A2:A="", "", ISNUMBER(A2:A)))`, or the convert-and-keep pattern in the Sheets alternatives.
+  related: [text-to-number, number-to-text, isblank, if, leading-zeros]
